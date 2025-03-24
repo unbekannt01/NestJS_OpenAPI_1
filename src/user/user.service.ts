@@ -44,7 +44,7 @@ export class UserService {
     }
 
     try {
-      const payload = this.jwtService.verify(token);
+      this.jwtService.verify(token);
       // console.log('Verified Token...');
     } catch (e) {
       throw new UnauthorizedException('Invalid or Expired Token!');
