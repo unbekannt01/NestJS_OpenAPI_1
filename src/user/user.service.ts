@@ -43,13 +43,6 @@ export class UserService {
       throw new UnauthorizedException('Please Verify the Token First!');
     }
 
-    try {
-      this.jwtService.verify(token);
-      // console.log('Verified Token...');
-    } catch (e) {
-      throw new UnauthorizedException('Invalid or Expired Token!');
-    }
-
     if (!user) {
       throw new UnauthorizedException('Invalid Email!');
     }
