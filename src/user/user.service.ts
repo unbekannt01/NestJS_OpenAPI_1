@@ -22,7 +22,7 @@ export class UserService {
     if (existingUser) {
       throw new UnauthorizedException('Email Already Registered');
     }
-    
+
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
     const user = this.userRepository.create({
       ...createUserDto,
@@ -59,7 +59,7 @@ export class UserService {
       throw new UnauthorizedException('Invalid Password!');
     }
     return { message: 'User Login Successfully !' };
-  } 
+  }
 
   async findAll(): Promise<User[]> {
     return this.userRepository.find();
