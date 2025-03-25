@@ -20,5 +20,3 @@ async function bootstrap() {
 }
 bootstrap();
 
-
-console.log('Hello Buddy')
