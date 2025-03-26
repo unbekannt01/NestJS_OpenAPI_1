@@ -10,11 +10,6 @@ import { ConfigModule } from '@nestjs/config';
   imports: [
     ConfigModule.forRoot(), 
     TypeOrmModule.forFeature([User]),
-    JwtModule.register({ 
-      global: true,
-      secret: process.env.SECRET_KEY,
-      signOptions: { expiresIn: '1d' },
-    }),
   ],
   providers: [UserService],
   controllers: [UserController],

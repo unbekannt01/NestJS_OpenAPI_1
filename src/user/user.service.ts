@@ -11,7 +11,6 @@ export class UserService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
-    private readonly jwtService: JwtService,
   ) { }
 
   async save(createUserDto: CreateUserDto) {
@@ -30,25 +29,11 @@ export class UserService {
     });
 
     await this.userRepository.save(user);
-    const payload = { id: user.id, email: user.email };
-    const token = await this.jwtService.signAsync(payload);
-
-    return { message: 'User Registered Successfully', token };
+    return { message: 'User Registered Successfully' };
   }
 
-  async login(email: string, password: string, token: string) {
+  async login(email: string, password: string) {
     const user = await this.userRepository.findOne({ where: { email } });
-
-    if (!token) {
-      throw new UnauthorizedException('Please Verify the Token First!');
-    }
-
-    try {
-      this.jwtService.verify(token);
-      // console.log('Verified Token...');
-    } catch {
-      throw new UnauthorizedException('Invalid or Expired Token!');
-    }
 
     if (!user) {
       throw new UnauthorizedException('Invalid Email!');
@@ -65,4 +50,3 @@ export class UserService {
     return this.userRepository.find();
   }
 }
-

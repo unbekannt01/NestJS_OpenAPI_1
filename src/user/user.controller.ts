@@ -1,10 +1,9 @@
 /* eslint-disable prettier/prettier */
-import { Controller, Post, Body, UnauthorizedException, Get, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Body, Get } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
 import { User } from './entities/user.entity';
-import { ApiBearerAuth } from '@nestjs/swagger';
 
 @Controller('user')
 export class UserController {
@@ -16,13 +15,10 @@ export class UserController {
     return user;
   }
 
-  @ApiBearerAuth()
   @Post('/login')
   async login(
-    @Request() req,
     @Body() { email , password } : LoginUserDto) {
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    return this.userService.login(email,password, token);
+    return this.userService.login(email,password);
   }
 
   @Get('/GetAll')
