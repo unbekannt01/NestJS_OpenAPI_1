@@ -65,3 +65,5 @@ export class UserService {
     return this.userRepository.find();
   }
 }
+
+console.log("hello ");
