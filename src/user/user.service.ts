@@ -12,7 +12,7 @@ export class UserService {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private readonly jwtService: JwtService,
-  ) {}
+  ) { }
 
   async save(createUserDto: CreateUserDto) {
     const existingUser = await this.userRepository.findOne({
@@ -46,7 +46,7 @@ export class UserService {
     try {
       this.jwtService.verify(token);
       // console.log('Verified Token...');
-    } catch  {
+    } catch {
       throw new UnauthorizedException('Invalid or Expired Token!');
     }
 
@@ -66,4 +66,3 @@ export class UserService {
   }
 }
 
-console.log("hello ");
