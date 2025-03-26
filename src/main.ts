@@ -19,6 +19,3 @@ async function bootstrap() {
   await app.listen(3000);
 }
 bootstrap();
-
-console.log('Hello 11')
-console.log('Hello 11')
