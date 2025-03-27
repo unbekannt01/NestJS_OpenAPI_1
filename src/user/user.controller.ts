@@ -11,8 +11,7 @@ export class UserController {
 
   @Post('/register')
   create(@Body() createUserDto: CreateUserDto) {
-    const user = this.userService.save(createUserDto);
-    return user;
+    return this.userService.save(createUserDto);
   }
 
   @Post('/login')
