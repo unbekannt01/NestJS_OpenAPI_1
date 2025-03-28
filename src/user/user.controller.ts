@@ -31,8 +31,4 @@ export class UserController {
     return this.userService.login(email, password);
   }
 
-  @Get('/all')
-  getAllUsers(): Promise<User[]> {
-    return this.userService.findAll();
-  }
 }

@@ -120,10 +120,6 @@ export class UserService {
     return { message: 'User login successful.' };
   }
 
-  async findAll(): Promise<User[]> {
-    return this.userRepository.find();
-  }
-
   private generateOtp(): string {
     return Math.floor(100000 + Math.random() * 900000).toString();
   }
