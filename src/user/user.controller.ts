@@ -1,27 +1,38 @@
-/* eslint-disable prettier/prettier */
-import { Controller, Post, Body, Get } from '@nestjs/common';
+import { Controller, Post, Body, Get, NotFoundException } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
 import { User } from './entities/user.entity';
+import { VerifyOTPDto } from './dto/verify-otp-user.dto';
+import { ResendOTPDto } from './dto/resend-otp-user.dto';
+
 
 @Controller('user')
 export class UserController {
-  constructor(private readonly userService: UserService) { }
+  constructor(private readonly userService: UserService) {}
 
   @Post('/register')
   create(@Body() createUserDto: CreateUserDto) {
     return this.userService.save(createUserDto);
   }
 
-  @Post('/login')
-  async login(
-    @Body() { email , password } : LoginUserDto) {
-    return this.userService.login(email,password);
+  @Post('/verify-otp')
+  verifyOtp(@Body() verifyotp : VerifyOTPDto) {
+    return this.userService.verifyOtp(verifyotp.email, verifyotp.otp);
   }
 
-  @Get('/GetAll')
-  async getAllUsers(): Promise<User[]> {
+  @Post('/resend-otp')
+  async resendOtp(@Body() { email }: ResendOTPDto) {
+    return this.userService.resendOtp(email);
+  }
+
+  @Post('/login')
+  login(@Body() { email, password }: LoginUserDto) {
+    return this.userService.login(email, password);
+  }
+
+  @Get('/all')
+  getAllUsers(): Promise<User[]> {
     return this.userService.findAll();
   }
 }

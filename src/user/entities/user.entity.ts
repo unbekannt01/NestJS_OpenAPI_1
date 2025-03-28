@@ -16,4 +16,13 @@ export class User {
 
     @Column()
     password: string;
+
+    @Column({ default: 'INACTIVE' })
+    status: string;
+
+    @Column({ type: 'varchar', nullable: true })
+    otp: string | null;
+
+    @Column({ type: 'timestamp', nullable: true })
+    otpExpiration: Date | null;
 }
