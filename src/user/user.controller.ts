@@ -2,7 +2,6 @@ import { Controller, Post, Body, Get, NotFoundException } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
-import { User } from './entities/user.entity';
 import { VerifyOTPDto } from './dto/verify-otp-user.dto';
 import { ResendOTPDto } from './dto/resend-otp-user.dto';
 
@@ -14,7 +13,7 @@ export class UserController {
   @Post('/register')
   create(@Body() createUserDto: CreateUserDto) {
     return this.userService.save(createUserDto);
-  }
+  } 
 
   @Post('/verify-otp')
   verifyOtp(@Body() verifyotp : VerifyOTPDto) {

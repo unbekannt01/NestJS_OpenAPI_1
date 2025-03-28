@@ -33,6 +33,10 @@ export class UserService {
         throw new UnauthorizedException('Email already registered');
       }
 
+      if (user.status === 'INACTIVE') {
+        throw new UnauthorizedException('Please Verify Email !')
+      }
+
       // Generate new OTP only if it was expired or null
       if (!user.otp) {
         user.otp = this.generateOtp();
