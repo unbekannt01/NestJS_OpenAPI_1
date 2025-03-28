@@ -96,13 +96,17 @@ export class UserService {
       throw new NotFoundException('User not found');
     }
 
-    // Ensure new OTP is generated
-    user.otp = this.generateOtp();
-    user.otpExpiration = this.getOtpExpiration();
-    await this.userRepository.save(user);
-    await this.emailService.sendOtpEmail(user.email, user.otp || '', user.first_name);
-
-    return { message: 'New OTP sent to your email' };
+    if (user.status === 'INACTIVE') {
+      // Ensure new OTP is generated
+      user.otp = this.generateOtp();
+      user.otpExpiration = this.getOtpExpiration();
+      await this.userRepository.save(user);
+      await this.emailService.sendOtpEmail(user.email, user.otp || '', user.first_name);
+      return { message: 'New OTP sent to your email' };
+    }
+    else {
+      return { message: 'User Already Activated !' };
+    }
   }
 
   async login(email: string, password: string) {
