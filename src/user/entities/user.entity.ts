@@ -25,4 +25,10 @@ export class User {
 
     @Column({ type: 'timestamp', nullable: true })
     otpExpiration: Date | null;
+
+    @Column({nullable : true, default: false})
+    is_logged_in : boolean;
+
+    @Column({nullable: true, default: true})
+    is_logged_out : boolean;
 }

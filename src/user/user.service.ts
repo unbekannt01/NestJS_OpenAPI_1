@@ -125,7 +125,48 @@ export class UserService {
       throw new UnauthorizedException('Invalid password.');
     }
 
-    return { message: 'User login successful.' };
+    user.is_logged_in = true;
+    user.is_logged_out = false;
+    await this.userRepository.save(user);
+
+    return { message: 'User Login Successfully !' };
+  }
+
+  async logout(email: string) {
+    const user = await this.userRepository.findOne({ where: { email } })
+
+    if (!user) {
+      throw new UnauthorizedException('User Not Found !')
+    }
+
+    user.is_logged_in = false;
+    user.is_logged_out = true;
+    await this.userRepository.save(user);
+
+    return { message: 'User Logout Successfully !' }
+  }
+
+  async changepwd(email:string, password:string, newpwd:string){
+    const user = await this.userRepository.findOne({ where : { email }})
+
+    if(!user?.is_logged_in === true){
+      throw new UnauthorizedException('Please Login !')
+    }
+
+    const oldpwd = await bcrypt.compare(password,user.password );
+    if (!oldpwd) {
+      throw new UnauthorizedException('Invalid old password !');
+    }
+
+    const samepwd = await bcrypt.compare(newpwd, password)
+    if(!samepwd) {
+      throw new UnauthorizedException('New password cannot be the same as the old password !')
+    }
+
+    user.password = await bcrypt.hash(newpwd,10);
+    await this.userRepository.save(user); 
+
+    return { message : 'User Successfully Changed their Password !'}
   }
 
   private generateOtp(): string {

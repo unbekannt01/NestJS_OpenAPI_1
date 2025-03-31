@@ -4,6 +4,8 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
 import { VerifyOTPDto } from './dto/verify-otp-user.dto';
 import { ResendOTPDto } from './dto/resend-otp-user.dto';
+import { LogoutUserDto } from './dto/logout-user.dto';
+import { ChangePwdDto } from './dto/change-pwd-user.dto';
 
 
 @Controller('user')
@@ -30,4 +32,13 @@ export class UserController {
     return this.userService.login(email, password);
   }
 
+  @Post('/logout')
+  logout(@Body() { email } : LogoutUserDto ){
+    return this.userService.logout(email);
+  }
+
+  @Post('/changepwd')
+  changepwd(@Body() { email, password , newpwd} : ChangePwdDto){
+    return this.userService.changepwd(email, password, newpwd)
+  }
 }
