@@ -8,13 +8,13 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   
-  // const config = new DocumentBuilder()
-  //   .setTitle('API')
-  //   .setDescription('This is Open API')
-  //   .setVersion('1.0')
-  //   .build();
-  // const documentFactory = () => SwaggerModule.createDocument(app, config);
-  // SwaggerModule.setup('api', app, documentFactory);                                                          
+  const config = new DocumentBuilder()
+    .setTitle('API')
+    .setDescription('This is Open API')
+    .setVersion('1.0')
+    .build();
+  const documentFactory = () => SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api', app, documentFactory);                                                          
 
   await app.listen(3000, '0.0.0.0');
 }

@@ -6,7 +6,8 @@ import { VerifyOTPDto } from './dto/verify-otp-user.dto';
 import { ResendOTPDto } from './dto/resend-otp-user.dto';
 import { LogoutUserDto } from './dto/logout-user.dto';
 import { ChangePwdDto } from './dto/change-pwd-user.dto';
-
+import { ForgotPwdDto } from './dto/forgot-pwd-user.dto';
+import { ResetPwdDto } from './dto/reset-pwd-user.dto';
 
 @Controller('user')
 export class UserController {
@@ -15,10 +16,10 @@ export class UserController {
   @Post('/register')
   create(@Body() createUserDto: CreateUserDto) {
     return this.userService.save(createUserDto);
-  } 
+  }
 
   @Post('/verify-otp')
-  verifyOtp(@Body() verifyotp : VerifyOTPDto) {
+  verifyOtp(@Body() verifyotp: VerifyOTPDto) {
     return this.userService.verifyOtp(verifyotp.email, verifyotp.otp);
   }
 
@@ -32,13 +33,23 @@ export class UserController {
     return this.userService.login(email, password);
   }
 
-  @Post('/logout')
-  logout(@Body() { email } : LogoutUserDto ){
-    return this.userService.logout(email);
+  @Post('/changepwd')
+  changepwd(@Body() { email, password, newpwd }: ChangePwdDto) {
+    return this.userService.changepwd(email, password, newpwd);
   }
 
-  @Post('/changepwd')
-  changepwd(@Body() { email, password , newpwd} : ChangePwdDto){
-    return this.userService.changepwd(email, password, newpwd)
+  @Post('/forgotpwd')
+  forgotpwd(@Body() { email }: ForgotPwdDto) {
+    return this.userService.forgotPassword(email);
+  }
+
+  @Post('/resetpwd')
+  resetpwd(@Body() { email, newpwd }: ResetPwdDto) {
+    return this.userService.resetPassword(email, newpwd);
+  }
+
+  @Post('/logout')
+  logout(@Body() { email }: LogoutUserDto) {
+    return this.userService.logout(email);
   }
 }

@@ -1,10 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
 
-export class ResetPwdDto {
+export class ForgotPwdDto {
 
     @ApiProperty()
     email : string;
-
-    @ApiProperty()
-    newpwd : string;
 }

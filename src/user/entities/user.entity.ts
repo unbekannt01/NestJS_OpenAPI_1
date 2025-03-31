@@ -1,5 +1,10 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
+export enum otp_type{
+    EMAIL_VERIFICATION = 'email_verification',
+    FORGOT_PASSWORD = 'forgot_password'
+}
+
 @Entity({ name: 'user_1' })
 export class User {
     @PrimaryGeneratedColumn('uuid')
@@ -26,9 +31,15 @@ export class User {
     @Column({ type: 'timestamp', nullable: true })
     otpExpiration: Date | null;
 
-    @Column({nullable : true, default: false})
-    is_logged_in : boolean;
+    @Column({ nullable: true, default: false })
+    is_logged_in: boolean;
 
-    @Column({nullable: true, default: true})
-    is_logged_out : boolean;
+    @Column({ nullable: true, default: true })
+    is_logged_out: boolean;
+
+    @Column({ type: 'enum', enum: otp_type , nullable: true })
+    otp_type: otp_type | null;
+
+    @Column({ default: false })
+    is_Verified: boolean;
 }

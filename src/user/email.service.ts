@@ -33,7 +33,7 @@ export class EmailService {
                       <p style="background-color:#2c3e50; color:#ffffff; font-size:24px; font-weight:bold; padding:10px 20px; border-radius:5px; display:inline-block;">${otp}</p>
                       <p style="color:#777; font-size:14px;">This OTP is valid for only a few minutes. Do not share it with anyone.</p>
                       <p style="color:#777; font-size:12px;">If you did not request this OTP, please ignore this email.</p>
-                      <p style="color:#555; font-size:14px;">Thank you, <br> <strong>Your Company Team</strong></p>
+                      <p style="color:#555; font-size:14px;"><strong>Thank you</strong></p>
                     </td>
                   </tr>
                 </table>
