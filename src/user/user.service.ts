@@ -156,6 +156,12 @@ export class UserService {
       );
     }
 
+    if (user.is_logged_in === true) {
+      throw new UnauthorizedException(
+        'You have do not access to Reset the Password !',
+      );
+    }
+
     const sameresetpwd = await bcrypt.compare(newpwd, user.password);
     if (sameresetpwd) {
       throw new UnauthorizedException(
