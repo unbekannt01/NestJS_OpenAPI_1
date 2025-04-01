@@ -2,6 +2,8 @@ import {
   Injectable,
   UnauthorizedException,
   NotFoundException,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { LessThan, Repository } from 'typeorm';
@@ -18,7 +20,7 @@ export class UserService {
     @InjectRepository(User) private readonly userRepository: Repository<User>,
     private readonly emailService: EmailService,
     private readonly smsService: SmsService,
-  ) {}
+  ) { }
 
   @Cron('* * * * * *') // Runs every second (adjust for production)
   async clearExpiredOtps() {
@@ -36,10 +38,10 @@ export class UserService {
 
     if (user) {
       if (user.status === 'ACTIVE') {
-        throw new UnauthorizedException('Email already registered');
+        throw new UnauthorizedException('Email already registered...!');
       }
       if (user.status === 'INACTIVE') {
-        throw new UnauthorizedException('Please Verify Email!');
+        throw new UnauthorizedException('Please Verify Email...!');
       }
       if (!user.otp) {
         user.otp = this.generateOtp();
@@ -63,16 +65,14 @@ export class UserService {
     // Send OTP via Email only (no SMS during registration)
     await this.emailService.sendOtpEmail(user.email, user.otp || '', user.first_name);
 
-    return {
-      message: 'User registered successfully. OTP sent to email.',
-    };
+    return { mesaage: 'User registered successfully. OTP sent to email.' };
   }
 
   async verifyOtp(email: string, otp: string) {
     const user = await this.userRepository.findOne({ where: { email } });
 
     if (!user) {
-      throw new NotFoundException('User Not Found');
+      throw new UnauthorizedException('User Not Found..!');
     }
 
     if (!user.otp || !user.otpExpiration || !user.otp_type) {
@@ -116,7 +116,7 @@ export class UserService {
       user.otp = this.generateOtp();
       user.otpExpiration = this.getOtpExpiration();
       user.otp_type = otp_type.FORGOT_PASSWORD;
-      user.is_Verified = false; 
+      user.is_Verified = false;
 
       await this.userRepository.save(user);
 
