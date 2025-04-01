@@ -1,0 +1,7 @@
+{
+  "first_name": "Prit",
+  "last_name": "Mokariya",
+  "email": "mokariyaprit1123+2@gmail.com",
+  "password": "prit",
+  "mobile_no": "9328484772"
+}

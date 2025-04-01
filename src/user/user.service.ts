@@ -10,22 +10,22 @@ import { otp_type, User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { EmailService } from './email.service';
 import { Cron } from '@nestjs/schedule';
+import { SmsService } from 'src/sms/sms.service';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectRepository(User) private readonly userRepository: Repository<User>,
     private readonly emailService: EmailService,
+    private readonly smsService: SmsService,
   ) {}
 
-  @Cron('* * * * * *') // Runs every seconds
+  @Cron('* * * * * *') // Runs every second (adjust for production)
   async clearExpiredOtps() {
     const now = new Date();
-
-    // Delete OTPs where otpExpiration is in the past
     await this.userRepository.update(
-      { otpExpiration: LessThan(now) }, // Finds expired OTPs
-      { otp: null, otpExpiration: null }, // Sets them to NULL
+      { otpExpiration: LessThan(now) },
+      { otp: null, otpExpiration: null, otp_type: null },
     );
   }
 
@@ -38,15 +38,13 @@ export class UserService {
       if (user.status === 'ACTIVE') {
         throw new UnauthorizedException('Email already registered');
       }
-
       if (user.status === 'INACTIVE') {
-        throw new UnauthorizedException('Please Verify Email !');
+        throw new UnauthorizedException('Please Verify Email!');
       }
-
       if (!user.otp) {
         user.otp = this.generateOtp();
         user.otpExpiration = this.getOtpExpiration();
-        user.otp_type = otp_type.EMAIL_VERIFICATION; // Use the enum
+        user.otp_type = otp_type.EMAIL_VERIFICATION;
       }
     } else {
       const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
@@ -56,18 +54,18 @@ export class UserService {
         status: 'INACTIVE',
         otp: this.generateOtp(),
         otpExpiration: this.getOtpExpiration(),
+        otp_type: otp_type.EMAIL_VERIFICATION,
       });
     }
 
-    (user.otp_type = otp_type.EMAIL_VERIFICATION), // Use the enum
-      await this.userRepository.save(user);
-    await this.emailService.sendOtpEmail(
-      user.email,
-      user.otp || '',
-      user.first_name,
-    );
+    await this.userRepository.save(user);
 
-    return { message: 'User registered successfully. OTP sent to email.' };
+    // Send OTP via Email only (no SMS during registration)
+    await this.emailService.sendOtpEmail(user.email, user.otp || '', user.first_name);
+
+    return {
+      message: 'User registered successfully. OTP sent to email.',
+    };
   }
 
   async verifyOtp(email: string, otp: string) {
@@ -93,14 +91,12 @@ export class UserService {
       throw new UnauthorizedException('Incorrect OTP');
     }
 
-    // OTP is valid, process based on stored otp_type
     if (user.otp_type === otp_type.EMAIL_VERIFICATION) {
       user.status = 'ACTIVE';
     } else if (user.otp_type === otp_type.FORGOT_PASSWORD) {
       user.is_Verified = true;
     }
 
-    // Clear OTP after successful verification
     user.otp = null;
     user.otpExpiration = null;
     user.otp_type = null;
@@ -116,38 +112,47 @@ export class UserService {
       throw new NotFoundException('User Not Registered');
     }
 
-    if (user.status === 'INACTIVE') {
-      throw new UnauthorizedException(
-        'The user needs to activate their account first.',
-      );
-    }
-
     if (user.is_logged_in === false) {
       user.otp = this.generateOtp();
       user.otpExpiration = this.getOtpExpiration();
-      user.otp_type = otp_type.FORGOT_PASSWORD; // Use the enum
-      user.is_Verified = false;
+      user.otp_type = otp_type.FORGOT_PASSWORD;
+      user.is_Verified = false; 
 
       await this.userRepository.save(user);
+
+      // Send OTP via Email
       await this.emailService.sendOtpEmail(
         user.email,
         user.otp,
         user.first_name,
       );
+
+      // Send OTP via SMS if mobile_no is provided
+      let smsResult = { message: 'SMS not sent', phoneNumber: '' };
+      if (user.mobile_no) {
+        try {
+          smsResult = await this.smsService.sendOtpSms(user.mobile_no, user.otp || '');
+          console.log(`SMS sent to: ${smsResult.phoneNumber}`);
+        } catch (error) {
+          console.warn(`Failed to send SMS to ${user.mobile_no}: ${error.message}`);
+        }
+      } else {
+        console.warn(`No mobile number provided for user ${user.email}. SMS not sent.`);
+      }
+
+      return { message: 'OTP Sent to Your Email and SMS (if mobile provided)' };
     } else {
       throw new UnauthorizedException(
-        'User has Already LoggedIn, In this case user can use change password !',
+        'User has Already LoggedIn, In this case user can use change password!',
       );
     }
-
-    return { message: 'OTP Sent to Your Email' };
   }
 
   async resetPassword(email: string, newpwd: string) {
     const user = await this.userRepository.findOne({ where: { email } });
 
     if (!user) {
-      throw new NotFoundException('User Not Registered !');
+      throw new NotFoundException('User Not Registered!');
     }
 
     if (!user.is_Verified) {
@@ -158,20 +163,19 @@ export class UserService {
 
     if (user.is_logged_in === true) {
       throw new UnauthorizedException(
-        'You have do not access to Reset the Password !',
+        'You do not have access to Reset the Password!',
       );
     }
 
     const sameresetpwd = await bcrypt.compare(newpwd, user.password);
     if (sameresetpwd) {
       throw new UnauthorizedException(
-        'New Password cannot be the same as the old Password !',
+        'New Password cannot be the same as the old Password!',
       );
     }
 
-    // Hash & update new password
     user.password = await bcrypt.hash(newpwd, 10);
-    user.is_Verified = false; // Reset verification status
+    user.is_Verified = false;
     user.otp = null;
     user.otpExpiration = null;
     user.otp_type = null;
@@ -193,11 +197,14 @@ export class UserService {
       user.otpExpiration = this.getOtpExpiration();
       user.otp_type = otp_type.EMAIL_VERIFICATION;
       await this.userRepository.save(user);
+
+      // Send OTP via Email only (no SMS)
       await this.emailService.sendOtpEmail(
         user.email,
         user.otp || '',
         user.first_name,
       );
+
       return { message: 'New OTP sent to your email for Email Verification!' };
     }
 
@@ -206,11 +213,14 @@ export class UserService {
       user.otpExpiration = this.getOtpExpiration();
       user.otp_type = otp_type.FORGOT_PASSWORD;
       await this.userRepository.save(user);
+
+      // Send OTP via Email only (no SMS)
       await this.emailService.sendOtpEmail(
         user.email,
         user.otp || '',
         user.first_name,
       );
+
       return { message: 'New OTP sent to your email for Forgot Password!' };
     }
 
@@ -219,8 +229,6 @@ export class UserService {
         message: 'You are already logged in! Use Change Password instead.',
       };
     }
-
-    return { message: 'Something went wrong. Please try again later.' };
   }
 
   async login(email: string, password: string) {
@@ -243,58 +251,78 @@ export class UserService {
     user.is_logged_out = false;
     await this.userRepository.save(user);
 
-    return { message: 'User Login Successfully !' };
+    return { message: 'User Login Successfully!' };
   }
 
   async logout(email: string) {
     const user = await this.userRepository.findOne({ where: { email } });
 
     if (!user) {
-      throw new UnauthorizedException('User Not Found !');
+      throw new UnauthorizedException('User Not Found!');
     }
 
-    if (user.status == 'INACTIVE') {
-      throw new UnauthorizedException('User have to Login First !');
+    if (user.status === 'INACTIVE') {
+      throw new UnauthorizedException('User has to Login First!');
     }
 
-    if (user.is_logged_out == true) {
-      throw new UnauthorizedException('User Already Logout !');
+    if (user.is_logged_out === true) {
+      throw new UnauthorizedException('User Already Logged Out!');
     }
 
     user.is_logged_in = false;
     user.is_logged_out = true;
     await this.userRepository.save(user);
 
-    return { message: 'User Logout Successfully !' };
+    return { message: 'User Logout Successfully!' };
   }
 
   async changepwd(email: string, password: string, newpwd: string) {
     const user = await this.userRepository.findOne({ where: { email } });
 
     if (!user) {
-      throw new UnauthorizedException('Email is Invalid !');
+      throw new UnauthorizedException('Email is Invalid!');
     }
 
-    if (!user?.is_logged_in === true) {
-      throw new UnauthorizedException('Please Login First !');
+    if (!user.is_logged_in) {
+      throw new UnauthorizedException('Please Login First!');
     }
 
     const oldpwd = await bcrypt.compare(password, user.password);
     if (!oldpwd) {
-      throw new UnauthorizedException('Invalid old password !');
+      throw new UnauthorizedException('Invalid old password!');
     }
 
-    const samepwd = await bcrypt.compare(newpwd, password);
-    if (!samepwd) {
+    const samepwd = await bcrypt.compare(newpwd, user.password);
+    if (samepwd) {
       throw new UnauthorizedException(
-        'New password cannot be the same as the old password !',
+        'New password cannot be the same as the old password!',
       );
     }
 
     user.password = await bcrypt.hash(newpwd, 10);
     await this.userRepository.save(user);
 
-    return { message: 'User Successfully Changed their Password !' };
+    return { message: 'User Successfully Changed their Password!' };
+  }
+
+  async update(email: string, first_name: string, last_name: string, mobile_no: string) {
+    const user = await this.userRepository.findOne({ where: { email } });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found!');
+    }
+
+    if (!user.is_logged_in) {
+      throw new UnauthorizedException('User Not Logged In');
+    }
+
+    user.first_name = first_name || user.first_name;
+    user.last_name = last_name || user.last_name;
+    user.mobile_no = mobile_no || user.mobile_no;
+
+    await this.userRepository.save(user);
+
+    return { message: 'User updated successfully!' };
   }
 
   private generateOtp(): string {
@@ -302,6 +330,6 @@ export class UserService {
   }
 
   private getOtpExpiration(): Date {
-    return new Date(Date.now() + 2 * 60 * 1000);
+    return new Date(Date.now() + 5 * 60 * 1000); // 5 minutes expiration
   }
 }

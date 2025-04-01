@@ -22,6 +22,9 @@ export class User {
     @Column()
     password: string;
 
+    @Column()
+    mobile_no: string;
+
     @Column({ default: 'INACTIVE' })
     status: string;
 

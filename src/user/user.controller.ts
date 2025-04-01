@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, NotFoundException } from '@nestjs/common';
+import { Controller, Post, Body, Get, NotFoundException, Put, Param } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
@@ -8,6 +8,7 @@ import { LogoutUserDto } from './dto/logout-user.dto';
 import { ChangePwdDto } from './dto/change-pwd-user.dto';
 import { ForgotPwdDto } from './dto/forgot-pwd-user.dto';
 import { ResetPwdDto } from './dto/reset-pwd-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Controller('user')
 export class UserController {
@@ -46,6 +47,14 @@ export class UserController {
   @Post('/resetpwd')
   resetpwd(@Body() { email, newpwd }: ResetPwdDto) {
     return this.userService.resetPassword(email, newpwd);
+  }
+
+  @Put(':email')
+  async update(
+    @Param('email') email: string,
+    @Body() { first_name, last_name, mobile_no } : UpdateUserDto
+  ) {
+    return this.userService.update(email, first_name, last_name, mobile_no);
   }
 
   @Post('/logout')

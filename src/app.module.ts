@@ -3,9 +3,8 @@ import { UserModule } from './user/user.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from './user/entities/user.entity';
 import { ConfigModule } from '@nestjs/config';
-import { UserService } from './user/user.service';
-import { EmailService } from './user/email.service';
 import { ScheduleModule } from '@nestjs/schedule';
+import { SmsService } from './sms/sms.service';
 
 @Module({
   imports: [
@@ -23,5 +22,6 @@ import { ScheduleModule } from '@nestjs/schedule';
     }),
     UserModule,
   ],
+  providers: [SmsService],
 })
 export class AppModule { }
