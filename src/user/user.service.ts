@@ -5,6 +5,7 @@ import {
   ConflictException,
   HttpStatus,
   BadRequestException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { LessThan, Repository } from 'typeorm';
@@ -68,23 +69,14 @@ export class UserService {
 
     // Send OTP via Email only (no SMS during registration)
     await this.emailService.sendOtpEmail(user.email, user.otp || '', user.first_name);
-
     return { mesaage: 'User registered successfully. OTP sent to email.' };
   }
 
   async verifyOtp(otp: string, email: string) {
-    // console.log("Received OTP:", otp);
-    // console.log("Received Email:", email);
-
     const user = await this.userRepository.findOne({ where: { email } });
-
     if (!user) {
       throw new NotFoundException("User Not Found..!");
     }
-
-    // console.log("Stored OTP:", user.otp);
-    // console.log("Stored OTP Expiration:", user.otpExpiration);
-    // console.log("Stored OTP Type:", user.otp_type);
 
     if (!user.otp || !user.otpExpiration || !user.otp_type) {
       console.log("Invalid OTP or OTP Type Missing");
@@ -122,7 +114,6 @@ export class UserService {
 
   async forgotPassword(email: string) {
     const user = await this.userRepository.findOne({ where: { email } });
-
     if (!user) {
       throw new NotFoundException('User Not Found..!');
     }
@@ -263,7 +254,6 @@ export class UserService {
     }
 
     user.is_logged_in = true;
-    user.is_logged_out = false;
     await this.userRepository.save(user);
 
     return { message: 'User Login Successfully!', user };
@@ -271,8 +261,8 @@ export class UserService {
 
   async getUserByEmail(email: string): Promise<User | null> {
     return this.userRepository.findOne({
-      where: { email }, // ✅ Correct way to filter by email
-      select: ["first_name", "last_name", "mobile_no", "email"], // ✅ Explicitly select fields
+      where: { email }, 
+      select: ["first_name", "last_name", "mobile_no", "email", "status"],
     });
   }
 
@@ -280,19 +270,18 @@ export class UserService {
     const user = await this.userRepository.findOne({ where: { email } });
 
     if (!user) {  
-      throw new UnauthorizedException('User Not Found!');
+      throw new NotFoundException('User Not Found!');
     }
 
-    if (user.status === 'INACTIVE') {
-      throw new UnauthorizedException('User has to Login First!');
-    }
+    // if (user.status === 'INACTIVE') {
+    //   throw new UnauthorizedException('User has to Login First!');
+    // }
 
-    if (user.is_logged_out === true) {
+    if (user.is_logged_in === false) {
       throw new UnauthorizedException('User Already Logged Out!');
     }
 
     user.is_logged_in = false;
-    user.is_logged_out = true;
     await this.userRepository.save(user);
 
     return { message: 'User Logout Successfully!' };
@@ -327,25 +316,53 @@ export class UserService {
     return { message: 'User Successfully Changed their Password!' };
   }
 
-  async update(id: string, updateuserDto: UpdateUserDto) {
-    const user = await this.userRepository.findOne({ where: { id } });
+  // async update(id: string, updateuserDto: UpdateUserDto) {
+  //   const user = await this.userRepository.findOne({ where: { id } });
+
+  //   if (!user) {
+  //     throw new NotFoundException('User not found!');
+  //   }
+
+  //   if (!user.is_logged_in) {
+  //     throw new InternalServerErrorException('User Not Logged In');
+  //   }
+
+  //   if (updateuserDto.first_name) user.first_name = updateuserDto.first_name;
+  //   if (updateuserDto.last_name) user.last_name = updateuserDto.last_name;
+  //   if (updateuserDto.mobile_no) user.mobile_no = updateuserDto.mobile_no;
+
+  //   await this.userRepository.save(user);
+
+  //   return { message: 'User updated successfully!' };
+  // }
+
+  async update(email: string, first_name: string, last_name: string, mobile_no: string) {
+    const user = await this.userRepository.findOne({ where: { email: email.toLowerCase() } });
 
     if (!user) {
-      throw new UnauthorizedException('User not found!');
+        throw new NotFoundException('User not found!');
     }
 
     if (!user.is_logged_in) {
-      throw new UnauthorizedException('User Not Logged In');
+        throw new UnauthorizedException('User is not logged in.');
     }
 
-    if (updateuserDto.first_name) user.first_name = updateuserDto.first_name;
-    if (updateuserDto.last_name) user.last_name = updateuserDto.last_name;
-    if (updateuserDto.mobile_no) user.mobile_no = updateuserDto.mobile_no;
+    console.log("Before update:", user); // Debugging
 
-    await this.userRepository.save(user);
+    user.first_name = first_name?.trim() || user.first_name;
+    user.last_name = last_name?.trim() || user.last_name;
+    user.mobile_no = mobile_no?.trim() || user.mobile_no;
 
-    return { message: 'User updated successfully!' };
-  }
+    try {
+        await this.userRepository.save(user);
+        console.log("After update:", user); // Debugging
+
+        return { message: 'User updated successfully!', user };
+    } catch (error) {
+        console.error("Update failed:", error);
+        // throw new InternalServerErrorException('Failed to update user. Please try again.');
+    }
+}
 
   private generateOtp(): string {
     return Math.floor(100000 + Math.random() * 900000).toString();

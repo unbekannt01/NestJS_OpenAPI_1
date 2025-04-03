@@ -18,7 +18,7 @@ export class UserController {
   @Post('/register')
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() createUserDto: CreateUserDto) {
-      return this.userService.save(createUserDto);
+    return this.userService.save(createUserDto);
   }
 
   @Post("/verify-otp")
@@ -55,26 +55,53 @@ export class UserController {
     return this.userService.resetPassword(email, newpwd);
   }
 
-  @HttpCode(HttpStatus.OK)
-  @Patch(':id')
+  // @HttpCode(HttpStatus.OK)
+  // @Patch(':id')
+  // async update(
+  //   @Param('id') id: string,
+  //   @Body() updateuserDto: UpdateUserDto
+  // ) {
+  //   return this.userService.update(id, updateuserDto);
+  // }
+
+  @Put(":email")
   async update(
-    @Param('id') id: string,
-    @Body() updateuserDto: UpdateUserDto
+      @Param("email") email: string,
+      @Body() { first_name, last_name, mobile_no }: UpdateUserDto
   ) {
-    return this.userService.update(id, updateuserDto);
+      try {
+          const updatedUser = await this.userService.update(
+              email.toLowerCase(),
+              first_name?.trim() || '',
+              last_name?.trim() || '',
+              mobile_no?.trim() || ''
+          );
+  
+          return { message: "User updated successfully!", user: updatedUser };
+      } catch (error) {
+          throw new BadRequestException(error.message || "Failed to update user.");
+      }
   }
 
   @HttpCode(HttpStatus.OK)
   @Post('/logout')
-  logout(@Body() { email }: LogoutUserDto) {
-    return this.userService.logout(email);
+  async logout(@Body() { email }: LogoutUserDto) {
+    const user = await this.userService.getUserByEmail(email.toLowerCase());
+    if (!user) {
+      throw new NotFoundException("User not found.");
+    }
+    await this.userService.logout(email.toLowerCase());
+    return { message: "User logged out successfully!" };
   }
 
   @Get("/profile")
   async getProfile(@Query("email") email: string) {
-    if (!email) throw new BadRequestException("Email is required.");
-    const user = await this.userService.getUserByEmail(email);
-    if (!user) throw new NotFoundException("User not found.");
-    return user;
-  }
+      if (!email) throw new BadRequestException("Email is required.");
+  
+      const user = await this.userService.getUserByEmail(email.toLowerCase());
+  
+      if (!user) throw new NotFoundException("No user found with this email.");
+      
+      return { message: "User profile fetched successfully!", user };
+  }
 }

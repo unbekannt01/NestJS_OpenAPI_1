@@ -37,9 +37,6 @@ export class User {
     @Column({ nullable: true, default: false })
     is_logged_in: boolean;
 
-    @Column({ nullable: true, default: true })
-    is_logged_out: boolean;
-
     @Column({ type: 'enum', enum: OtpType, nullable: true })
     otp_type: OtpType | null;
 
