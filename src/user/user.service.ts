@@ -3,6 +3,8 @@ import {
   UnauthorizedException,
   NotFoundException,
   ConflictException,
+  HttpStatus,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { LessThan, Repository } from 'typeorm';
@@ -40,9 +42,11 @@ export class UserService {
       if (user.status === 'ACTIVE') {
         throw new ConflictException('Email already registered...!');
       }
-      if (user.status === 'INACTIVE') {
-        throw new UnauthorizedException('Please Verify Email...!');
-      }
+
+      // if (user.status === 'INACTIVE') {
+      //   throw new UnauthorizedException('Please Verify Email...!');
+      // }
+
       if (!user.otp) {
         user.otp = this.generateOtp();
         user.otpExpiration = this.getOtpExpiration();
@@ -71,23 +75,22 @@ export class UserService {
   async verifyOtp(otp: string, email: string) {
     // console.log("Received OTP:", otp);
     // console.log("Received Email:", email);
-  
+
     const user = await this.userRepository.findOne({ where: { email } });
-  
+
     if (!user) {
-      console.log("User Not Found");
-      throw new UnauthorizedException("User Not Found..!");
+      throw new NotFoundException("User Not Found..!");
     }
-  
+
     // console.log("Stored OTP:", user.otp);
     // console.log("Stored OTP Expiration:", user.otpExpiration);
     // console.log("Stored OTP Type:", user.otp_type);
-  
+
     if (!user.otp || !user.otpExpiration || !user.otp_type) {
       console.log("Invalid OTP or OTP Type Missing");
-      throw new UnauthorizedException("Invalid OTP or OTP Type Missing");
+      throw new BadRequestException("Invalid OTP or OTP Type Missing");
     }
-  
+
     if (new Date() > user.otpExpiration) {
       console.log("OTP Expired");
       user.otp = null;
@@ -96,32 +99,32 @@ export class UserService {
       await this.userRepository.save(user);
       throw new UnauthorizedException("OTP Expired. Please request a new one.");
     }
-  
+
     if (user.otp !== otp) {
       console.log("Incorrect OTP");
-      throw new UnauthorizedException("Incorrect OTP");
+      throw new BadRequestException("Incorrect OTP");
     }
-  
+
     if (user.otp_type === "EMAIL_VERIFICATION") {
       user.status = "ACTIVE";
     } else if (user.otp_type === "FORGOT_PASSWORD") {
       user.is_Verified = true;
     }
-  
+
     user.otp = null;
     user.otpExpiration = null;
     user.otp_type = null;
     await this.userRepository.save(user);
-  
-    console.log("OTP Verified Successfully");
+
+    // console.log("OTP Verified Successfully");
     return { message: "OTP Verified Successfully" };
   }
-  
+
   async forgotPassword(email: string) {
     const user = await this.userRepository.findOne({ where: { email } });
 
     if (!user) {
-      throw new NotFoundException('User Not Registered');
+      throw new NotFoundException('User Not Found..!');
     }
 
     if (user.is_logged_in === false) {
@@ -144,12 +147,12 @@ export class UserService {
       if (user.mobile_no) {
         try {
           smsResult = await this.smsService.sendOtpSms(user.mobile_no, user.otp || '');
-          console.log(`SMS sent to: ${smsResult.phoneNumber}`);
+          // console.log(`SMS sent to: ${smsResult.phoneNumber}`);
         } catch (error) {
-          console.warn(`Failed to send SMS to ${user.mobile_no}: ${error.message}`);
+          // console.warn(`Failed to send SMS to ${user.mobile_no}: ${error.message}`);
         }
       } else {
-        console.warn(`No mobile number provided for user ${user.email}. SMS not sent.`);
+        // console.warn(`No mobile number provided for user ${user.email}. SMS not sent.`);
       }
 
       return { message: 'OTP Sent to Your Email and SMS (if mobile provided)' };
@@ -250,9 +253,9 @@ export class UserService {
       throw new NotFoundException('User not registered.');
     }
 
-    if (user.status !== 'ACTIVE') {
-      throw new UnauthorizedException('Please verify your email first.');
-    }
+    // if (user.status !== 'ACTIVE') {
+    //   throw new UnauthorizedException('Please verify your email first.');
+    // }
 
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
@@ -263,20 +266,20 @@ export class UserService {
     user.is_logged_out = false;
     await this.userRepository.save(user);
 
-    return { message: 'User Login Successfully!' , user};
+    return { message: 'User Login Successfully!', user };
   }
 
   async getUserByEmail(email: string): Promise<User | null> {
     return this.userRepository.findOne({
       where: { email }, // ✅ Correct way to filter by email
       select: ["first_name", "last_name", "mobile_no", "email"], // ✅ Explicitly select fields
-    });
-  }
+    });
+  }
 
   async logout(email: string) {
     const user = await this.userRepository.findOne({ where: { email } });
 
-    if (!user) {
+    if (!user) {  
       throw new UnauthorizedException('User Not Found!');
     }
 

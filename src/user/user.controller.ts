@@ -31,26 +31,31 @@ export class UserController {
     return this.userService.resendOtp(email);
   }
 
+  @HttpCode(HttpStatus.OK)
   @Post('/login')
   login(@Body() { email, password }: LoginUserDto) {
     return this.userService.login(email, password);
   }
 
+  @HttpCode(HttpStatus.OK)
   @Post('/changepwd')
   changepwd(@Body() { email, password, newpwd }: ChangePwdDto) {
     return this.userService.changepwd(email, password, newpwd);
   }
 
+  @HttpCode(HttpStatus.OK)
   @Post('/forgotpwd')
   forgotpwd(@Body() { email }: ForgotPwdDto) {
     return this.userService.forgotPassword(email);
   }
 
+  @HttpCode(HttpStatus.OK)
   @Post('/resetpwd')
   resetpwd(@Body() { email, newpwd }: ResetPwdDto) {
     return this.userService.resetPassword(email, newpwd);
   }
 
+  @HttpCode(HttpStatus.OK)
   @Patch(':id')
   async update(
     @Param('id') id: string,
@@ -59,6 +64,7 @@ export class UserController {
     return this.userService.update(id, updateuserDto);
   }
 
+  @HttpCode(HttpStatus.OK)
   @Post('/logout')
   logout(@Body() { email }: LogoutUserDto) {
     return this.userService.logout(email);
