@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, NotFoundException, Put, Param } from '@nestjs/common';
+import { Controller, Post, Body, Get, NotFoundException, Put, Param, HttpStatus, HttpCode, Patch, BadRequestException, Query } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
@@ -9,23 +9,25 @@ import { ChangePwdDto } from './dto/change-pwd-user.dto';
 import { ForgotPwdDto } from './dto/forgot-pwd-user.dto';
 import { ResetPwdDto } from './dto/reset-pwd-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { ApiConflictResponse, ApiCreatedResponse, ApiOperation, ApiUnauthorizedResponse } from '@nestjs/swagger';
 
 @Controller('user')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(private readonly userService: UserService) { }
 
   @Post('/register')
-  create(@Body() createUserDto: CreateUserDto) {
-    return this.userService.save(createUserDto);
+  @HttpCode(HttpStatus.CREATED)
+  async create(@Body() createUserDto: CreateUserDto) {
+      return this.userService.save(createUserDto);
   }
 
-  @Post('/verify-otp')
-  verifyOtp(@Body() verifyotp: VerifyOTPDto) {
-    return this.userService.verifyOtp(verifyotp.email, verifyotp.otp);
+  @Post("/verify-otp")
+  verifyOtp(@Body() verifyOtpDto: { otp: string; email: string }) {
+    return this.userService.verifyOtp(verifyOtpDto.otp, verifyOtpDto.email);
   }
 
   @Post('/resend-otp')
-  async resendOtp(@Body() { email }: ResendOTPDto) {
+  resendOtp(@Body() { email }: ResendOTPDto) {
     return this.userService.resendOtp(email);
   }
 
@@ -49,16 +51,24 @@ export class UserController {
     return this.userService.resetPassword(email, newpwd);
   }
 
-  @Put(':email')
+  @Patch(':id')
   async update(
-    @Param('email') email: string,
-    @Body() { first_name, last_name, mobile_no } : UpdateUserDto
+    @Param('id') id: string,
+    @Body() updateuserDto: UpdateUserDto
   ) {
-    return this.userService.update(email, first_name, last_name, mobile_no);
+    return this.userService.update(id, updateuserDto);
   }
 
   @Post('/logout')
   logout(@Body() { email }: LogoutUserDto) {
     return this.userService.logout(email);
   }
+
+  @Get("/profile")
+  async getProfile(@Query("email") email: string) {
+    if (!email) throw new BadRequestException("Email is required.");
+    const user = await this.userService.getUserByEmail(email);
+    if (!user) throw new NotFoundException("User not found.");
+    return user;
+  }
 }

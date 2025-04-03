@@ -1,8 +1,8 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
-export enum otp_type{
-    EMAIL_VERIFICATION = 'email_verification',
-    FORGOT_PASSWORD = 'forgot_password'
+export enum OtpType {
+    EMAIL_VERIFICATION = "EMAIL_VERIFICATION",
+    FORGOT_PASSWORD = "FORGOT_PASSWORD",
 }
 
 @Entity({ name: 'user_1' })
@@ -40,8 +40,8 @@ export class User {
     @Column({ nullable: true, default: true })
     is_logged_out: boolean;
 
-    @Column({ type: 'enum', enum: otp_type , nullable: true })
-    otp_type: otp_type | null;
+    @Column({ type: 'enum', enum: OtpType, nullable: true })
+    otp_type: OtpType | null;
 
     @Column({ default: false })
     is_Verified: boolean;

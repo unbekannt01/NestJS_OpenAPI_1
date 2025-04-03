@@ -2,17 +2,17 @@ import {
   Injectable,
   UnauthorizedException,
   NotFoundException,
-  HttpException,
-  HttpStatus,
+  ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { LessThan, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { otp_type, User } from './entities/user.entity';
+import { OtpType, User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { EmailService } from './email.service';
 import { Cron } from '@nestjs/schedule';
-import { SmsService } from 'src/sms/sms.service';
+import { SmsService } from 'src/user/sms/sms.service';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UserService {
@@ -38,7 +38,7 @@ export class UserService {
 
     if (user) {
       if (user.status === 'ACTIVE') {
-        throw new UnauthorizedException('Email already registered...!');
+        throw new ConflictException('Email already registered...!');
       }
       if (user.status === 'INACTIVE') {
         throw new UnauthorizedException('Please Verify Email...!');
@@ -46,7 +46,7 @@ export class UserService {
       if (!user.otp) {
         user.otp = this.generateOtp();
         user.otpExpiration = this.getOtpExpiration();
-        user.otp_type = otp_type.EMAIL_VERIFICATION;
+        user.otp_type = OtpType.EMAIL_VERIFICATION;
       }
     } else {
       const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
@@ -56,7 +56,7 @@ export class UserService {
         status: 'INACTIVE',
         otp: this.generateOtp(),
         otpExpiration: this.getOtpExpiration(),
-        otp_type: otp_type.EMAIL_VERIFICATION,
+        otp_type: OtpType.EMAIL_VERIFICATION,
       });
     }
 
@@ -68,43 +68,55 @@ export class UserService {
     return { mesaage: 'User registered successfully. OTP sent to email.' };
   }
 
-  async verifyOtp(email: string, otp: string) {
+  async verifyOtp(otp: string, email: string) {
+    // console.log("Received OTP:", otp);
+    // console.log("Received Email:", email);
+  
     const user = await this.userRepository.findOne({ where: { email } });
-
+  
     if (!user) {
-      throw new UnauthorizedException('User Not Found..!');
+      console.log("User Not Found");
+      throw new UnauthorizedException("User Not Found..!");
     }
-
+  
+    // console.log("Stored OTP:", user.otp);
+    // console.log("Stored OTP Expiration:", user.otpExpiration);
+    // console.log("Stored OTP Type:", user.otp_type);
+  
     if (!user.otp || !user.otpExpiration || !user.otp_type) {
-      throw new UnauthorizedException('Invalid OTP or OTP Type Missing');
+      console.log("Invalid OTP or OTP Type Missing");
+      throw new UnauthorizedException("Invalid OTP or OTP Type Missing");
     }
-
+  
     if (new Date() > user.otpExpiration) {
+      console.log("OTP Expired");
       user.otp = null;
       user.otpExpiration = null;
       user.otp_type = null;
       await this.userRepository.save(user);
-      throw new UnauthorizedException('OTP Expired. Please request a new one.');
+      throw new UnauthorizedException("OTP Expired. Please request a new one.");
     }
-
+  
     if (user.otp !== otp) {
-      throw new UnauthorizedException('Incorrect OTP');
+      console.log("Incorrect OTP");
+      throw new UnauthorizedException("Incorrect OTP");
     }
-
-    if (user.otp_type === otp_type.EMAIL_VERIFICATION) {
-      user.status = 'ACTIVE';
-    } else if (user.otp_type === otp_type.FORGOT_PASSWORD) {
+  
+    if (user.otp_type === "EMAIL_VERIFICATION") {
+      user.status = "ACTIVE";
+    } else if (user.otp_type === "FORGOT_PASSWORD") {
       user.is_Verified = true;
     }
-
+  
     user.otp = null;
     user.otpExpiration = null;
     user.otp_type = null;
     await this.userRepository.save(user);
-
-    return { message: 'OTP Verified Successfully' };
+  
+    console.log("OTP Verified Successfully");
+    return { message: "OTP Verified Successfully" };
   }
-
+  
   async forgotPassword(email: string) {
     const user = await this.userRepository.findOne({ where: { email } });
 
@@ -115,7 +127,7 @@ export class UserService {
     if (user.is_logged_in === false) {
       user.otp = this.generateOtp();
       user.otpExpiration = this.getOtpExpiration();
-      user.otp_type = otp_type.FORGOT_PASSWORD;
+      user.otp_type = OtpType.FORGOT_PASSWORD;
       user.is_Verified = false;
 
       await this.userRepository.save(user);
@@ -195,7 +207,7 @@ export class UserService {
     if (user.status === 'INACTIVE') {
       user.otp = this.generateOtp();
       user.otpExpiration = this.getOtpExpiration();
-      user.otp_type = otp_type.EMAIL_VERIFICATION;
+      user.otp_type = OtpType.EMAIL_VERIFICATION;
       await this.userRepository.save(user);
 
       // Send OTP via Email only (no SMS)
@@ -211,7 +223,7 @@ export class UserService {
     if (user.status === 'ACTIVE' && user.is_logged_in === false) {
       user.otp = this.generateOtp();
       user.otpExpiration = this.getOtpExpiration();
-      user.otp_type = otp_type.FORGOT_PASSWORD;
+      user.otp_type = OtpType.FORGOT_PASSWORD;
       await this.userRepository.save(user);
 
       // Send OTP via Email only (no SMS)
@@ -251,8 +263,15 @@ export class UserService {
     user.is_logged_out = false;
     await this.userRepository.save(user);
 
-    return { message: 'User Login Successfully!' };
+    return { message: 'User Login Successfully!' , user};
   }
+
+  async getUserByEmail(email: string): Promise<User | null> {
+    return this.userRepository.findOne({
+      where: { email }, // ✅ Correct way to filter by email
+      select: ["first_name", "last_name", "mobile_no", "email"], // ✅ Explicitly select fields
+    });
+  }
 
   async logout(email: string) {
     const user = await this.userRepository.findOne({ where: { email } });
@@ -305,8 +324,8 @@ export class UserService {
     return { message: 'User Successfully Changed their Password!' };
   }
 
-  async update(email: string, first_name: string, last_name: string, mobile_no: string) {
-    const user = await this.userRepository.findOne({ where: { email } });
+  async update(id: string, updateuserDto: UpdateUserDto) {
+    const user = await this.userRepository.findOne({ where: { id } });
 
     if (!user) {
       throw new UnauthorizedException('User not found!');
@@ -316,9 +335,9 @@ export class UserService {
       throw new UnauthorizedException('User Not Logged In');
     }
 
-    user.first_name = first_name || user.first_name;
-    user.last_name = last_name || user.last_name;
-    user.mobile_no = mobile_no || user.mobile_no;
+    if (updateuserDto.first_name) user.first_name = updateuserDto.first_name;
+    if (updateuserDto.last_name) user.last_name = updateuserDto.last_name;
+    if (updateuserDto.mobile_no) user.mobile_no = updateuserDto.mobile_no;
 
     await this.userRepository.save(user);
 

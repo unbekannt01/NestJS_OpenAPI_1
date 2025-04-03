@@ -4,7 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from './user/entities/user.entity';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
-import { SmsService } from './sms/sms.service';
+import { SmsService } from './user/sms/sms.service';
 
 @Module({
   imports: [
