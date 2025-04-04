@@ -4,11 +4,9 @@ import { IsEmail, IsNotEmpty } from "class-validator";
 
 export class VerifyOTPDto {
 
-    @IsEmail()
     @ApiProperty()
     email : string;
 
-    @IsNotEmpty()
     @ApiProperty()
     otp : string;
 }

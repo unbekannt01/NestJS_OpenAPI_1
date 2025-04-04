@@ -8,7 +8,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { LessThan, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { OtpType, User } from './entities/user.entity';
+import { OtpType, User, UserRole } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { EmailService } from './email.service';
 import { Cron } from '@nestjs/schedule';
@@ -59,14 +59,16 @@ export class UserService {
         otp: this.generateOtp(),
         otpExpiration: this.getOtpExpiration(),
         otp_type: OtpType.EMAIL_VERIFICATION,
+        role : UserRole.USER
       });
     }
+    const role = user.role;
 
     await this.userRepository.save(user);
 
     // Send OTP via Email only (no SMS during registration)
     await this.emailService.sendOtpEmail(user.email, user.otp || '', user.first_name);
-    return { mesaage: 'User registered successfully. OTP sent to email.' };
+    return { mesaage: `${role} registered successfully. OTP sent to email.` };
   }
 
   async verifyOtp(otp: string, email: string) {
@@ -250,23 +252,24 @@ export class UserService {
       throw new UnauthorizedException('Invalid password.');
     }
 
+    const role = user.role;
     user.is_logged_in = true;
     await this.userRepository.save(user);
 
-    return { message: 'User Login Successfully!', user };
+    return { message: `${role} Login Successfully!`, user };
   }
 
   async getUserByEmail(email: string): Promise<User | null> {
     return this.userRepository.findOne({
-      where: { email }, 
-      select: ["first_name", "last_name", "mobile_no", "email", "status"],
+      where: { email },
+      select: ["first_name", "last_name", "mobile_no", "email", "status", "userName"],
     });
   }
 
   async logout(email: string) {
     const user = await this.userRepository.findOne({ where: { email } });
 
-    if (!user) {  
+    if (!user) {
       throw new NotFoundException('User Not Found!');
     }
 
@@ -333,15 +336,15 @@ export class UserService {
   //   return { message: 'User updated successfully!' };
   // }
 
-  async update(email: string, first_name: string, last_name: string, mobile_no: string) {
+  async update(email: string, first_name: string, last_name: string, mobile_no: string, userName: string) {
     const user = await this.userRepository.findOne({ where: { email: email.toLowerCase() } });
 
     if (!user) {
-        throw new NotFoundException('User not found!');
+      throw new NotFoundException('User not found!');
     }
 
     if (!user.is_logged_in) {
-        throw new UnauthorizedException('User is not logged in.');
+      throw new UnauthorizedException('User is not logged in.');
     }
 
     console.log("Before update:", user); // Debugging
@@ -349,17 +352,18 @@ export class UserService {
     user.first_name = first_name?.trim() || user.first_name;
     user.last_name = last_name?.trim() || user.last_name;
     user.mobile_no = mobile_no?.trim() || user.mobile_no;
+    user.userName = userName?.trim() || user.userName;
 
     try {
-        await this.userRepository.save(user);
-        console.log("After update:", user); // Debugging
+      await this.userRepository.save(user);
+      console.log("After update:", user); // Debugging
 
-        return { message: 'User updated successfully!', user };
+      return { message: 'User updated successfully!', user };
     } catch (error) {
-        console.error("Update failed:", error);
-        // throw new InternalServerErrorException('Failed to update user. Please try again.');
+      console.error("Update failed:", error);
+      // throw new InternalServerErrorException('Failed to update user. Please try again.');
     }
-}
+  }
 
   private generateOtp(): string {
     return Math.floor(100000 + Math.random() * 900000).toString();
@@ -367,5 +371,9 @@ export class UserService {
 
   private getOtpExpiration(): Date {
     return new Date(Date.now() + 5 * 60 * 1000); // 5 minutes expiration
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return await this.userRepository.find(); // Fetches all users
   }
 }

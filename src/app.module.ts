@@ -5,6 +5,8 @@ import { User } from './user/entities/user.entity';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { SmsService } from './user/sms/sms.service';
+import { APP_GUARD } from '@nestjs/core';
+import { RolesGuard } from './user/Guard/roles.guard';
 
 @Module({
   imports: [
@@ -22,6 +24,9 @@ import { SmsService } from './user/sms/sms.service';
     }),
     UserModule,
   ],
-  providers: [SmsService],
+  providers: [SmsService,
+{    provide: APP_GUARD,
+      useClass: RolesGuard,}
+  ],
 })
 export class AppModule { }

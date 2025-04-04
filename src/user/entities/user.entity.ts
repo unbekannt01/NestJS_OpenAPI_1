@@ -1,5 +1,11 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
+export enum UserRole {
+    USER = 'User',
+    ADMIN = 'Admin',
+    SUPER_ADMIN = 'Super_Admin'
+}
+
 export enum OtpType {
     EMAIL_VERIFICATION = "EMAIL_VERIFICATION",
     FORGOT_PASSWORD = "FORGOT_PASSWORD",
@@ -9,6 +15,9 @@ export enum OtpType {
 export class User {
     @PrimaryGeneratedColumn('uuid')
     id: string;
+
+    @Column({ nullable: true })
+    userName: string;
 
     @Column()
     first_name: string;
@@ -42,4 +51,7 @@ export class User {
 
     @Column({ default: false })
     is_Verified: boolean;
+
+    @Column({ default: UserRole.ADMIN })
+    role: UserRole;
 }

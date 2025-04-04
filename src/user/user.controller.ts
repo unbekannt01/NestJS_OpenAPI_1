@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, NotFoundException, Put, Param, HttpStatus, HttpCode, Patch, BadRequestException, Query } from '@nestjs/common';
+import { Controller, Post, Body, Get, NotFoundException, Put, Param, HttpStatus, HttpCode, Patch, BadRequestException, Query, UseGuards } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
@@ -10,6 +10,9 @@ import { ForgotPwdDto } from './dto/forgot-pwd-user.dto';
 import { ResetPwdDto } from './dto/reset-pwd-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ApiConflictResponse, ApiCreatedResponse, ApiOperation, ApiUnauthorizedResponse } from '@nestjs/swagger';
+import { UserRole } from './entities/user.entity';
+import { Roles } from './decorators/roles.decorator';
+import { RolesGuard } from './Guard/roles.guard';
 
 @Controller('user')
 export class UserController {
@@ -22,7 +25,7 @@ export class UserController {
   }
 
   @Post("/verify-otp")
-  verifyOtp(@Body() verifyOtpDto: { otp: string; email: string }) {
+  async verifyOtp(@Body() verifyOtpDto: VerifyOTPDto) {
     return this.userService.verifyOtp(verifyOtpDto.otp, verifyOtpDto.email);
   }
 
@@ -64,17 +67,18 @@ export class UserController {
   //   return this.userService.update(id, updateuserDto);
   // }
 
-  @Put(":email")
+  @Put("/:email")
   async update(
-      @Param("email") email: string,
-      @Body() { first_name, last_name, mobile_no }: UpdateUserDto
+      @Param("email") email: string,  
+      @Body() { first_name, last_name, mobile_no , userName}: UpdateUserDto
   ) {
       try {
           const updatedUser = await this.userService.update(
               email.toLowerCase(),
               first_name?.trim() || '',
               last_name?.trim() || '',
-              mobile_no?.trim() || ''
+              mobile_no?.trim() || '',
+              userName || ''
           );
   
           return { message: "User updated successfully!", user: updatedUser };
@@ -94,6 +98,8 @@ export class UserController {
     return { message: "User logged out successfully!" };
   }
 
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
   @Get("/profile")
   async getProfile(@Query("email") email: string) {
       if (!email) throw new BadRequestException("Email is required.");
@@ -104,4 +110,13 @@ export class UserController {
       
       return { message: "User profile fetched successfully!", user };
   }
+
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @Get()  
+  async getAllUsers() {
+    const users = await this.userService.getAllUsers();
+    return { message: 'Users fetched successfully!', users };
+  }
+
 }
