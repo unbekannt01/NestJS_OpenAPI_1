@@ -3,9 +3,7 @@ import {
   UnauthorizedException,
   NotFoundException,
   ConflictException,
-  HttpStatus,
   BadRequestException,
-  InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { LessThan, Repository } from 'typeorm';
@@ -15,7 +13,6 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { EmailService } from './email.service';
 import { Cron } from '@nestjs/schedule';
 import { SmsService } from 'src/user/sms/sms.service';
-import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UserService {
