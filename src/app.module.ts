@@ -25,8 +25,10 @@ import { RolesGuard } from './user/Guard/roles.guard';
     UserModule,
   ],
   providers: [SmsService,
-{    provide: APP_GUARD,
-      useClass: RolesGuard,}
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
+    }
   ],
 })
 export class AppModule { }

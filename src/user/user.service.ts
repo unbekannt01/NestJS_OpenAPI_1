@@ -249,7 +249,7 @@ export class UserService {
 
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
-      throw new UnauthorizedException('Invalid password.');
+      throw new UnauthorizedException('Wrong Credentials.');
     }
 
     const role = user.role;
