@@ -52,6 +52,9 @@ export class User {
     @Column({ default: false })
     is_Verified: boolean;
 
-    @Column({ default: UserRole.ADMIN })
+    @Column({ default: UserRole.USER })
     role: UserRole;
+
+    @Column({ nullable: true })
+    token: string;    
 }

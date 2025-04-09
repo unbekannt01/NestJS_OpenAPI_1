@@ -20,7 +20,7 @@ import { RolesGuard } from './user/Guard/roles.guard';
       password: process.env.DB_PASS,
       database: process.env.DB_NAME,
       entities: [User],
-      synchronize: true,
+      synchronize: true, // Ensure this is true for development only
     }),
     UserModule,
   ],

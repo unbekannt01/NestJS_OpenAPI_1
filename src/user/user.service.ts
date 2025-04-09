@@ -13,6 +13,8 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { EmailService } from './email.service';
 import { Cron } from '@nestjs/schedule';
 import { SmsService } from 'src/user/sms/sms.service';
+import { JwtService } from '@nestjs/jwt';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class UserService {
@@ -20,6 +22,7 @@ export class UserService {
     @InjectRepository(User) private readonly userRepository: Repository<User>,
     private readonly emailService: EmailService,
     private readonly smsService: SmsService,
+    private readonly jwtService: JwtService,
   ) { }
 
   @Cron('* * * * * *') // Runs every second (adjust for production)
@@ -256,7 +259,10 @@ export class UserService {
     user.is_logged_in = true;
     await this.userRepository.save(user);
 
-    return { message: `${role} Login Successfully!`, user };
+    // Generate JWT Token
+    const token = await this.generateUserToken(user.id, user.role);
+
+    return { message: `${role} Login Successfully!`, token};
   }
 
   async getUserByEmail(email: string): Promise<User | null> {
@@ -375,5 +381,25 @@ export class UserService {
 
   async getAllUsers(): Promise<User[]> {
     return await this.userRepository.find(); // Fetches all users
+  }
+
+  async generateUserToken(userId, role){
+    const access_token = this.jwtService.sign({ id : userId , UserRole : role });  
+    const refresh_token = uuidv4();
+    await this.storeRefreshToken(refresh_token, userId, role);
+    return {
+      access_token, 
+      refresh_token
+    };  
+  }
+
+  async storeRefreshToken(token: string, userId: string, role : UserRole) {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found!');
+    }
+    user.token = token;
+    user.role = role;
+    await this.userRepository.save(user);
   }
 }
