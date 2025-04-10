@@ -15,7 +15,6 @@ import { RolesGuard } from './Guard/roles.guard';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { Response } from 'express'
 
-
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) { }
@@ -43,10 +42,10 @@ export class UserController {
 
     // Set the access_token in a cookie
     res.cookie('access_token', access_token, {
-      httpOnly: true, // Prevents client-side JavaScript from accessing the cookie
-      secure: process.env.NODE_ENV === 'production', // Ensures the cookie is sent over HTTPS in production
-      sameSite: 'strict', // Prevents the cookie from being sent with cross-site requests
-      maxAge: 60 * 60 * 1000, // 1 hour expiration
+      httpOnly: true, 
+      secure: process.env.NODE_ENV === 'production', 
+      sameSite: 'strict', 
+      maxAge: 60 * 60 * 1000, 
     });
 
     return res.status(HttpStatus.OK).json({ message, refresh_token });
@@ -99,6 +98,7 @@ export class UserController {
     }
   }
 
+  @UseGuards(RolesGuard)
   @HttpCode(HttpStatus.OK)
   @Post('/logout')
   async logout(@Body() { email }: LogoutUserDto, @Res() res: Response) {
@@ -119,7 +119,6 @@ export class UserController {
   }
 
   @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN)
   @Get("/profile")
   async getProfile(@Query("email") email: string) {
     if (!email) throw new BadRequestException("Email is required.");

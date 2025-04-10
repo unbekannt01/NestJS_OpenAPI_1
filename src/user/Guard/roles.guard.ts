@@ -7,14 +7,20 @@ import {
   } from '@nestjs/common';
   import { Reflector } from '@nestjs/core';
   import { JwtService } from '@nestjs/jwt';
-  import { UserRole } from '../entities/user.entity'; // adjust this import
+  import { UserRole, User } from '../entities/user.entity'; // adjust this import
   import { ROLES_KEY } from '../decorators/roles.decorator'; // adjust this import
+  import { Repository } from 'typeorm';
+  import { InjectRepository } from '@nestjs/typeorm';
   
   @Injectable()
   export class RolesGuard implements CanActivate {
-    constructor(private readonly reflector: Reflector, private readonly jwtService: JwtService) {}
+    constructor(
+      @InjectRepository(User) private readonly userRepository: Repository<User>,
+      private readonly reflector: Reflector,
+      private readonly jwtService: JwtService,
+    ) {}
   
-    canActivate(context: ExecutionContext): boolean {
+    async canActivate(context: ExecutionContext): Promise<boolean> {
       const requiredRoles = this.reflector.getAllAndOverride<UserRole[]>(
         ROLES_KEY,
         [context.getHandler(), context.getClass()],
@@ -36,6 +42,16 @@ import {
         request.user = decoded; // Attach the decoded user to the request
         return requiredRoles.includes(decoded.role); // Check if the user's role matches
       } catch (error) {
+        if (error.name === 'TokenExpiredError') {
+          // Handle token expiration
+          const decoded = this.jwtService.decode(token) as { id: string };
+          if (decoded && decoded.id) {
+            await this.userRepository.update(
+              { id: decoded.id },
+              { is_logged_in: false, token: null },
+            );
+          }
+        }
         throw new UnauthorizedException('Invalid or expired token');
       }
     }

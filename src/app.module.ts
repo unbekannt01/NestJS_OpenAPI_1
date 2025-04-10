@@ -19,7 +19,7 @@ import { RolesGuard } from './user/Guard/roles.guard';
       username: process.env.DB_USER,
       password: process.env.DB_PASS,
       database: process.env.DB_NAME,
-      entities: [User],
+      entities: [User], // Ensure the User entity is included
       synchronize: true, // Ensure this is true for development only
     }),
     UserModule, // Ensure UserModule is imported
@@ -28,7 +28,7 @@ import { RolesGuard } from './user/Guard/roles.guard';
     SmsService,
     {
       provide: APP_GUARD,
-      useClass: RolesGuard,
+      useClass: RolesGuard, // Ensure RolesGuard is globally applied
     },
   ],
 })

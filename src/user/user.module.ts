@@ -15,9 +15,9 @@ import { RolesGuard } from './Guard/roles.guard';
     ConfigModule.forRoot(), 
     JwtModule.register({
       secret: process.env.JWT_SECRET,
-      signOptions: { expiresIn: '1h' },
+      signOptions: { expiresIn: '1m' },
     }),
-    TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([User]), // Import the User entity
   ],
   providers: [
     UserService, 
@@ -29,6 +29,6 @@ import { RolesGuard } from './Guard/roles.guard';
     },
   ],
   controllers: [UserController],
-  exports: [UserService, EmailService, JwtModule], // Export JwtModule
+  exports: [UserService, EmailService, JwtModule, TypeOrmModule], // Export TypeOrmModule
 })
 export class UserModule {}

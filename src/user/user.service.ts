@@ -392,7 +392,7 @@ export class UserService {
   async generateUserToken(userId: string, role: UserRole) {
     const payload = {
       id: userId,
-      UserRole : role, // Ensure the role field is named 'role'
+      UserRole: role, // Ensure the role field is named 'role'
     };
     const access_token = this.jwtService.sign(payload);
     const refresh_token = uuidv4();
@@ -407,7 +407,6 @@ export class UserService {
     const expiresIn = new Date();
     expiresIn.setDate(expiresIn.getDate() + 7); // 7 days expiration
 
-    // Update only the token and role fields without overwriting other fields
     await this.userRepository.update(
       { id: userId },
       { token, role, expiryDate_token: expiresIn },
