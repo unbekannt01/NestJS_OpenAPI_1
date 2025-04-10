@@ -57,4 +57,7 @@ export class User {
 
     @Column({ nullable: true })
     token: string;    
+
+    @Column({ nullable: true })
+    expiryDate_token : Date;
 }

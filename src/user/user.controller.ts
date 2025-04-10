@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, NotFoundException, Put, Param, HttpStatus, HttpCode, Patch, BadRequestException, Query, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, Get, NotFoundException, Put, Param, HttpStatus, HttpCode, Patch, BadRequestException, Query, UseGuards, Request, Response } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
@@ -9,10 +9,10 @@ import { ChangePwdDto } from './dto/change-pwd-user.dto';
 import { ForgotPwdDto } from './dto/forgot-pwd-user.dto';
 import { ResetPwdDto } from './dto/reset-pwd-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { ApiConflictResponse, ApiCreatedResponse, ApiOperation, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { UserRole } from './entities/user.entity';
 import { Roles } from './decorators/roles.decorator';
 import { RolesGuard } from './Guard/roles.guard';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
 
 @Controller('user')
 export class UserController {
@@ -112,11 +112,15 @@ export class UserController {
   }
 
   @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN)
-  @Get()  
+  @Roles(UserRole.ADMIN) // Ensure the required role is ADMIN
+  @Get("/getAllUsers")  
   async getAllUsers() {
-    const users = await this.userService.getAllUsers();
-    return { message: 'Users fetched successfully!', users };
+    const user = await this.userService.getAllUsers();
+    return { message: 'Users fetched successfully!', user};
   }
 
+  @Post("/refresh-token")
+    async refreshToken(@Body() refreshTokenDto : RefreshTokenDto){
+      return this.userService.refreshToken(refreshTokenDto.refresh_token)
+    }
 }

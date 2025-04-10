@@ -1,13 +1,8 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { UserRole } from "../entities/user.entity";
+import { IsString } from "class-validator";
 
 export class RefreshTokenDto {
+    @IsString()
     @ApiProperty()
-    token : string;
-
-    @ApiProperty()
-    userId : string;
-
-    @ApiProperty()
-    role : UserRole;
+    refresh_token: string;
 }

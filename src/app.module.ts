@@ -22,13 +22,14 @@ import { RolesGuard } from './user/Guard/roles.guard';
       entities: [User],
       synchronize: true, // Ensure this is true for development only
     }),
-    UserModule,
+    UserModule, // Ensure UserModule is imported
   ],
-  providers: [SmsService,
+  providers: [
+    SmsService,
     {
       provide: APP_GUARD,
       useClass: RolesGuard,
-    }
+    },
   ],
 })
-export class AppModule { }
+export class AppModule {}

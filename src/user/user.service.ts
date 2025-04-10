@@ -6,7 +6,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { LessThan, Repository } from 'typeorm';
+import { LessThan, MoreThan, MoreThanOrEqual, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { OtpType, User, UserRole } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -44,6 +44,10 @@ export class UserService {
         throw new ConflictException('Email already registered...!');
       }
 
+      if (user.userName === createUserDto.userName) {
+        throw new ConflictException('Username already registered...!');
+      }
+
       // if (user.status === 'INACTIVE') {
       //   throw new UnauthorizedException('Please Verify Email...!');
       // }
@@ -62,7 +66,7 @@ export class UserService {
         otp: this.generateOtp(),
         otpExpiration: this.getOtpExpiration(),
         otp_type: OtpType.EMAIL_VERIFICATION,
-        role : UserRole.USER
+        role: UserRole.USER
       });
     }
     const role = user.role;
@@ -262,7 +266,7 @@ export class UserService {
     // Generate JWT Token
     const token = await this.generateUserToken(user.id, user.role);
 
-    return { message: `${role} Login Successfully!`, token};
+    return { message: `${role} Login Successfully!`, ...token };
   }
 
   async getUserByEmail(email: string): Promise<User | null> {
@@ -383,23 +387,43 @@ export class UserService {
     return await this.userRepository.find(); // Fetches all users
   }
 
-  async generateUserToken(userId, role){
-    const access_token = this.jwtService.sign({ id : userId , UserRole : role });  
+  async generateUserToken(userId: string, role: UserRole) {
+    const payload = {
+      id: userId,
+      role, // Ensure the role field is named 'role'
+    };
+    const access_token = this.jwtService.sign(payload);
     const refresh_token = uuidv4();
     await this.storeRefreshToken(refresh_token, userId, role);
     return {
-      access_token, 
-      refresh_token
-    };  
+      access_token,
+      refresh_token,
+    };
   }
 
-  async storeRefreshToken(token: string, userId: string, role : UserRole) {
-    const user = await this.userRepository.findOne({ where: { id: userId } });
-    if (!user) {
-      throw new NotFoundException('User not found!');
+  async storeRefreshToken(token: string, userId: string, role: UserRole) {
+    const expiresIn = new Date();
+    expiresIn.setDate(expiresIn.getDate() + 7); // 7 days expiration
+
+    // Update only the token and role fields without overwriting other fields
+    await this.userRepository.update(
+      { id: userId },
+      { token, role, expiryDate_token: expiresIn },
+    );
+  }
+
+  async refreshToken(refresh_token: string) {
+    const token = await this.userRepository.findOne({
+      where: {
+        token: refresh_token,
+        expiryDate_token: MoreThanOrEqual(new Date()),
+      },
+    });
+
+    if (!token) {
+      throw new UnauthorizedException('Invalid or expired refresh token.');
     }
-    user.token = token;
-    user.role = role;
-    await this.userRepository.save(user);
+
+    return this.generateUserToken(token.id, token.role);
   }
 }

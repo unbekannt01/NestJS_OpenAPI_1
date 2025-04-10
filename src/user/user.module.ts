@@ -7,6 +7,8 @@ import { ConfigModule } from '@nestjs/config';
 import { EmailService } from './email.service';
 import { SmsService } from 'src/user/sms/sms.service';
 import { JwtModule } from '@nestjs/jwt';
+import { APP_GUARD } from '@nestjs/core';
+import { RolesGuard } from './Guard/roles.guard';
 
 @Module({
   imports: [
@@ -17,8 +19,16 @@ import { JwtModule } from '@nestjs/jwt';
     }),
     TypeOrmModule.forFeature([User]),
   ],
-  providers: [UserService, EmailService,SmsService],
+  providers: [
+    UserService, 
+    EmailService,
+    SmsService,
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard, // Ensure RolesGuard is globally applied
+    },
+  ],
   controllers: [UserController],
-  exports: [UserService, EmailService],
+  exports: [UserService, EmailService, JwtModule], // Export JwtModule
 })
 export class UserModule {}
