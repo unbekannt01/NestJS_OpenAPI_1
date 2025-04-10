@@ -55,9 +55,9 @@ export class User {
     @Column({ default: UserRole.USER })
     role: UserRole;
 
-    @Column({ nullable: true })
-    token: string;    
+    @Column({ type: 'text', nullable: true })
+    token: string | null;    
 
-    @Column({ nullable: true })
-    expiryDate_token : Date;
+    @Column({ type: 'timestamp', nullable: true })
+    expiryDate_token: Date | null;
 }

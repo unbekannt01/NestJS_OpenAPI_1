@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, NotFoundException, Put, Param, HttpStatus, HttpCode, Patch, BadRequestException, Query, UseGuards, Request, Response } from '@nestjs/common';
+import { Controller, Post, Body, Get, NotFoundException, Put, Param, HttpStatus, HttpCode, Patch, BadRequestException, Query, UseGuards, Request, Response as Res } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
@@ -13,6 +13,8 @@ import { UserRole } from './entities/user.entity';
 import { Roles } from './decorators/roles.decorator';
 import { RolesGuard } from './Guard/roles.guard';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { Response } from 'express'
+
 
 @Controller('user')
 export class UserController {
@@ -36,8 +38,18 @@ export class UserController {
 
   @HttpCode(HttpStatus.OK)
   @Post('/login')
-  login(@Body() { email, password }: LoginUserDto) {
-    return this.userService.login(email, password);
+  async login(@Body() { email, password }: LoginUserDto, @Res() res: Response) {
+    const { access_token, refresh_token, message } = await this.userService.login(email, password);
+
+    // Set the access_token in a cookie
+    res.cookie('access_token', access_token, {
+      httpOnly: true, // Prevents client-side JavaScript from accessing the cookie
+      secure: process.env.NODE_ENV === 'production', // Ensures the cookie is sent over HTTPS in production
+      sameSite: 'strict', // Prevents the cookie from being sent with cross-site requests
+      maxAge: 60 * 60 * 1000, // 1 hour expiration
+    });
+
+    return res.status(HttpStatus.OK).json({ message, refresh_token });
   }
 
   @HttpCode(HttpStatus.OK)
@@ -69,58 +81,66 @@ export class UserController {
 
   @Put("/:email")
   async update(
-      @Param("email") email: string,  
-      @Body() { first_name, last_name, mobile_no , userName}: UpdateUserDto
+    @Param("email") email: string,
+    @Body() { first_name, last_name, mobile_no, userName }: UpdateUserDto
   ) {
-      try {
-          const updatedUser = await this.userService.update(
-              email.toLowerCase(),
-              first_name?.trim() || '',
-              last_name?.trim() || '',
-              mobile_no?.trim() || '',
-              userName || ''
-          );
-  
-          return { message: "User updated successfully!", user: updatedUser };
-      } catch (error) {
-          throw new BadRequestException(error.message || "Failed to update user.");
-      }
+    try {
+      const updatedUser = await this.userService.update(
+        email.toLowerCase(),
+        first_name?.trim() || '',
+        last_name?.trim() || '',
+        mobile_no?.trim() || '',
+        userName || ''
+      );
+
+      return { message: "User updated successfully!", user: updatedUser };
+    } catch (error) {
+      throw new BadRequestException(error.message || "Failed to update user.");
+    }
   }
 
   @HttpCode(HttpStatus.OK)
   @Post('/logout')
-  async logout(@Body() { email }: LogoutUserDto) {
+  async logout(@Body() { email }: LogoutUserDto, @Res() res: Response) {
     const user = await this.userService.getUserByEmail(email.toLowerCase());
     if (!user) {
       throw new NotFoundException("User not found.");
     }
     await this.userService.logout(email.toLowerCase());
-    return { message: "User logged out successfully!" };
+
+    // Clear the access_token cookie
+    res.clearCookie('access_token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+    });
+
+    return res.status(HttpStatus.OK).json({ message: "User logged out successfully!" });
   }
 
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
   @Get("/profile")
   async getProfile(@Query("email") email: string) {
-      if (!email) throw new BadRequestException("Email is required.");
-  
-      const user = await this.userService.getUserByEmail(email.toLowerCase());
-  
-      if (!user) throw new NotFoundException("No user found with this email.");
-      
-      return { message: "User profile fetched successfully!", user };
+    if (!email) throw new BadRequestException("Email is required.");
+
+    const user = await this.userService.getUserByEmail(email.toLowerCase());
+
+    if (!user) throw new NotFoundException("No user found with this email.");
+
+    return { message: "User profile fetched successfully!", user };
   }
 
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN) // Ensure the required role is ADMIN
-  @Get("/getAllUsers")  
+  @Get("/getAllUsers")
   async getAllUsers() {
     const user = await this.userService.getAllUsers();
-    return { message: 'Users fetched successfully!', user};
+    return { message: 'Users fetched successfully!', user };
   }
 
   @Post("/refresh-token")
-    async refreshToken(@Body() refreshTokenDto : RefreshTokenDto){
-      return this.userService.refreshToken(refreshTokenDto.refresh_token)
-    }
+  async refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
+    return this.userService.refreshToken(refreshTokenDto.refresh_token)
+  }
 }

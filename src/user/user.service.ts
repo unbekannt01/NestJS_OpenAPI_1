@@ -292,6 +292,8 @@ export class UserService {
     }
 
     user.is_logged_in = false;
+    user.token = null; // Clear the token on logout
+    user.expiryDate_token = null; // Clear the token expiration date on logout
     await this.userRepository.save(user);
 
     return { message: 'User Logout Successfully!' };
@@ -390,7 +392,7 @@ export class UserService {
   async generateUserToken(userId: string, role: UserRole) {
     const payload = {
       id: userId,
-      role, // Ensure the role field is named 'role'
+      UserRole : role, // Ensure the role field is named 'role'
     };
     const access_token = this.jwtService.sign(payload);
     const refresh_token = uuidv4();
