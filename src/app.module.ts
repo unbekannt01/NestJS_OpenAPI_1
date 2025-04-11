@@ -26,10 +26,6 @@ import { RolesGuard } from './user/Guard/roles.guard';
   ],
   providers: [
     SmsService,
-    {
-      provide: APP_GUARD,
-      useClass: RolesGuard, // Ensure RolesGuard is globally applied
-    },
   ],
 })
 export class AppModule {}

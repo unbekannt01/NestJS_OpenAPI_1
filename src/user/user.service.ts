@@ -250,10 +250,6 @@ export class UserService {
       throw new NotFoundException('User not registered.');
     }
 
-    // if (user.status !== 'ACTIVE') {
-    //   throw new UnauthorizedException('Please verify your email first.');
-    // }
-
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
       throw new UnauthorizedException('Wrong Credentials.');
@@ -282,10 +278,6 @@ export class UserService {
     if (!user) {
       throw new NotFoundException('User Not Found!');
     }
-
-    // if (user.status === 'INACTIVE') {
-    //   throw new UnauthorizedException('User has to Login First!');
-    // }
 
     if (user.is_logged_in === false) {
       throw new UnauthorizedException('User Already Logged Out!');

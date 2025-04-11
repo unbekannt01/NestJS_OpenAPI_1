@@ -7,15 +7,15 @@ import { ConfigModule } from '@nestjs/config';
 import { EmailService } from './email.service';
 import { SmsService } from 'src/user/sms/sms.service';
 import { JwtModule } from '@nestjs/jwt';
-import { APP_GUARD } from '@nestjs/core';
 import { RolesGuard } from './Guard/roles.guard';
+import { JwtStrategy } from './strategy/jwt.strategy';
 
 @Module({
   imports: [
     ConfigModule.forRoot(), 
     JwtModule.register({
       secret: process.env.JWT_SECRET,
-      signOptions: { expiresIn: '1m' },
+      signOptions: { expiresIn: '1h' },
     }),
     TypeOrmModule.forFeature([User]), // Import the User entity
   ],
@@ -23,10 +23,8 @@ import { RolesGuard } from './Guard/roles.guard';
     UserService, 
     EmailService,
     SmsService,
-    {
-      provide: APP_GUARD,
-      useClass: RolesGuard, // Ensure RolesGuard is globally applied
-    },
+    RolesGuard, // Keep RolesGuard for role-based access control
+    JwtStrategy, // Register JwtStrategy
   ],
   controllers: [UserController],
   exports: [UserService, EmailService, JwtModule, TypeOrmModule], // Export TypeOrmModule

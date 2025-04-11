@@ -14,6 +14,7 @@ import { Roles } from './decorators/roles.decorator';
 import { RolesGuard } from './Guard/roles.guard';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { Response } from 'express'
+import { JwtAuthGuard } from './Guard/jwt-auth.guard';
 
 @Controller('user')
 export class UserController {
@@ -42,10 +43,10 @@ export class UserController {
 
     // Set the access_token in a cookie
     res.cookie('access_token', access_token, {
-      httpOnly: true, 
-      secure: process.env.NODE_ENV === 'production', 
-      sameSite: 'strict', 
-      maxAge: 60 * 60 * 1000, 
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 60 * 60 * 1000,
     });
 
     return res.status(HttpStatus.OK).json({ message, refresh_token });
@@ -98,7 +99,7 @@ export class UserController {
     }
   }
 
-  @UseGuards(RolesGuard)
+  @UseGuards(RolesGuard, JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @Post('/logout')
   async logout(@Body() { email }: LogoutUserDto, @Res() res: Response) {
@@ -118,9 +119,9 @@ export class UserController {
     return res.status(HttpStatus.OK).json({ message: "User logged out successfully!" });
   }
 
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard)
   @Get("/profile")
-  async getProfile(@Query("email") email: string) {
+  async getProfile(@Body("email") email: string) {
     if (!email) throw new BadRequestException("Email is required.");
 
     const user = await this.userService.getUserByEmail(email.toLowerCase());
@@ -130,7 +131,7 @@ export class UserController {
     return { message: "User profile fetched successfully!", user };
   }
 
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard,RolesGuard)
   @Roles(UserRole.ADMIN) // Ensure the required role is ADMIN
   @Get("/getAllUsers")
   async getAllUsers() {
