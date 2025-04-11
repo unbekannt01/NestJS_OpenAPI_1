@@ -6,23 +6,22 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { LessThan, MoreThan, MoreThanOrEqual, Repository } from 'typeorm';
+import { LessThan, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { OtpType, User, UserRole } from './entities/user.entity';
-import { CreateUserDto } from './dto/create-user.dto';
-import { EmailService } from './email.service';
+import { CreateUserDto } from 'src/auth/dto/create-user.dto';
+import { EmailService } from './services/email.service';
 import { Cron } from '@nestjs/schedule';
-import { SmsService } from 'src/user/sms/sms.service';
-import { JwtService } from '@nestjs/jwt';
-import { v4 as uuidv4 } from 'uuid';
+import { SmsService } from 'src/user/services/sms.service';
+import { AuthService } from 'src/auth/auth.service';
 
 @Injectable()
 export class UserService {
   constructor(
-    @InjectRepository(User) private readonly userRepository: Repository<User>,
+  @InjectRepository(User) private readonly userRepository: Repository<User>,
     private readonly emailService: EmailService,
     private readonly smsService: SmsService,
-    private readonly jwtService: JwtService,
+    private readonly authService: AuthService,
   ) { }
 
   @Cron('* * * * * *') // Runs every second (adjust for production)
@@ -44,13 +43,9 @@ export class UserService {
         throw new ConflictException('Email already registered...!');
       }
 
-      if (user.userName === createUserDto.userName) {
+      if (user.userName == createUserDto.userName) {
         throw new ConflictException('Username already registered...!');
       }
-
-      // if (user.status === 'INACTIVE') {
-      //   throw new UnauthorizedException('Please Verify Email...!');
-      // }
 
       if (!user.otp) {
         user.otp = this.generateOtp();
@@ -242,82 +237,12 @@ export class UserService {
       };
     }
   }
-
-  async login(email: string, password: string) {
-    const user = await this.userRepository.findOne({ where: { email } });
-
-    if (!user) {
-      throw new NotFoundException('User not registered.');
-    }
-
-    const isValidPassword = await bcrypt.compare(password, user.password);
-    if (!isValidPassword) {
-      throw new UnauthorizedException('Wrong Credentials.');
-    }
-
-    const role = user.role;
-    user.is_logged_in = true;
-    await this.userRepository.save(user);
-
-    // Generate JWT Token
-    const token = await this.generateUserToken(user.id, user.role);
-
-    return { message: `${role} Login Successfully!`, ...token };
-  }
-
+  
   async getUserByEmail(email: string): Promise<User | null> {
     return this.userRepository.findOne({
       where: { email },
       select: ["first_name", "last_name", "mobile_no", "email", "status", "userName"],
     });
-  }
-
-  async logout(email: string) {
-    const user = await this.userRepository.findOne({ where: { email } });
-
-    if (!user) {
-      throw new NotFoundException('User Not Found!');
-    }
-
-    if (user.is_logged_in === false) {
-      throw new UnauthorizedException('User Already Logged Out!');
-    }
-
-    user.is_logged_in = false;
-    user.token = null; // Clear the token on logout
-    user.expiryDate_token = null; // Clear the token expiration date on logout
-    await this.userRepository.save(user);
-
-    return { message: 'User Logout Successfully!' };
-  }
-
-  async changepwd(email: string, password: string, newpwd: string) {
-    const user = await this.userRepository.findOne({ where: { email } });
-
-    if (!user) {
-      throw new UnauthorizedException('Email is Invalid!');
-    }
-
-    if (!user.is_logged_in) {
-      throw new UnauthorizedException('Please Login First!');
-    }
-
-    const oldpwd = await bcrypt.compare(password, user.password);
-    if (!oldpwd) {
-      throw new UnauthorizedException('Invalid old password!');
-    }
-
-    const samepwd = await bcrypt.compare(newpwd, user.password);
-    if (samepwd) {
-      throw new UnauthorizedException(
-        'New password cannot be the same as the old password!',
-      );
-    }
-
-    user.password = await bcrypt.hash(newpwd, 10);
-    await this.userRepository.save(user);
-
-    return { message: 'User Successfully Changed their Password!' };
   }
 
   // async update(id: string, updateuserDto: UpdateUserDto) {
@@ -369,54 +294,15 @@ export class UserService {
     }
   }
 
+  async getAllUsers(): Promise<User[]> {
+    return await this.userRepository.find(); // Fetches all users
+  }
+
   private generateOtp(): string {
     return Math.floor(100000 + Math.random() * 900000).toString();
   }
 
   private getOtpExpiration(): Date {
     return new Date(Date.now() + 5 * 60 * 1000); // 5 minutes expiration
-  }
-
-  async getAllUsers(): Promise<User[]> {
-    return await this.userRepository.find(); // Fetches all users
-  }
-
-  async generateUserToken(userId: string, role: UserRole) {
-    const payload = {
-      id: userId,
-      UserRole: role, // Ensure the role field is named 'role'
-    };
-    const access_token = this.jwtService.sign(payload);
-    const refresh_token = uuidv4();
-    await this.storeRefreshToken(refresh_token, userId, role);
-    return {
-      access_token,
-      refresh_token,
-    };
-  }
-
-  async storeRefreshToken(token: string, userId: string, role: UserRole) {
-    const expiresIn = new Date();
-    expiresIn.setDate(expiresIn.getDate() + 7); // 7 days expiration
-
-    await this.userRepository.update(
-      { id: userId },
-      { token, role, expiryDate_token: expiresIn },
-    );
-  }
-
-  async refreshToken(refresh_token: string) {
-    const token = await this.userRepository.findOne({
-      where: {
-        token: refresh_token,
-        expiryDate_token: MoreThanOrEqual(new Date()),
-      },
-    });
-
-    if (!token) {
-      throw new UnauthorizedException('Invalid or expired refresh token.');
-    }
-
-    return this.generateUserToken(token.id, token.role);
   }
 }

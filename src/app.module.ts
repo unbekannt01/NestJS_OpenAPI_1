@@ -4,9 +4,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from './user/entities/user.entity';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
-import { SmsService } from './user/sms/sms.service';
+import { SmsService } from './user/services/sms.service';
 import { APP_GUARD } from '@nestjs/core';
-import { RolesGuard } from './user/Guard/roles.guard';
+import { RolesGuard } from './user/guards/roles.guard';
 
 @Module({
   imports: [

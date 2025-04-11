@@ -1,0 +1,33 @@
+graph TD
+    A["Client Request"] --> B["NestJS Application"]
+    B --> C["Routes/Controllers"]
+    
+    subgraph "Authentication Layer"
+        C --> D["Strategy"]
+        C --> E["Guard"]
+        C --> F["Interceptor"]
+    end
+    
+    D --> G["LocalStrategy"]
+    D --> H["JwtStrategy"]
+    
+    E --> I["AuthGuard('local')"]
+    E --> J["AuthGuard('jwt')"]
+    E --> K["RolesGuard"]
+    
+    F --> L["Response Formatting"]
+    F --> M["Logging"]
+    F --> N["Data Sanitization"]
+    
+    subgraph "Endpoints"
+        O["POST /register"]
+        P["POST /verify-otp"]
+        Q["POST /resend-otp"]
+        R["POST /login"]
+        S["POST /change-pwd"]
+        T["POST /forgot-pwd"]
+        U["POST /reset-pwd"]
+        V["POST /logout"]
+        W["POST /refresh-token"]
+        X["GET /get-all-users"]
+    end
