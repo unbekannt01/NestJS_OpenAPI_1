@@ -8,17 +8,17 @@ export class EmailService {
 
     async sendOtpEmail(email: string, otp: string, first_name: string) {
         const transporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST,
-            port: parseInt(process.env.SMTP_PORT || '587', 10),
-            secure: process.env.SMTP_SECURE === 'true', // Convert to boolean
+            host: this.configService.get<string>('SMTP_HOST'),
+            port: this.configService.get<number>('SMTP_PORT'),
+            secure: this.configService.get<boolean>('SMTP_SECURE'),
             auth: {
-                user: process.env.SMTP_USER,
-                pass: process.env.SMTP_PASS,
+                user: this.configService.get<string>('SMTP_USER'),
+                pass: this.configService.get<string>('SMTP_PASS'),
             },
         });
           
         const mailOptions = {
-            from: `"Testing_Purpose" <${process.env.SMTP_USER}>`,
+            from: `"Testing_Purpose" <${this.configService.get<string>('SMTP_USER')}>`,
             to: email,
             subject: '🔐 Your OTP for Secure Login',
             text: `Your OTP for verification is ${otp}.`,

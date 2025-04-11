@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, NotFoundException, Put, Param, HttpStatus, HttpCode, Patch, BadRequestException, Query, UseGuards, Request, Response as Res, ValidationPipe } from '@nestjs/common';
+import { Controller, Post, Body, Get, NotFoundException, Put, Param, HttpStatus, HttpCode, Patch, BadRequestException, Query, UseGuards, Request, Response as Res, ValidationPipe, UnauthorizedException } from '@nestjs/common';
 import { UserService } from 'src/user/user.service';
 import { VerifyOTPDto } from './dto/verify-otp-user.dto';
 import { ResendOTPDto } from './dto/resend-otp-user.dto';
@@ -6,10 +6,10 @@ import { LogoutUserDto } from './dto/logout-user.dto';
 import { ChangePwdDto } from 'src/user/dto/change-pwd-user.dto';
 import { ForgotPwdDto } from './dto/forgot-pwd-user.dto';
 import { ResetPwdDto } from './dto/reset-pwd-user.dto';
-import { RolesGuard } from 'src/user/guards/roles.guard';
+import { RolesGuard } from './guards/roles.guard';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { Response } from 'express'
-import { JwtAuthGuard } from 'src/user/guards/jwt-auth.guard';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 
@@ -24,17 +24,27 @@ export class AuthController {
   @Post('/login')
   @UseGuards(AuthGuard('local'))
   async login(@Request() req, @Res() res: Response) {
-    const user = req.user; 
-    const { access_token, refresh_token } = await this.authService.generateUserToken(user.id, user.role);
+    try {
+    //   console.log('User from LocalStrategy:', req.user); // Debugging
+      const user = req.user;
+      if (!user) {
+        throw new UnauthorizedException('User not found');
+      }
   
-    // Set the access_token in a cookie
-    res.cookie('access_token', access_token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 60 * 60 * 1000,
-    });
-    return res.status(HttpStatus.OK).json({ message: `${user.role} Login Successfully!`, refresh_token });
+      const { access_token, refresh_token } = await this.authService.generateUserToken(user.id, user.role);
+  
+      // Set the access_token in a cookie
+      res.cookie('access_token', access_token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 60 * 60 * 1000,
+      });
+      return res.status(HttpStatus.OK).json({ message: `${user.role} Login Successfully!`, refresh_token });
+    } catch (error) {
+      console.error('Error during login:', error); // Debugging
+      throw new BadRequestException(error.message || 'Login failed');
+    }
   }
   
   @Post("/refresh-token")

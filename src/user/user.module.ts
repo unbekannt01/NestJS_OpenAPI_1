@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { UserService } from './user.service';
 import { UserController } from './user.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -7,7 +7,7 @@ import { ConfigModule } from '@nestjs/config';
 import { EmailService } from './services/email.service';
 import { SmsService } from 'src/user/services/sms.service';
 import { JwtModule } from '@nestjs/jwt';
-import { RolesGuard } from './guards/roles.guard';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { JwtStrategy } from 'src/auth/strategies/jwt.strategy';
 import { LocalStrategy } from 'src/auth/strategies/local.strategy';
 import { AuthModule } from 'src/auth/auth.module';
@@ -19,8 +19,8 @@ import { AuthModule } from 'src/auth/auth.module';
       secret: process.env.JWT_SECRET,
       signOptions: { expiresIn: '1h' },
     }),
-    TypeOrmModule.forFeature([User]),
-    AuthModule,
+    TypeOrmModule.forFeature([User]), // Import the User entity
+    forwardRef(() => AuthModule), // Use forwardRef to resolve circular dependency
   ],
   providers: [
     UserService,
@@ -35,7 +35,7 @@ import { AuthModule } from 'src/auth/auth.module';
     UserService, // Export UserService
     EmailService,
     JwtModule,
-    TypeOrmModule,
+    TypeOrmModule, // Export TypeOrmModule to make UserRepository available
   ],
 })
 export class UserModule {}

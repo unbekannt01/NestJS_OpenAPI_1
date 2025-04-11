@@ -22,4 +22,13 @@ describe('AppController (e2e)', () => {
       .expect(200)
       .expect('Hello World!');
   });
+
+  // Add tests for `/login`
+  it('/auth/login (POST)', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ email: 'test@example.com', password: 'password' });
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty('access_token');
+  });
 });

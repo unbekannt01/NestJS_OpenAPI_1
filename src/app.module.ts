@@ -5,12 +5,10 @@ import { User } from './user/entities/user.entity';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { SmsService } from './user/services/sms.service';
-import { APP_GUARD } from '@nestjs/core';
-import { RolesGuard } from './user/guards/roles.guard';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ isGlobal: true }), // Ensure ConfigModule is global
     ScheduleModule.forRoot(),
     TypeOrmModule.forRoot({
       type: 'postgres',

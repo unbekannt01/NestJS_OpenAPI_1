@@ -92,7 +92,11 @@ export class AuthService {
       id: userId,
       UserRole: role, // Ensure the role field is named 'role'
     };
-    const access_token = this.jwtService.sign(payload);
+
+    const secret = process.env.JWT_SECRET; // Fallback for missing secret
+    // console.log('Using JWT_SECRET:', secret); // Debugging
+
+    const access_token = this.jwtService.sign(payload, { secret });
     const refresh_token = uuidv4();
     await this.storeRefreshToken(refresh_token, userId, role);
     return {
@@ -131,16 +135,19 @@ export class AuthService {
       const user = await this.userRepository.findOne({ where: { email } });
 
       if (!user) {
+        console.log('User not found'); // Debugging
         return null;
       }
 
       const isValidPassword = await bcrypt.compare(password, user.password);
       if (!isValidPassword) {
+        console.log('Invalid password'); // Debugging
         return null;
       }
 
       return user;
     } catch (error) {
+      console.error('Error in validateUser:', error); // Debugging
       return null;
     }
   }
