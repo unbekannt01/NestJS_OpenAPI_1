@@ -11,12 +11,6 @@ import { CreateUserDto } from 'src/auth/dto/create-user.dto';
 export class UserController {
   constructor(private readonly userService: UserService) { }
 
-  @Post('/register')
-  @HttpCode(HttpStatus.CREATED)
-  async create(@Body() createUserDto: CreateUserDto) {
-    return this.userService.save(createUserDto);
-  }
-
   @Put("/:email")
   async update(
     @Param("email") email: string,

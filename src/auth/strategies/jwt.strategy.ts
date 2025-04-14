@@ -1,6 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+import { UserRole } from 'src/user/entities/user.entity';
+
+export type JwtPayload = {
+  id: string;
+  role: UserRole;
+}
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
@@ -12,9 +18,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     });
   }
 
-  async validate(payload: any) {
-    // console.log('Decoded JWT Payload:', payload); // Debugging
-    // Ensure the payload contains the correct role
-    return { id: payload.id, role: payload.UserRole }; // Attach role to the request
+  async validate(payload: JwtPayload) {
+    return { id: payload.id, role: payload.role }; // Attach role to the request
   }
 }

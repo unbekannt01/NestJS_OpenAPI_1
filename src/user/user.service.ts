@@ -6,7 +6,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { LessThan, Repository } from 'typeorm';
+import { LessThan, Repository, MoreThan, IsNull, Not } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { OtpType, User, UserRole } from './entities/user.entity';
 import { CreateUserDto } from 'src/auth/dto/create-user.dto';
@@ -22,54 +22,14 @@ export class UserService {
     private readonly smsService: SmsService,
   ) { }
 
-  @Cron('* * * * * *') // Runs every second (adjust for production)
-  async clearExpiredOtps() {
-    const now = new Date();
-    await this.userRepository.update(
-      { otpExpiration: LessThan(now) },
-      { otp: null, otpExpiration: null, otp_type: null },
-    );
-  }
-
-  async save(createUserDto: CreateUserDto) {
-    let user = await this.userRepository.findOne({
-      where: { email: createUserDto.email },
-    });
-
-    if (user) {
-      if (user.status === 'ACTIVE') {
-        throw new ConflictException('Email already registered...!');
-      }
-
-      if (user.userName == createUserDto.userName) {
-        throw new ConflictException('Username already registered...!');
-      }
-
-      if (!user.otp) {
-        user.otp = this.generateOtp();
-        user.otpExpiration = this.getOtpExpiration();
-        user.otp_type = OtpType.EMAIL_VERIFICATION;
-      }
-    } else {
-      const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
-      user = this.userRepository.create({
-        ...createUserDto,
-        password: hashedPassword,
-        status: 'INACTIVE',
-        otp: this.generateOtp(),
-        otpExpiration: this.getOtpExpiration(),
-        otp_type: OtpType.EMAIL_VERIFICATION,
-        role: UserRole.USER
-      });
-    }
-    const role = user.role;
-
-    await this.userRepository.save(user);
-
-    // Send OTP via Email only (no SMS during registration)
-    await this.emailService.sendOtpEmail(user.email, user.otp || '', user.first_name);
-    return { mesaage: `${role} registered successfully. OTP sent to email.` };
-  }
+  // @Cron('* * * * * *') // Runs every second (adjust for production)
+  // async clearExpiredOtps() {
+  //   const now = new Date();
+  //   await this.userRepository.update(
+  //     { otpExpiration: LessThan(now) },
+  //     { otp: null, otpExpiration: null, otp_type: null },
+  //   );
+  // }
 
   async verifyOtp(otp: string, email: string) {
     const user = await this.userRepository.findOne({ where: { email } });
@@ -87,7 +47,10 @@ export class UserService {
       user.otp = null;
       user.otpExpiration = null;
       user.otp_type = null;
-      await this.userRepository.save(user);
+      await this.userRepository.update(
+        { email },
+        { otp: null, otpExpiration: null, otp_type: null },
+      );
       throw new UnauthorizedException("OTP Expired. Please request a new one.");
     }
 
@@ -296,11 +259,11 @@ export class UserService {
     return await this.userRepository.find(); // Fetches all users
   }
 
-  private generateOtp(): string {
+  generateOtp(): string {
     return Math.floor(100000 + Math.random() * 900000).toString();
   }
 
-  private getOtpExpiration(): Date {
-    return new Date(Date.now() + 5 * 60 * 1000); // 5 minutes expiration
+  getOtpExpiration(): Date {
+    return new Date(Date.now() + 1 * 60 * 1000); // 5 minutes expiration
   }
 }

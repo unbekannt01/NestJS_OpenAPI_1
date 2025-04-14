@@ -10,43 +10,43 @@ import { RolesGuard } from './guards/roles.guard';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { Response } from 'express'
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
+import { CreateUserDto } from './dto/create-user.dto';
+import { LoginUserDto } from './dto/login-user.dto';
 
 @Controller('auth')
 export class AuthController {
   constructor(
     private readonly userService: UserService,
-    private readonly authService: AuthService,        
+    private readonly authService: AuthService,
   ) { }
+
+  @Post('/register')
+  @HttpCode(HttpStatus.CREATED)
+  async create(@Body() createUserDto: CreateUserDto) {
+    return this.authService.save(createUserDto);
+  }
 
   @HttpCode(HttpStatus.OK)
   @Post('/login')
-  @UseGuards(AuthGuard('local'))
-  async login(@Request() req, @Res() res: Response) {
+  async login(@Body() login: LoginUserDto, @Res({ passthrough: true }) res: Response): Promise<{ message: string; refresh_token: string; }> {
     try {
-    //   console.log('User from LocalStrategy:', req.user); // Debugging
-      const user = req.user;
-      if (!user) {
-        throw new UnauthorizedException('User not found');
-      }
-  
-      const { access_token, refresh_token } = await this.authService.generateUserToken(user.id, user.role);
-  
-      // Set the access_token in a cookie
+      const { role, access_token, refresh_token } = await this.authService.loginUser(login.email, login.password);
+
       res.cookie('access_token', access_token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
         maxAge: 60 * 60 * 1000,
       });
-      return res.status(HttpStatus.OK).json({ message: `${user.role} Login Successfully!`, refresh_token });
+
+      return { message: `${role} Login Successfully!`, refresh_token};
     } catch (error) {
-      console.error('Error during login:', error); // Debugging
       throw new BadRequestException(error.message || 'Login failed');
     }
   }
-  
+
+
   @Post("/refresh-token")
   async refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
     return this.authService.refreshToken(refreshTokenDto.refresh_token)
