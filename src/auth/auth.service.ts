@@ -23,14 +23,14 @@ export class AuthService {
     private readonly emailService: EmailService,
   ) { }
 
-  async loginUser(email: string, password: string): Promise<{ message: string; access_token: string; refresh_token: string; role:UserRole }> {
+  async loginUser(email: string, password: string): Promise<{ message: string; access_token: string; refresh_token: string; role: UserRole }> {
     const user = await this.userRepository.findOne({ where: { email } });
 
     if (!user) {
       throw new NotFoundException('User not registered.');
     }
 
-    if(user.status === 'INACTIVE'){
+    if (user.status === 'INACTIVE') {
       throw new UnauthorizedException('User needs to verify their email!');
     }
 
@@ -46,47 +46,47 @@ export class AuthService {
     return { message: `${role} Login Successfully!`, role, ...token };
   }
 
-    async save(createUserDto: CreateUserDto) {
-      let user = await this.userRepository.findOne({
-        where: { email: createUserDto.email },
-      });
-  
-      if (user) {
-        if (user.status === 'ACTIVE') {
-          throw new ConflictException('Email already registered...!');
-        }
-  
-        if (user.userName == createUserDto.userName) {
-          throw new ConflictException('Username already registered...!');
-        }
-  
-        if (!user.otp) {
-          user.otp = this.userService.generateOtp();
-          user.otpExpiration = this.userService.getOtpExpiration();
-          user.otp_type = OtpType.EMAIL_VERIFICATION;
-        }
-      } else {
-        const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
-        user = this.userRepository.create({
-          ...createUserDto,
-          password: hashedPassword,
-          status: 'INACTIVE',
-          otp: this.userService.generateOtp(),
-          otpExpiration: this.userService.getOtpExpiration(),
-          otp_type: OtpType.EMAIL_VERIFICATION,
-          role: UserRole.USER
-        });
+  async save(createUserDto: CreateUserDto) {
+    let user = await this.userRepository.findOne({
+      where: { email: createUserDto.email },
+    });
+
+    if (user) {
+      if (user.status === 'ACTIVE') {
+        throw new ConflictException('Email already registered...!');
       }
 
-      const role = user.role;
-  
-      await this.userRepository.save(user);
-  
-      // Send OTP via Email only (no SMS during registration)
-      await this.emailService.sendOtpEmail(user.email, user.otp || '', user.first_name);
-      return { message: `${role} registered successfully. OTP sent to email.` };
+      if (user.userName == createUserDto.userName) {
+        throw new ConflictException('Username already registered...!');
+      }
+
+      if (!user.otp) {
+        user.otp = this.userService.generateOtp();
+        user.otpExpiration = this.userService.getOtpExpiration();
+        user.otp_type = OtpType.EMAIL_VERIFICATION;
+      }
+    } else {
+      const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+      user = this.userRepository.create({
+        ...createUserDto,
+        password: hashedPassword,
+        status: 'INACTIVE',
+        otp: this.userService.generateOtp(),
+        otpExpiration: this.userService.getOtpExpiration(),
+        otp_type: OtpType.EMAIL_VERIFICATION,
+        role: UserRole.USER
+      });
     }
-  
+
+    const role = user.role;
+
+    await this.userRepository.save(user);
+
+    // Send OTP via Email only (no SMS during registration)
+    await this.emailService.sendOtpEmail(user.email, user.otp || '', user.first_name);
+    return { message: `${role} registered successfully. OTP sent to email.` };
+  }
+
   async logout(email: string) {
     const user = await this.userRepository.findOne({ where: { email } });
 
@@ -118,7 +118,7 @@ export class AuthService {
     }
 
     await this.verifyPassword(password, user.password);
-    if(password !== user.password){
+    if (password !== user.password) {
       throw new UnauthorizedException('Invalid old password!');
     }
 
@@ -176,7 +176,7 @@ export class AuthService {
     return this.generateUserToken(token.id, token.role);
   }
 
-  async verifyPassword(password :string, hashedPassword: string) {
+  async verifyPassword(password: string, hashedPassword: string) {
     const isValidPassword = await bcrypt.compare(password, hashedPassword);
     if (!isValidPassword) {
       throw new UnauthorizedException('Wrong Credentials.');
