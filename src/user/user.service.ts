@@ -13,7 +13,6 @@ import { CreateUserDto } from 'src/auth/dto/create-user.dto';
 import { EmailService } from './services/email.service';
 import { Cron } from '@nestjs/schedule';
 import { SmsService } from 'src/user/services/sms.service';
-import { AuthService } from 'src/auth/auth.service';
 
 @Injectable()
 export class UserService {
@@ -21,7 +20,6 @@ export class UserService {
   @InjectRepository(User) private readonly userRepository: Repository<User>,
     private readonly emailService: EmailService,
     private readonly smsService: SmsService,
-    private readonly authService: AuthService,
   ) { }
 
   @Cron('* * * * * *') // Runs every second (adjust for production)
