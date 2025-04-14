@@ -39,6 +39,8 @@ export class AuthService {
 //     return { message: `${role} Login Successfully!`, ...token };
 //   }
 
+
+
   async logout(email: string) {
     const user = await this.userRepository.findOne({ where: { email } });
 
