@@ -6,30 +6,34 @@ export class CreateUserDto {
     @IsNotEmpty()
     @IsString()
     @ApiProperty()
-    userName : string;
+    userName: string;
 
     @IsNotEmpty()
     @IsString()
     @ApiProperty()
-    first_name : string;
+    first_name: string;
 
     @IsNotEmpty()
     @IsString()
     @ApiProperty()
-    last_name : string;
+    last_name: string;
 
     @IsNotEmpty()
     @IsEmail()
     @ApiProperty()
-    email : string;
+    email: string;
 
     @IsNotEmpty()
     // @MinLength(8)
     @ApiProperty()
-    password : string;
+    password: string;
 
     @IsNotEmpty()
     @Matches(/^\+\d{10,15}$/)
     @ApiProperty()
-    mobile_no : string;
+    mobile_no: string;
+
+    @ApiProperty({ type: 'string', default: "yyyy-mm-dd" })
+    @IsNotEmpty()
+    birth_date: Date | null;
 }

@@ -32,6 +32,10 @@ export class AuthService {
       throw new NotFoundException('User not registered.');
     }
 
+    if(user.is_logged_in === true){
+      throw new UnauthorizedException('User Already Logged In!');
+    }
+
     if (user.status === 'INACTIVE') {
       throw new UnauthorizedException('User needs to verify their email!');
     }
@@ -76,7 +80,8 @@ export class AuthService {
         otp: this.userService.generateOtp(),
         otpExpiration: this.userService.getOtpExpiration(),
         otp_type: OtpType.EMAIL_VERIFICATION,
-        role: UserRole.USER
+        role: UserRole.USER,
+        birth_date: createUserDto.birth_date || undefined, // Ensure compatibility
       });
     }
 
@@ -125,7 +130,7 @@ export class AuthService {
     }
 
     await this.verifyPassword(newpwd, user.password);
-    if (newpwd === password) {
+    if (newpwd === user.password) {
       throw new UnauthorizedException('New password cannot be the same as the old password!');
     }
 

@@ -26,4 +26,7 @@ export class UpdateUserDto {
     @IsNotEmpty()
     @ApiProperty()
     mobile_no? : string;
+
+    @ApiProperty({ type: 'string', default: "yyyy-mm-dd" })
+    birth_date : Date | null;
 }

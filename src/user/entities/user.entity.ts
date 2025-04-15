@@ -34,6 +34,9 @@ export class User {
     @Column()
     mobile_no: string;
 
+    @Column({ type: 'date', nullable: true })
+    birth_date: Date;
+
     @Column({ default: 'INACTIVE' })
     status: string;
 
@@ -60,4 +63,7 @@ export class User {
 
     @Column({ type: 'timestamp', nullable: true })
     expiryDate_token: Date | null;
+
+    @Column({ type: 'integer', nullable: true })
+    age: number;
 }

@@ -5,6 +5,7 @@ import {
   BadRequestException,
   Inject,
   forwardRef,
+  ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -13,7 +14,7 @@ import { OtpType, User } from './entities/user.entity';
 import { EmailService } from './services/email.service';
 import { SmsService } from 'src/user/services/sms.service';
 import { AuthService } from 'src/auth/auth.service';
-import { JwtPayload } from 'src/auth/strategies/jwt.strategy';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UserService {
@@ -135,8 +136,8 @@ export class UserService {
       );
     }
 
-    const sameresetpwd = await bcrypt.compare(newpwd, user.password);
-    if (sameresetpwd) {
+    await this.authService.verifyPassword(newpwd, user.password);
+    if(newpwd === user.password) {
       throw new UnauthorizedException(
         'New Password cannot be the same as the old Password!',
       );
@@ -200,9 +201,24 @@ export class UserService {
   }
 
   async getUserById(id: string): Promise<User | null> {
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      throw new NotFoundException('User not found!');
+    }
+
+    if (user.birth_date) {
+      const today = new Date();
+      const birthDate = new Date(user.birth_date);
+      let age = today.getFullYear() - birthDate.getFullYear();
+      // const monthDiff = today.getMonth() - birthDate.getMonth();
+      
+      user.age = age;
+      await this.userRepository.save(user);
+    }
+
     return this.userRepository.findOne({
       where: { id },
-      select: ["first_name", "last_name", "mobile_no", "email", "status", "userName"],
+      select: ["first_name", "last_name", "mobile_no", "email", "status", "userName", "birth_date", "age"],
     });
   }
 
@@ -226,8 +242,8 @@ export class UserService {
   //   return { message: 'User updated successfully!' };
   // }
 
-  async update(email: string, first_name: string, last_name: string, mobile_no: string, userName: string) {
-    const user = await this.userRepository.findOne({ where: { email: email.toLowerCase() } });
+  async update(updateUserDto: UpdateUserDto, email: string) {
+    const user = await this.userRepository.findOne({ where: { email } });
 
     if (!user) {
       throw new NotFoundException('User not found!');
@@ -237,22 +253,24 @@ export class UserService {
       throw new UnauthorizedException('User is not logged in.');
     }
 
-    console.log("Before update:", user); // Debugging
-
-    user.first_name = first_name?.trim() || user.first_name;
-    user.last_name = last_name?.trim() || user.last_name;
-    user.mobile_no = mobile_no?.trim() || user.mobile_no;
-    user.userName = userName?.trim() || user.userName;
-
-    try {
-      await this.userRepository.save(user);
-      console.log("After update:", user); // Debugging
-
-      return { message: 'User updated successfully!', user };
-    } catch (error) {
-      console.error("Update failed:", error);
-      // throw new InternalServerErrorException('Failed to update user. Please try again.');
+    if (updateUserDto.first_name) user.first_name = updateUserDto.first_name;
+    if (updateUserDto.last_name) user.last_name = updateUserDto.last_name;
+    if (updateUserDto.userName) {
+      // Check if the new username is already in use
+      const existingUser = await this.userRepository.findOne({ where: { userName: updateUserDto.userName } });
+      if (existingUser && existingUser.id !== user.id) {
+        throw new ConflictException('Username already in use');
+      }
+      user.userName = updateUserDto.userName;
     }
+    if (updateUserDto.mobile_no) user.mobile_no = updateUserDto.mobile_no;
+    if (updateUserDto.birth_date) user.birth_date = updateUserDto.birth_date;
+
+    await this.userRepository.save(user);
+
+    const { id, password, status, otp, otpExpiration, otp_type, is_Verified, is_logged_in, role, token, expiryDate_token, age, ...data } = user;
+
+    return { message: 'User updated successfully!', user: { data } };
   }
 
   async getAllUsers(): Promise<User[]> {
