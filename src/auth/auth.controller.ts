@@ -56,7 +56,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Post('/logout')
   async logout(@Body() { email }: LogoutUserDto, @Res() res: Response) {
-    const user = await this.userService.getUserByEmail(email.toLowerCase());
+    const user = await this.userService.getUserById(email.toLowerCase());
     if (!user) {
       throw new NotFoundException("User not found.");
     }

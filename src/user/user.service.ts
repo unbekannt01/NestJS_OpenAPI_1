@@ -2,22 +2,24 @@ import {
   Injectable,
   UnauthorizedException,
   NotFoundException,
-  ConflictException,
   BadRequestException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { LessThan, Repository, MoreThan, IsNull, Not } from 'typeorm';
+import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { OtpType, User, UserRole } from './entities/user.entity';
-import { CreateUserDto } from 'src/auth/dto/create-user.dto';
+import { OtpType, User } from './entities/user.entity';
 import { EmailService } from './services/email.service';
-import { Cron } from '@nestjs/schedule';
 import { SmsService } from 'src/user/services/sms.service';
+import { AuthService } from 'src/auth/auth.service';
+import { JwtPayload } from 'src/auth/strategies/jwt.strategy';
 
 @Injectable()
 export class UserService {
   constructor(
-  @InjectRepository(User) private readonly userRepository: Repository<User>,
+    @InjectRepository(User) private readonly userRepository: Repository<User>,
+    @Inject(forwardRef(() => AuthService)) private readonly authService: AuthService,
     private readonly emailService: EmailService,
     private readonly smsService: SmsService,
   ) { }
@@ -38,8 +40,8 @@ export class UserService {
     }
 
     if (!user.otp || !user.otpExpiration || !user.otp_type) {
-      console.log("Invalid OTP or OTP Type Missing");
-      throw new BadRequestException("Invalid OTP or OTP Type Missing");
+      // console.log("Invalid OTP or OTP Expired or OTP Type Missing");
+      throw new BadRequestException("Invalid OTP or OTP Expired or OTP Type Missing");
     }
 
     if (new Date() > user.otpExpiration) {
@@ -100,12 +102,10 @@ export class UserService {
       if (user.mobile_no) {
         try {
           smsResult = await this.smsService.sendOtpSms(user.mobile_no, user.otp || '');
-          // console.log(`SMS sent to: ${smsResult.phoneNumber}`);
         } catch (error) {
-          // console.warn(`Failed to send SMS to ${user.mobile_no}: ${error.message}`);
         }
       } else {
-        // console.warn(`No mobile number provided for user ${user.email}. SMS not sent.`);
+        console.log('No mobile number provided for SMS OTP.');
       }
 
       return { message: 'OTP Sent to Your Email and SMS (if mobile provided)' };
@@ -198,10 +198,10 @@ export class UserService {
       };
     }
   }
-  
-  async getUserByEmail(email: string): Promise<User | null> {
+
+  async getUserById(id: string): Promise<User | null> {
     return this.userRepository.findOne({
-      where: { email },
+      where: { id },
       select: ["first_name", "last_name", "mobile_no", "email", "status", "userName"],
     });
   }
@@ -256,7 +256,9 @@ export class UserService {
   }
 
   async getAllUsers(): Promise<User[]> {
-    return await this.userRepository.find(); // Fetches all users
+    return await this.userRepository.find({
+      select: ["role", "userName", "first_name", "last_name", "mobile_no", "email", "status", "token", "expiryDate_token"],
+    }); // Fetches all users
   }
 
   generateOtp(): string {

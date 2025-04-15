@@ -3,6 +3,8 @@ import {
   UnauthorizedException,
   NotFoundException,
   ConflictException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MoreThanOrEqual, Repository } from 'typeorm';
@@ -19,7 +21,7 @@ export class AuthService {
   constructor(
     @InjectRepository(User) private readonly userRepository: Repository<User>,
     private readonly jwtService: JwtService,
-    private readonly userService: UserService,
+    @Inject(forwardRef(() => UserService)) private readonly userService: UserService, 
     private readonly emailService: EmailService,
   ) { }
 
@@ -181,5 +183,13 @@ export class AuthService {
     if (!isValidPassword) {
       throw new UnauthorizedException('Wrong Credentials.');
     }
+  }
+
+  async verifyToken(token: string) {
+    const decoded = this.jwtService.verify(token, {
+      secret: process.env.JWT_SECRET,
+    });
+    
+    return decoded;
   }
 }

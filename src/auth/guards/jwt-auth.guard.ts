@@ -20,8 +20,11 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     const token = authHeader.split(' ')[1];
     try {
       const decoded = this.jwtService.verify(token, { secret: process.env.JWT_SECRET });
-      request.user = decoded; // Attach the decoded user to the request
-      return true; // Return true directly since the token is already validated
+      request.user = {
+        id: decoded.id,
+        role: decoded.UserRole
+      }; // Attach decoded user data
+      return true;
     } catch (error) {
       throw new UnauthorizedException('Invalid or expired token');
     }

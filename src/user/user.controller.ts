@@ -1,11 +1,10 @@
-import { Controller, Post, Body, Get, NotFoundException, Put, Param, HttpStatus, HttpCode, Patch, BadRequestException, Query, UseGuards, Request, Response as Res, ValidationPipe } from '@nestjs/common';
+import { Controller, Body, Get, NotFoundException, Put, Param, BadRequestException, UseGuards, Response as Res, Req } from '@nestjs/common';
 import { UserService } from './user.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserRole } from './entities/user.entity';
 import { Roles } from './decorators/roles.decorator';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
-import { CreateUserDto } from 'src/auth/dto/create-user.dto';
 
 @Controller('user')
 export class UserController {
@@ -32,13 +31,14 @@ export class UserController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Get("/profile")
-  async getProfile(@Body("email") email: string) {
-    if (!email) throw new BadRequestException("Email is required.");
+  @Get('profile')
+  async getProfile(@Req() req : any) {
+    const userId = req.user.id; // Get user ID from JWT token
+    const user = await this.userService.getUserById(userId);
 
-    const user = await this.userService.getUserByEmail(email.toLowerCase());
-
-    if (!user) throw new NotFoundException("No user found with this email.");
+    if (!user) {
+      throw new NotFoundException("User profile not found");
+    }
 
     return { message: "User profile fetched successfully!", user };
   }
