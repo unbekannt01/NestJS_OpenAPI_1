@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, NotFoundException, Put, Param, HttpStatus, HttpCode, Patch, BadRequestException, Query, UseGuards, Request, Response as Res, ValidationPipe, UnauthorizedException, Req } from '@nestjs/common';
+import { Controller, Post, Body, Get, NotFoundException, Put, Param, HttpStatus, HttpCode, Patch, BadRequestException, Query, UseGuards, Request, Response as Res, ValidationPipe, UnauthorizedException, Req, ParseUUIDPipe, UsePipes } from '@nestjs/common';
 import { UserService } from 'src/user/user.service';
 import { VerifyOTPDto } from './dto/verify-otp-user.dto';
 import { ResendOTPDto } from './dto/resend-otp-user.dto';
@@ -13,6 +13,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { AuthService } from './auth.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
+import { JwtPayload } from './interfaces/jwt-payload.interface';
 
 @Controller('auth')
 export class AuthController {
@@ -23,12 +24,14 @@ export class AuthController {
 
   @Post('/register')
   @HttpCode(HttpStatus.CREATED)
+  @UsePipes(ValidationPipe)
   async create(@Body() createUserDto: CreateUserDto) {
     return this.authService.save(createUserDto);
   }
 
   @HttpCode(HttpStatus.OK)
   @Post('/login')
+  @UsePipes(ValidationPipe)
   async login(@Body() login: LoginUserDto, @Res({ passthrough: true }) res: Response): Promise<{ message: string; refresh_token: string; }> {
     try {
       const { role, access_token, refresh_token } = await this.authService.loginUser(login.email, login.password);
@@ -40,7 +43,7 @@ export class AuthController {
         maxAge: 60 * 60 * 1000,
       });
 
-      return { message: `${role} Login Successfully!`, refresh_token};
+      return { message: `${role} Login Successfully!`, refresh_token };
     } catch (error) {
       throw new BadRequestException(error.message || 'Login failed');
     }
@@ -51,17 +54,21 @@ export class AuthController {
     return this.authService.refreshToken(refreshTokenDto.refresh_token)
   }
 
-  @UseGuards(RolesGuard, JwtAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  @Post('/logout')
-  async logout(@Body() { email }: LogoutUserDto, @Res() res: Response) {
-    const user = await this.userService.getUserById(email.toLowerCase());
-    if (!user) {
-      throw new NotFoundException("User not found.");
+  @Post('/logout/:id')
+  async logout(
+    @Param('id', new ParseUUIDPipe({ version: "4" })) id: string,
+    @Req() req: Request & { user: JwtPayload },
+    @Res() res: Response
+  ) {
+    // Check if the token belongs to the user trying to logout
+    if (req.user.id !== id) {
+      throw new UnauthorizedException('You can only logout your own account');
     }
-    await this.authService.logout(email.toLowerCase());
 
-    // Clear the access_token cookie
+    await this.authService.logout(id);
+
     res.clearCookie('access_token', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',

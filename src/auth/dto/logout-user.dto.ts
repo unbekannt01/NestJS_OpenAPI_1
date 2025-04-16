@@ -1,10 +1,10 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsEmail, IsNotEmpty } from "class-validator";
+import { IsNotEmpty, IsUUID } from "class-validator";
 
 export class LogoutUserDto {
 
-    @IsEmail()
+    @IsNotEmpty()
+    @IsUUID()
     @ApiProperty()
-    email : string;
-
+    id : string;
 }

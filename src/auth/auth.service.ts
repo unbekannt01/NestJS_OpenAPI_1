@@ -21,7 +21,7 @@ export class AuthService {
   constructor(
     @InjectRepository(User) private readonly userRepository: Repository<User>,
     private readonly jwtService: JwtService,
-    @Inject(forwardRef(() => UserService)) private readonly userService: UserService, 
+    @Inject(forwardRef(() => UserService)) private readonly userService: UserService,
     private readonly emailService: EmailService,
   ) { }
 
@@ -32,7 +32,11 @@ export class AuthService {
       throw new NotFoundException('User not registered.');
     }
 
-    if(user.is_logged_in === true){
+    if (user.loginAttempts >= 10) {
+      throw new UnauthorizedException('Account blocked due to too many failed login attempts. Please contact support.');
+    }
+
+    if (user.is_logged_in === true) {
       throw new UnauthorizedException('User Already Logged In!');
     }
 
@@ -40,16 +44,34 @@ export class AuthService {
       throw new UnauthorizedException('User needs to verify their email!');
     }
 
-    await this.verifyPassword(password, user.password);
+    try {
+      await this.verifyPassword(password, user.password)
+      user.loginAttempts = 0;
+      user.is_logged_in = true;
+      await this.userRepository.save(user);
 
-    const role = user.role;
-    user.is_logged_in = true;
-    await this.userRepository.save(user);
+      const role = user.role;
+      const token = await this.generateUserToken(user.id, user.role, user.email);
 
-    // Generate JWT Token
-    const token = await this.generateUserToken(user.id, user.role);
+      return { message: `${role} Login Successfully!`, role, ...token };
+    } catch (error) {
+      user.loginAttempts = (user.loginAttempts || 0) + 1;
+      await this.userRepository.save(user);
 
-    return { message: `${role} Login Successfully!`, role, ...token };
+      if (user.loginAttempts >= 10) {
+        await this.userRepository.update(user.id, { blocked: true });
+        throw new UnauthorizedException('Account blocked due to too many failed login attempts. Please contact support.');
+      }
+
+      throw new UnauthorizedException(`Wrong Credentials. ${10 - user.loginAttempts} attempts remaining.`);
+    }
+  }
+
+  async resetLoginAttempts(email: string): Promise<void> {
+    await this.userRepository.update(
+      { email },
+      { loginAttempts: 0 }
+    );
   }
 
   async save(createUserDto: CreateUserDto) {
@@ -94,8 +116,8 @@ export class AuthService {
     return { message: `${role} registered successfully. OTP sent to email.` };
   }
 
-  async logout(email: string) {
-    const user = await this.userRepository.findOne({ where: { email } });
+  async logout(id: string) {
+    const user = await this.userRepository.findOne({ where: { id } });
 
     if (!user) {
       throw new NotFoundException('User Not Found!');
@@ -105,10 +127,15 @@ export class AuthService {
       throw new UnauthorizedException('User Already Logged Out!');
     }
 
-    user.is_logged_in = false;
-    user.token = null; // Clear the token on logout
-    user.expiryDate_token = null; // Clear the token expiration date on logout
-    await this.userRepository.save(user);
+    // Clear all authentication related fields
+    await this.userRepository.update(
+      { id },
+      {
+        is_logged_in: false,
+        token: null,
+        expiryDate_token: null
+      }
+    );
 
     return { message: 'User Logout Successfully!' };
   }
@@ -140,31 +167,36 @@ export class AuthService {
     return { message: 'User Successfully Changed their Password!' };
   }
 
-  async generateUserToken(userId: string, role: UserRole) {
+  async generateUserToken(userId: string, role: UserRole, email:string) {
     const payload = {
       id: userId,
       UserRole: role, // Ensure the role field is named 'role'
+      email: email
     };
 
     const secret = process.env.JWT_SECRET; // Fallback for missing secret
     // console.log('Using JWT_SECRET:', secret); // Debugging
 
-    const access_token = this.jwtService.sign(payload, { secret });
+    const access_token = this.jwtService.sign(payload, {
+      secret,
+      expiresIn: '1h',
+    })
+
     const refresh_token = uuidv4();
-    await this.storeRefreshToken(refresh_token, userId, role);
+    await this.storeRefreshToken(refresh_token, userId, role, email);
     return {
       access_token,
       refresh_token,
     };
   }
 
-  async storeRefreshToken(token: string, userId: string, role: UserRole) {
+  async storeRefreshToken(token: string, userId: string, role: UserRole, email:string) {
     const expiresIn = new Date();
     expiresIn.setDate(expiresIn.getDate() + 7); // 7 days expiration
 
     await this.userRepository.update(
       { id: userId },
-      { token, role, expiryDate_token: expiresIn },
+      { token, role, expiryDate_token: expiresIn, email },
     );
   }
 
@@ -180,7 +212,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid or expired refresh token.');
     }
 
-    return this.generateUserToken(token.id, token.role);
+    return this.generateUserToken(token.id, token.role, token.email);
   }
 
   async verifyPassword(password: string, hashedPassword: string) {
@@ -194,7 +226,6 @@ export class AuthService {
     const decoded = this.jwtService.verify(token, {
       secret: process.env.JWT_SECRET,
     });
-    
     return decoded;
   }
 }

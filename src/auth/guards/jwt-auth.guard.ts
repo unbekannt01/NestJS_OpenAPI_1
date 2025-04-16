@@ -14,6 +14,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     const authHeader = request.headers['authorization'];
   
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      throw new UnauthorizedException('Authorization header not found..!')
     }
   
     const token = authHeader.split(' ')[1];
@@ -21,7 +22,8 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       const decoded = this.jwtService.verify(token, { secret: process.env.JWT_SECRET });
       request.user = {
         id: decoded.id,
-        role: decoded.UserRole
+        role: decoded.UserRole,
+        email: decoded.email
       }; // Attach decoded user data
       return true;
     } catch (error) {

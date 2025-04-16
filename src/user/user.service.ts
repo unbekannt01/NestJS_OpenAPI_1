@@ -8,7 +8,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Not } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { OtpType, User } from './entities/user.entity';
 import { EmailService } from './services/email.service';
@@ -137,7 +137,7 @@ export class UserService {
     }
 
     await this.authService.verifyPassword(newpwd, user.password);
-    if(newpwd === user.password) {
+    if (newpwd === user.password) {
       throw new UnauthorizedException(
         'New Password cannot be the same as the old Password!',
       );
@@ -211,7 +211,7 @@ export class UserService {
       const birthDate = new Date(user.birth_date);
       let age = today.getFullYear() - birthDate.getFullYear();
       // const monthDiff = today.getMonth() - birthDate.getMonth();
-      
+
       user.age = age;
       await this.userRepository.save(user);
     }
@@ -222,55 +222,45 @@ export class UserService {
     });
   }
 
-  // async update(id: string, updateuserDto: UpdateUserDto) {
-  //   const user = await this.userRepository.findOne({ where: { id } });
-
-  //   if (!user) {
-  //     throw new NotFoundException('User not found!');
-  //   }
-
-  //   if (!user.is_logged_in) {
-  //     throw new InternalServerErrorException('User Not Logged In');
-  //   }
-
-  //   if (updateuserDto.first_name) user.first_name = updateuserDto.first_name;
-  //   if (updateuserDto.last_name) user.last_name = updateuserDto.last_name;
-  //   if (updateuserDto.mobile_no) user.mobile_no = updateuserDto.mobile_no;
-
-  //   await this.userRepository.save(user);
-
-  //   return { message: 'User updated successfully!' };
-  // }
-
-  async update(updateUserDto: UpdateUserDto, email: string) {
-    const user = await this.userRepository.findOne({ where: { email } });
+  async updateUser(email: string, updateUserDto: UpdateUserDto) {
+    const user = await this.userRepository.findOne({
+      where: { email, is_logged_in: true }
+    });
 
     if (!user) {
-      throw new NotFoundException('User not found!');
+      throw new NotFoundException('User not found or not logged in');
     }
 
-    if (!user.is_logged_in) {
-      throw new UnauthorizedException('User is not logged in.');
-    }
-
+    // Update user fields
     if (updateUserDto.first_name) user.first_name = updateUserDto.first_name;
     if (updateUserDto.last_name) user.last_name = updateUserDto.last_name;
     if (updateUserDto.userName) {
-      // Check if the new username is already in use
-      const existingUser = await this.userRepository.findOne({ where: { userName: updateUserDto.userName } });
-      if (existingUser && existingUser.id !== user.id) {
-        throw new ConflictException('Username already in use');
+      const existingUser = await this.userRepository.findOne({
+        where: { userName: updateUserDto.userName, id: Not(user.id) },
+      });
+      if (existingUser) {
+        throw new ConflictException('Please use a different username, it is already taken!');
       }
       user.userName = updateUserDto.userName;
     }
     if (updateUserDto.mobile_no) user.mobile_no = updateUserDto.mobile_no;
     if (updateUserDto.birth_date) user.birth_date = updateUserDto.birth_date;
 
+    // await this.userRepository.update(user.id, updateUserDto);
+
     await this.userRepository.save(user);
 
-    const { id, password, status, otp, otpExpiration, otp_type, is_Verified, is_logged_in, role, token, expiryDate_token, age, ...data } = user;
+    // Remove sensitive data before returning
+    const {
+      id, role, status, is_logged_in, age,
+      password, otp, otpExpiration, otp_type, is_Verified,
+      token, expiryDate_token, loginAttempts, blocked, ...data
+    } = user;
 
-    return { message: 'User updated successfully!', user: { data } };
+    return {
+      message: 'User updated successfully!',
+      user: data
+    };
   }
 
   async getAllUsers(): Promise<User[]> {
@@ -285,5 +275,47 @@ export class UserService {
 
   getOtpExpiration(): Date {
     return new Date(Date.now() + 1 * 60 * 1000); // 5 minutes expiration
+  }
+
+  async getUserByEmail(email: string) {
+    const user = await this.userRepository.findOne({ where: { email } });
+    if (!user) {
+      throw new NotFoundException('User not found!');
+    }
+    return user;
+  }
+
+  async getUserByID(id: string) {
+    const user = await this.userRepository.findOne({ where: { id } })
+    if (!user) {
+      throw new NotFoundException('User not found !')
+    }
+  }
+
+  async unblockUser(email: string) {
+    const user = await this.userRepository.findOne({ where: { email } });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (!user.blocked) {
+      throw new BadRequestException('User is not blocked');
+    }
+
+    // Reset login attempts and blocked status
+    await this.userRepository.update(
+      { id: user.id },
+      {
+        loginAttempts: 0,
+        blocked: false
+      }
+    );
+
+    return {
+      message: 'User has been unblocked successfully',
+      email: user.email,
+      userName: user.userName
+    };
   }
 }

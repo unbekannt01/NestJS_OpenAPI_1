@@ -59,11 +59,17 @@ export class User {
     role: UserRole;
 
     @Column({ type: 'text', nullable: true })
-    token: string | null;    
+    token: string | null;
 
     @Column({ type: 'timestamp', nullable: true })
     expiryDate_token: Date | null;
 
     @Column({ type: 'integer', nullable: true })
     age: number;
+
+    @Column({ default: 0 , nullable : true })
+    loginAttempts: number;
+
+    @Column({ default: false })
+    blocked: boolean;
 }

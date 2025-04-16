@@ -1,32 +1,29 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsNotEmpty, IsOptional, IsString } from "class-validator";
+import { IsOptional, IsString } from "class-validator";
 
 export class UpdateUserDto {
 
-    @IsOptional()
-    @IsString()
-    @IsNotEmpty()
-    @ApiProperty()
-    userName?: string;
+  @IsOptional()
+  @IsString()
+  @ApiProperty()
+  userName?: string;
 
-    @IsOptional()
-    @IsString()
-    @IsNotEmpty()
-    @ApiProperty()
-    first_name?: string;
+  @IsOptional()
+  @IsString()
+  @ApiProperty()
+  first_name?: string;
 
-    @IsOptional()
-    @IsString()
-    @IsNotEmpty()
-    @ApiProperty()
-    last_name? : string;
+  @IsOptional()
+  @IsString()
+  @ApiProperty()
+  last_name?: string;
 
-    @IsOptional()
-    @IsString()
-    @IsNotEmpty()
-    @ApiProperty()
-    mobile_no? : string;
+  @IsOptional()
+  @IsString()
+  @ApiProperty()
+  mobile_no?: string;
 
-    @ApiProperty({ type: 'string', default: "yyyy-mm-dd" })
-    birth_date : Date | null;
+  @IsOptional()
+  @ApiProperty({ type: 'string', default: "yyyy-mm-dd" })
+  birth_date?: Date | null; // Ensure TypeORM can handle null correctly
 }
