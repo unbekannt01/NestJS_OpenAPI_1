@@ -1,13 +1,14 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import * as Twilio from 'twilio';
 
 @Injectable()
 export class SmsService {
   private client: Twilio.Twilio;
 
-  constructor() {
-    const accountSid = process.env.TWILIO_ACCOUNT_SID;
-    const authToken = process.env.TWILIO_AUTH_TOKEN;
+  constructor( private config : ConfigService ) {
+    const accountSid = this.config.get<string>('TWILIO_ACCOUNT_SID');
+    const authToken = this.config.get<string>('TWILIO_AUTH_TOKEN');
 
     if (!accountSid || !authToken) {
       throw new Error('TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN must be set in environment variables');
@@ -17,7 +18,7 @@ export class SmsService {
   }
 
   async sendOtpSms(to: string, otp: string): Promise<{ message: string; phoneNumber: string }> {
-    const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
+    const twilioPhoneNumber = this.config.get('TWILIO_PHONE_NUMBER');
 
     if (!twilioPhoneNumber) {
       throw new Error('TWILIO_PHONE_NUMBER must be set in environment variables');
