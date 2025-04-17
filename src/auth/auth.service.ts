@@ -103,7 +103,8 @@ export class AuthService {
         otpExpiration: this.userService.getOtpExpiration(),
         otp_type: OtpType.EMAIL_VERIFICATION,
         role: UserRole.USER,
-        birth_date: createUserDto.birth_date || undefined, // Ensure compatibility
+        birth_date: createUserDto.birth_date || undefined,
+        createdAt : Date.now(),
       });
     }
 

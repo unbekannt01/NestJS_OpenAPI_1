@@ -67,9 +67,15 @@ export class User {
     @Column({ type: 'integer', nullable: true })
     age: number;
 
-    @Column({ default: 0 , nullable : true })
+    @Column({ default: 0, nullable: true })
     loginAttempts: number;
 
     @Column({ default: false })
     blocked: boolean;
+
+    @Column({ type: 'timestamp', nullable: true })
+    createdAt: Date;
+
+    @Column({ type: 'timestamp', nullable: true })
+    updatedAt: Date;
 }

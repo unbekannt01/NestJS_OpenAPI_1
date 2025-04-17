@@ -226,9 +226,21 @@ export class UserService {
     const user = await this.userRepository.findOne({
       where: { email, is_logged_in: true }
     });
-
+    
     if (!user) {
       throw new NotFoundException('User not found or not logged in');
+    }
+
+    // Check if a week has passed since last update
+    if (user.updatedAt) {
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+      
+      if (user.updatedAt > oneWeekAgo) {
+        const nextUpdateDate = new Date(user.updatedAt);
+        nextUpdateDate.setDate(nextUpdateDate.getDate() + 7);
+        throw new UnauthorizedException(`Profile can only be updated once per week. Next update available on ${nextUpdateDate.toLocaleDateString()}`);
+      }
     }
 
     // Update user fields
@@ -246,20 +258,20 @@ export class UserService {
     if (updateUserDto.mobile_no) user.mobile_no = updateUserDto.mobile_no;
     if (updateUserDto.birth_date) user.birth_date = updateUserDto.birth_date;
 
-    // await this.userRepository.update(user.id, updateUserDto);
-
+    user.updatedAt = new Date();
     await this.userRepository.save(user);
 
     // Remove sensitive data before returning
     const {
-      id, role, status, is_logged_in, age,
+      id, role, status, is_logged_in, age, updatedAt, createdAt,
       password, otp, otpExpiration, otp_type, is_Verified,
       token, expiryDate_token, loginAttempts, blocked, ...data
     } = user;
 
     return {
       message: 'User updated successfully!',
-      user: data
+      user: data,
+      nextUpdateAvailable: new Date(updatedAt.getTime() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString()
     };
   }
 
