@@ -104,7 +104,7 @@ export class AuthService {
         otp_type: OtpType.EMAIL_VERIFICATION,
         role: UserRole.USER,
         birth_date: createUserDto.birth_date || undefined,
-        createdAt : Date.now(),
+        createdAt: Date.now(),
       });
     }
 
@@ -168,7 +168,7 @@ export class AuthService {
     return { message: 'User Successfully Changed their Password!' };
   }
 
-  async generateUserToken(userId: string, role: UserRole, email:string) {
+  async generateUserToken(userId: string, role: UserRole, email: string) {
     const payload = {
       id: userId,
       UserRole: role, // Ensure the role field is named 'role'
@@ -191,7 +191,7 @@ export class AuthService {
     };
   }
 
-  async storeRefreshToken(token: string, userId: string, role: UserRole, email:string) {
+  async storeRefreshToken(token: string, userId: string, role: UserRole, email: string) {
     const expiresIn = new Date();
     expiresIn.setDate(expiresIn.getDate() + 7); // 7 days expiration
 

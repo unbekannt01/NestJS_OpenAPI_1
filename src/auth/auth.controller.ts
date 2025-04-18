@@ -2,11 +2,9 @@ import { Controller, Post, Body, Get, NotFoundException, Put, Param, HttpStatus,
 import { UserService } from 'src/user/user.service';
 import { VerifyOTPDto } from './dto/verify-otp-user.dto';
 import { ResendOTPDto } from './dto/resend-otp-user.dto';
-import { LogoutUserDto } from './dto/logout-user.dto';
 import { ChangePwdDto } from 'src/user/dto/change-pwd-user.dto';
 import { ForgotPwdDto } from './dto/forgot-pwd-user.dto';
 import { ResetPwdDto } from './dto/reset-pwd-user.dto';
-import { RolesGuard } from './guards/roles.guard';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { Response } from 'express'
 import { JwtAuthGuard } from './guards/jwt-auth.guard';

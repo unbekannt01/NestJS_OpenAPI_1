@@ -226,7 +226,7 @@ export class UserService {
     const user = await this.userRepository.findOne({
       where: { email, is_logged_in: true }
     });
-    
+
     if (!user) {
       throw new NotFoundException('User not found or not logged in');
     }
@@ -235,7 +235,7 @@ export class UserService {
     if (user.updatedAt) {
       const oneWeekAgo = new Date();
       oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-      
+
       if (user.updatedAt > oneWeekAgo) {
         const nextUpdateDate = new Date(user.updatedAt);
         nextUpdateDate.setDate(nextUpdateDate.getDate() + 7);
@@ -273,6 +273,41 @@ export class UserService {
       user: data,
       nextUpdateAvailable: new Date(updatedAt.getTime() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString()
     };
+  }
+
+  async softDeleteUser(id: string) {
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      throw new NotFoundException('User not found!');
+    }
+
+    await this.userRepository.softDelete({ id });
+    return { message: 'User deleted successfully!' };
+  }
+
+  async reStoreUser(id: string) {
+    const user = await this.userRepository.findOne({ where: { id }, withDeleted: true });
+ 
+    if (!user) {
+      throw new NotFoundException('User not found!');
+    }
+
+    if (!user.deletedAt) {
+      throw new BadRequestException('User is not soft-deleted and cannot be restored.');
+    }
+
+    await this.userRepository.restore({ id });
+    return { message: 'User restored successfully!' };
+  }
+
+  async hardDelete(id: string) {
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      throw new NotFoundException('User not found!');
+    }
+
+    await this.userRepository.delete({ id });
+    return { message: 'User permanently deleted successfully!' };
   }
 
   async getAllUsers(): Promise<User[]> {

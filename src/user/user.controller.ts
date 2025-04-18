@@ -1,4 +1,4 @@
-import { Controller, Body, Get, NotFoundException, Param, UseGuards, Response as Res, Req, Query, Patch, ParseUUIDPipe, UsePipes, HttpStatus, Post, UnauthorizedException } from '@nestjs/common';
+import { Controller, Body, Get, NotFoundException, Param, UseGuards, Response as Res, Req, Query, Patch, ParseUUIDPipe, UsePipes, HttpStatus, Post, UnauthorizedException, Delete } from '@nestjs/common';
 import { UserService } from './user.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserRole } from './entities/user.entity';
@@ -61,5 +61,25 @@ export class UserController {
   @Post('/unblock')
   async unblockUser(@Body() unblockUserDto: UnblockUserDto) {
     return this.userService.unblockUser(unblockUserDto.email);
+  }
+
+  // @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN) // Only admins can delete users
+  @Delete('/softDelete/:id')
+  async deleteUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string) {
+    return this.userService.softDeleteUser(id);
+  }
+
+  // @Roles(UserRole.ADMIN)
+  @Patch('/restore/:id')
+  async reStoreUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.BAD_REQUEST })) id: string) {
+    return this.userService.reStoreUser(id);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN) // Only admins can hardDelete users
+  @Delete('/hardDelete/:id')
+  async permanantDeleteUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string) {
+    return this.userService.hardDelete(id);
   }
 }

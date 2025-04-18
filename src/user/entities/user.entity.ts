@@ -1,4 +1,4 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, PrimaryGeneratedColumn, DeleteDateColumn } from 'typeorm';
 
 export enum UserRole {
     USER = 'User',
@@ -78,4 +78,7 @@ export class User {
 
     @Column({ type: 'timestamp', nullable: true })
     updatedAt: Date;
+
+    @DeleteDateColumn({ type: 'timestamp', nullable: true })
+    deletedAt: Date | null;
 }
