@@ -104,7 +104,7 @@ export class AuthService {
         otp_type: OtpType.EMAIL_VERIFICATION,
         role: UserRole.USER,
         birth_date: createUserDto.birth_date || undefined,
-        createdAt: Date.now(),
+        createdAt: new Date(),
       });
     }
 

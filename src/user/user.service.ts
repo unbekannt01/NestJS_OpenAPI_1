@@ -282,7 +282,7 @@ export class UserService {
     }
 
     await this.userRepository.softDelete({ id });
-    return { message: 'User deleted successfully!' };
+    return { message: 'User Temporary Deleted Successfully!' };
   }
 
   async reStoreUser(id: string) {
@@ -297,7 +297,7 @@ export class UserService {
     }
 
     await this.userRepository.restore({ id });
-    return { message: 'User restored successfully!' };
+    return { message: 'User Restored Successfully!' };
   }
 
   async hardDelete(id: string) {
@@ -307,7 +307,7 @@ export class UserService {
     }
 
     await this.userRepository.delete({ id });
-    return { message: 'User permanently deleted successfully!' };
+    return { message: 'User Permanently Deleted Successfully!' };
   }
 
   async getAllUsers(): Promise<User[]> {

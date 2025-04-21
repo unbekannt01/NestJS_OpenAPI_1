@@ -63,16 +63,17 @@ export class UserController {
     return this.userService.unblockUser(unblockUserDto.email);
   }
 
-  // @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN) // Only admins can delete users
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN) // Only admins can softDelete users
   @Delete('/softDelete/:id')
-  async deleteUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string) {
+  async softDeleteUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string) {
     return this.userService.softDeleteUser(id);
   }
 
-  // @Roles(UserRole.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @Patch('/restore/:id')
-  async reStoreUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.BAD_REQUEST })) id: string) {
+  async reStoreUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string) {
     return this.userService.reStoreUser(id);
   }
 
@@ -82,4 +83,11 @@ export class UserController {
   async permanantDeleteUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string) {
     return this.userService.hardDelete(id);
   }
+
+
+  // // Example : Why need middlewares
+  // @Get('/getUser')
+  // async getUserByEmail(@Query('email') email: string) {   
+  //   return { message : 'true' }
+  // }
 }
