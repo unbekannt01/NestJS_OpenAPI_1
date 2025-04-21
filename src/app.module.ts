@@ -1,9 +1,12 @@
-import { Module } from '@nestjs/common';
+import { Module, MiddlewareConsumer } from '@nestjs/common';
 import { UserModule } from './user/user.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from './user/entities/user.entity';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { SmsService } from './user/services/sms.service';
+import { LoggerMiddleware } from './common/middleware/logger.middleware';
+import { APP_GUARD } from '@nestjs/core';
+import { IsNotSuspendedGuard } from './auth/guards/IsNotSuspended.guard';
 
 @Module({
   imports: [
@@ -28,6 +31,14 @@ import { SmsService } from './user/services/sms.service';
   ],
   providers: [
     SmsService,
+    {
+      provide: APP_GUARD,
+      useClass: IsNotSuspendedGuard,
+    },
   ],
 })
-export class AppModule { }
+export class AppModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(LoggerMiddleware).forRoutes('*'); // Apply to all routes
+  }
+}

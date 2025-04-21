@@ -12,6 +12,10 @@ import { AuthService } from './auth.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
+import { RolesGuard } from './guards/roles.guard';
+import { Roles } from 'src/user/decorators/roles.decorator';
+import { UserRole } from 'src/user/entities/user.entity';
+import { IsNotSuspendedGuard } from './guards/IsNotSuspended.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -52,20 +56,40 @@ export class AuthController {
     return this.authService.refreshToken(refreshTokenDto.refresh_token)
   }
 
+  // @UseGuards(JwtAuthGuard)
+  // @HttpCode(HttpStatus.OK)
+  // @Post('/logout/:id')
+  // async logout(
+  //   @Param('id', new ParseUUIDPipe({ version: "4" })) id: string,
+  //   @Req() req: Request & { user: JwtPayload },
+  //   @Res() res: Response
+  // ) {
+  //   // Check if the token belongs to the user trying to logout
+  //   if (req.user.id !== id) {
+  //     throw new UnauthorizedException('You can only logout your own account');
+  //   }
+
+  //   await this.authService.logout(id);
+
+  //   res.clearCookie('access_token', {
+  //     httpOnly: true,
+  //     secure: process.env.NODE_ENV === 'production',
+  //     sameSite: 'strict',
+  //   });
+
+  //   return res.status(HttpStatus.OK).json({ message: "User logged out successfully!" });
+  // }
+
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  @Post('/logout/:id')
+  @Post('/logout')
   async logout(
-    @Param('id', new ParseUUIDPipe({ version: "4" })) id: string,
     @Req() req: Request & { user: JwtPayload },
     @Res() res: Response
   ) {
-    // Check if the token belongs to the user trying to logout
-    if (req.user.id !== id) {
-      throw new UnauthorizedException('You can only logout your own account');
-    }
+    const userId = req.user.id;
 
-    await this.authService.logout(id);
+    await this.authService.logout(userId); // Optional: if you're invalidating refresh tokens in DB
 
     res.clearCookie('access_token', {
       httpOnly: true,
@@ -75,6 +99,7 @@ export class AuthController {
 
     return res.status(HttpStatus.OK).json({ message: "User logged out successfully!" });
   }
+
 
   @Post("/verify-otp")
   async verifyOtp(@Body() verifyOtpDto: VerifyOTPDto) {
@@ -102,5 +127,19 @@ export class AuthController {
   @Post('/resetpwd')
   resetpwd(@Body() { email, newpwd }: ResetPwdDto) {
     return this.userService.resetPassword(email, newpwd);
+  }
+
+  @UseGuards(JwtAuthGuard, IsNotSuspendedGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @Patch('/suspend/:id')
+  async suspedUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string, @Body() message: string) {
+    return this.authService.suspendUser(id, message)
+  }
+
+  @UseGuards(JwtAuthGuard, IsNotSuspendedGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @Patch('/reActivated/:id')
+  async reActivatedUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string) {
+    return this.authService.reActivatedUser(id)
   }
 }

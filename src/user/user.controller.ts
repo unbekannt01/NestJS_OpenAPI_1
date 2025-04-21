@@ -16,7 +16,7 @@ export class UserController {
   @Patch('/update')
   async updateUser(
     @Query('email') email : string,
-    @Body() updateUserDto: UpdateUserDto,
+    @Body() updateUserDto: UpdateUserDto,currentUser: string,
     @Req() req: Request & { user: JwtPayload } 
   ) {
     // Check if user is trying to update their own profile
@@ -24,7 +24,7 @@ export class UserController {
       throw new UnauthorizedException('You are not authorized to update profile...!');
     }
 
-    return await this.userService.updateUser(email, updateUserDto);
+    return await this.userService.updateUser(email, updateUserDto, currentUser);     
   }
 
   @UseGuards(JwtAuthGuard)
@@ -60,7 +60,7 @@ export class UserController {
   @Roles(UserRole.ADMIN) // Only admins can unblock users
   @Post('/unblock')
   async unblockUser(@Body() unblockUserDto: UnblockUserDto) {
-    return this.userService.unblockUser(unblockUserDto.email);
+    return this.userService.unblockUser(unblockUserDto.email); 
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

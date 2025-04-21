@@ -1,9 +1,10 @@
 import { Column, Entity, PrimaryGeneratedColumn, DeleteDateColumn } from 'typeorm';
+import { BaseEntity } from '../../common/entities/base.entity';
 
 export enum UserRole {
-    USER = 'User',
-    ADMIN = 'Admin',
-    SUPER_ADMIN = 'Super_Admin'
+    USER = 'USER',
+    ADMIN = 'ADMIN',
+    SUPER_ADMIN = 'SUPER_ADMIN'
 }
 
 export enum OtpType {
@@ -11,8 +12,14 @@ export enum OtpType {
     FORGOT_PASSWORD = "FORGOT_PASSWORD",
 }
 
+export enum UserStatus {
+    INACTIVE = 'INACTIVE',
+    ACTIVE = 'ACTIVE',
+    SUSPENDED = 'SUSPENDED',
+}
+
 @Entity({ name: 'user_1' })
-export class User {
+export class User extends BaseEntity {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
@@ -37,8 +44,8 @@ export class User {
     @Column({ type: 'date', nullable: true })
     birth_date: Date;
 
-    @Column({ default: 'INACTIVE' })
-    status: string;
+    @Column({ type: 'enum', enum: UserStatus, default: UserStatus.INACTIVE })
+    status: UserStatus;
 
     @Column({ type: 'varchar', nullable: true })
     otp: string | null;
@@ -59,7 +66,7 @@ export class User {
     role: UserRole;
 
     @Column({ type: 'text', nullable: true })
-    token: string | null;
+    refresh_token: string | null;
 
     @Column({ type: 'timestamp', nullable: true })
     expiryDate_token: Date | null;
@@ -71,14 +78,8 @@ export class User {
     loginAttempts: number;
 
     @Column({ default: false })
-    blocked: boolean;
+    isBlocked: boolean;
 
-    @Column({ type: 'timestamp', nullable: true })
-    createdAt: Date;
-
-    @Column({ type: 'timestamp', nullable: true })
-    updatedAt: Date;
-
-    @DeleteDateColumn({ type: 'timestamp', nullable: true })
-    deletedAt: Date | null;
+    @Column({ nullable: true })
+    suspensionReason: string;
 }

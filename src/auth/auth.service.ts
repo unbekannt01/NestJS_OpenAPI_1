@@ -5,11 +5,12 @@ import {
   ConflictException,
   Inject,
   forwardRef,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MoreThanOrEqual, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { OtpType, User, UserRole } from 'src/user/entities/user.entity';
+import { OtpType, User, UserRole, UserStatus } from 'src/user/entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
 import { v4 as uuidv4 } from 'uuid';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -59,7 +60,7 @@ export class AuthService {
       await this.userRepository.save(user);
 
       if (user.loginAttempts >= 10) {
-        await this.userRepository.update(user.id, { blocked: true });
+        await this.userRepository.update(user.id, { isBlocked: true });
         throw new UnauthorizedException('Account blocked due to too many failed login attempts. Please contact support.');
       }
 
@@ -79,13 +80,18 @@ export class AuthService {
       where: { email: createUserDto.email },
     });
 
+    // Always check for username conflict
+    const usernameConflict = await this.userRepository.findOne({
+      where: { userName: createUserDto.userName }
+    });
+
+    if (usernameConflict && (!user || usernameConflict.id !== user.id)) {
+      throw new ConflictException('Please use a different username, it is already taken!');
+    }
+
     if (user) {
       if (user.status === 'ACTIVE') {
         throw new ConflictException('Email already registered...!');
-      }
-
-      if (user.userName == createUserDto.userName) {
-        throw new ConflictException('Username already registered...!');
       }
 
       if (!user.otp) {
@@ -98,14 +104,25 @@ export class AuthService {
       user = this.userRepository.create({
         ...createUserDto,
         password: hashedPassword,
-        status: 'INACTIVE',
+        status: UserStatus.INACTIVE,
         otp: this.userService.generateOtp(),
         otpExpiration: this.userService.getOtpExpiration(),
         otp_type: OtpType.EMAIL_VERIFICATION,
         role: UserRole.USER,
         birth_date: createUserDto.birth_date || undefined,
         createdAt: new Date(),
+        createdBy: createUserDto.userName, // Set createdBy to user's email
       });
+    }
+
+    if (user.birth_date) {
+      const today = new Date();
+      const birthDate = new Date(user.birth_date);
+      let age = today.getFullYear() - birthDate.getFullYear();
+      // const monthDiff = today.getMonth() - birthDate.getMonth();
+
+      user.age = age;
+      await this.userRepository.save(user);
     }
 
     const role = user.role;
@@ -117,28 +134,35 @@ export class AuthService {
     return { message: `${role} registered successfully. OTP sent to email.` };
   }
 
-  async logout(id: string) {
-    const user = await this.userRepository.findOne({ where: { id } });
+  // async logout(id: string) {
+  //   const user = await this.userRepository.findOne({ where: { id } });
 
-    if (!user) {
-      throw new NotFoundException('User Not Found!');
-    }
+  //   if (!user) {
+  //     throw new NotFoundException('User Not Found!');
+  //   }
 
-    if (user.is_logged_in === false) {
-      throw new UnauthorizedException('User Already Logged Out!');
-    }
+  //   if (user.is_logged_in === false) {
+  //     throw new UnauthorizedException('User Already Logged Out!');
+  //   }
 
-    // Clear all authentication related fields
+  //   // Clear all authentication related fields
+  //   await this.userRepository.update(
+  //     { id },
+  //     {
+  //       is_logged_in: false,
+  //       refresh_token: null,
+  //       expiryDate_token: null
+  //     }
+  //   );
+
+  //   return { message: 'User Logout Successfully!' };
+  // }
+
+  async logout(userId: string) {
     await this.userRepository.update(
-      { id },
-      {
-        is_logged_in: false,
-        token: null,
-        expiryDate_token: null
-      }
+      { id: userId },
+      { is_logged_in: false, refresh_token: null, expiryDate_token: null },
     );
-
-    return { message: 'User Logout Successfully!' };
   }
 
   async changepwd(email: string, password: string, newpwd: string) {
@@ -191,20 +215,20 @@ export class AuthService {
     };
   }
 
-  async storeRefreshToken(token: string, userId: string, role: UserRole, email: string) {
+  async storeRefreshToken(refresh_token: string, userId: string, role: UserRole, email: string) {
     const expiresIn = new Date();
     expiresIn.setDate(expiresIn.getDate() + 7); // 7 days expiration
 
     await this.userRepository.update(
       { id: userId },
-      { token, role, expiryDate_token: expiresIn, email },
+      { refresh_token, role, expiryDate_token: expiresIn, email },
     );
   }
 
   async refreshToken(refresh_token: string) {
     const token = await this.userRepository.findOne({
       where: {
-        token: refresh_token,
+        refresh_token: refresh_token,
         expiryDate_token: MoreThanOrEqual(new Date()),
       },
     });
@@ -228,5 +252,33 @@ export class AuthService {
       secret: process.env.JWT_SECRET,
     });
     return decoded;
+  }
+
+  async suspendUser(id: string, message: string) {
+    const user = await this.userRepository.findOne({ where: { id } })
+    if (user) {
+      user.status = UserStatus.SUSPENDED;
+      user.suspensionReason = message;
+    } else {
+      throw new NotFoundException('User not found.');
+    }
+    await this.userRepository.save(user);
+    return { message: `${user.first_name} Suspended Successfully...!` }
+  }
+
+  async reActivatedUser(id: string) {
+    const user = await this.userRepository.findOne({ where: { id } })
+    if (!user) {
+      throw new NotFoundException('User Not Found...!')
+    }
+    if (user.status !== UserStatus.SUSPENDED) {
+      throw new BadRequestException('User is Not Suspended...!')
+    }
+
+    user.status = UserStatus.ACTIVE;
+    user.suspensionReason == null;
+    await this.userRepository.save(user);
+
+    return { message: `${user.first_name} Account Re-Activated Successfully...!` }
   }
 }

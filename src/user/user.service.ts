@@ -10,7 +10,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Not } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { OtpType, User } from './entities/user.entity';
+import { OtpType, User, UserStatus } from './entities/user.entity';
 import { EmailService } from './services/email.service';
 import { SmsService } from 'src/user/services/sms.service';
 import { AuthService } from 'src/auth/auth.service';
@@ -63,7 +63,7 @@ export class UserService {
     }
 
     if (user.otp_type === "EMAIL_VERIFICATION") {
-      user.status = "ACTIVE";
+      user.status = UserStatus.ACTIVE;
     } else if (user.otp_type === "FORGOT_PASSWORD") {
       user.is_Verified = true;
     }
@@ -222,7 +222,7 @@ export class UserService {
     });
   }
 
-  async updateUser(email: string, updateUserDto: UpdateUserDto) {
+  async updateUser(email: string, updateUserDto: UpdateUserDto, currentUser: string) {
     const user = await this.userRepository.findOne({
       where: { email, is_logged_in: true }
     });
@@ -259,13 +259,14 @@ export class UserService {
     if (updateUserDto.birth_date) user.birth_date = updateUserDto.birth_date;
 
     user.updatedAt = new Date();
+    user.updatedBy = currentUser; // Set the updater's identity, not from DTO
     await this.userRepository.save(user);
 
     // Remove sensitive data before returning
     const {
       id, role, status, is_logged_in, age, updatedAt, createdAt,
       password, otp, otpExpiration, otp_type, is_Verified,
-      token, expiryDate_token, loginAttempts, blocked, ...data
+      refresh_token, expiryDate_token, loginAttempts, isBlocked, ...data
     } = user;
 
     return {
@@ -287,7 +288,7 @@ export class UserService {
 
   async reStoreUser(id: string) {
     const user = await this.userRepository.findOne({ where: { id }, withDeleted: true });
- 
+
     if (!user) {
       throw new NotFoundException('User not found!');
     }
@@ -312,7 +313,7 @@ export class UserService {
 
   async getAllUsers(): Promise<User[]> {
     return await this.userRepository.find({
-      select: ["role", "userName", "first_name", "last_name", "mobile_no", "email", "status", "token", "expiryDate_token"],
+      select: ["role", "userName", "first_name", "last_name", "mobile_no", "email", "status", "refresh_token", "expiryDate_token"],
     }); // Fetches all users
   }
 
@@ -346,7 +347,7 @@ export class UserService {
       throw new NotFoundException('User not found');
     }
 
-    if (!user.blocked) {
+    if (!user.isBlocked) {
       throw new BadRequestException('User is not blocked');
     }
 
@@ -355,7 +356,7 @@ export class UserService {
       { id: user.id },
       {
         loginAttempts: 0,
-        blocked: false
+        isBlocked: false
       }
     );
 
