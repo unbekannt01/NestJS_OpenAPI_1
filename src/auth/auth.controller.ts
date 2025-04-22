@@ -15,7 +15,8 @@ import { JwtPayload } from './interfaces/jwt-payload.interface';
 import { RolesGuard } from './guards/roles.guard';
 import { Roles } from 'src/user/decorators/roles.decorator';
 import { UserRole } from 'src/user/entities/user.entity';
-import { IsNotSuspendedGuard } from './guards/IsNotSuspended.guard';
+import { IsNotSuspendedGuard } from './guards/isNotSuspended.guard';
+import { Public } from 'src/user/decorators/public.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -31,6 +32,7 @@ export class AuthController {
     return this.authService.save(createUserDto);
   }
 
+  @Public()
   @HttpCode(HttpStatus.OK)
   @Post('/login')
   @UsePipes(ValidationPipe)
@@ -129,14 +131,14 @@ export class AuthController {
     return this.userService.resetPassword(email, newpwd);
   }
 
-  @UseGuards(JwtAuthGuard, IsNotSuspendedGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @Patch('/suspend/:id')
   async suspedUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string, @Body() message: string) {
     return this.authService.suspendUser(id, message)
   }
 
-  @UseGuards(JwtAuthGuard, IsNotSuspendedGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @Patch('/reActivated/:id')
   async reActivatedUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string) {

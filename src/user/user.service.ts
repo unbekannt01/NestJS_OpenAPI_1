@@ -8,18 +8,21 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Not } from 'typeorm';
+import { Repository, Not, ILike } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { OtpType, User, UserStatus } from './entities/user.entity';
 import { EmailService } from './services/email.service';
 import { SmsService } from 'src/user/services/sms.service';
 import { AuthService } from 'src/auth/auth.service';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { checkIfSuspended } from 'src/common/utils/user-status.util';
+import { RecentSearch } from './entities/recent-search.entity';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectRepository(User) private readonly userRepository: Repository<User>,
+    @InjectRepository(RecentSearch) private readonly recentSeachRepository: Repository<RecentSearch>,
     @Inject(forwardRef(() => AuthService)) private readonly authService: AuthService,
     private readonly emailService: EmailService,
     private readonly smsService: SmsService,
@@ -206,6 +209,8 @@ export class UserService {
       throw new NotFoundException('User not found!');
     }
 
+    checkIfSuspended(user);
+
     if (user.birth_date) {
       const today = new Date();
       const birthDate = new Date(user.birth_date);
@@ -282,6 +287,7 @@ export class UserService {
       throw new NotFoundException('User not found!');
     }
 
+    user.is_logged_in === false;
     await this.userRepository.softDelete({ id });
     return { message: 'User Temporary Deleted Successfully!' };
   }
@@ -365,5 +371,58 @@ export class UserService {
       email: user.email,
       userName: user.userName
     };
+  }
+
+  // async searchUser(query:string){
+  //   if(!query){ 
+  //     throw new NotFoundException('Detail Not Found...! Please write something in a Search...!')
+  //   }
+  //   return this.userRepository.find({
+  //     where : [
+  //       { email : ILike(`%${query}%`) },
+  //       { userName : ILike(`%${query}%`) },
+  //       { first_name : ILike(`%${query}%`) },
+  //       { last_name : ILike(`%${query}%`) },
+  //       { mobile_no : ILike(`%${query}%`) },
+  //     ],
+  //     select: [
+  //       'email',
+  //       'userName',
+  //       'first_name',
+  //       'last_name',
+  //       'mobile_no'
+  //     ],
+  //     take: 20,
+  //   }) 
+  // }
+
+  // src/user/user.service.ts
+  
+  async searchUser(query: string) {
+    if (!query) {
+      throw new NotFoundException('Detail Not Found...! Please write something in a Search...!');
+    }
+  
+    // Save recent search (anonymous)
+    await this.recentSeachRepository.save({ query });
+  
+    return this.userRepository.find({
+      where: [
+        { email: ILike(`%${query}%`) },
+        { userName: ILike(`%${query}%`) },
+        { first_name: ILike(`%${query}%`) },
+        { last_name: ILike(`%${query}%`) },
+        { mobile_no: ILike(`%${query}%`) },
+      ],
+      select: ['email', 'userName', 'first_name', 'last_name', 'mobile_no'],
+      take: 20,
+    });
+  }
+  
+  async getRecentSearches(limit = 10) {
+    return this.recentSeachRepository.find({
+      order: { createdAt: 'DESC' },
+      take: limit,
+    });
   }
 }

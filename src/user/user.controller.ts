@@ -15,16 +15,16 @@ export class UserController {
   @UseGuards(JwtAuthGuard)
   @Patch('/update')
   async updateUser(
-    @Query('email') email : string,
-    @Body() updateUserDto: UpdateUserDto,currentUser: string,
-    @Req() req: Request & { user: JwtPayload } 
+    @Query('email') email: string,
+    @Body() updateUserDto: UpdateUserDto, currentUser: string,
+    @Req() req: Request & { user: JwtPayload }
   ) {
     // Check if user is trying to update their own profile
     if (req.user.email !== email) {
       throw new UnauthorizedException('You are not authorized to update profile...!');
     }
 
-    return await this.userService.updateUser(email, updateUserDto, currentUser);     
+    return await this.userService.updateUser(email, updateUserDto, currentUser);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -60,7 +60,7 @@ export class UserController {
   @Roles(UserRole.ADMIN) // Only admins can unblock users
   @Post('/unblock')
   async unblockUser(@Body() unblockUserDto: UnblockUserDto) {
-    return this.userService.unblockUser(unblockUserDto.email); 
+    return this.userService.unblockUser(unblockUserDto.email);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -84,6 +84,15 @@ export class UserController {
     return this.userService.hardDelete(id);
   }
 
+  @Get('/search')
+  search(@Query('query') query: string) {
+    return this.userService.searchUser(query);
+  }
+  
+  @Get('/recent-search')
+  getRecentSearches(@Query('limit') limit?: number) {
+    return this.userService.getRecentSearches(limit);
+  }
 
   // // Example : Why need middlewares
   // @Get('/getUser')

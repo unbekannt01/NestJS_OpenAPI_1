@@ -1,5 +1,6 @@
-import { Column, Entity, PrimaryGeneratedColumn, DeleteDateColumn } from 'typeorm';
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { BaseEntity } from '../../common/entities/base.entity';
+import { RecentSearch } from './recent-search.entity';
 
 export enum UserRole {
     USER = 'USER',
@@ -80,6 +81,9 @@ export class User extends BaseEntity {
     @Column({ default: false })
     isBlocked: boolean;
 
-    @Column({ nullable: true })
-    suspensionReason: string;
+    @Column({ type: 'text', nullable: true })
+    suspensionReason: string | null;
+
+    // @OneToMany(() => RecentSearch, (recentSearch) => recentSearch.user)
+    // recentSearches: RecentSearch[];
 }

@@ -9,11 +9,12 @@ import { SmsService } from 'src/user/services/sms.service';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { JwtStrategy } from 'src/auth/strategies/jwt.strategy';
 import { AuthModule } from 'src/auth/auth.module';
+import { RecentSearch } from './entities/recent-search.entity';
 
 @Module({
   imports: [
     ConfigModule.forRoot(),
-    TypeOrmModule.forFeature([User]), // Import the User entity
+    TypeOrmModule.forFeature([User, RecentSearch]), // Import the User entity
     forwardRef(() => AuthModule), // Use forwardRef to resolve circular dependency
   ],
   providers: [

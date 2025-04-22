@@ -6,7 +6,10 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { SmsService } from './user/services/sms.service';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
 import { APP_GUARD } from '@nestjs/core';
-import { IsNotSuspendedGuard } from './auth/guards/IsNotSuspended.guard';
+import { IsNotSuspendedGuard } from './auth/guards/isNotSuspended.guard';
+import { SearchModule } from './search/search/search.module';
+import { Car } from './search/entity/car.entity';
+import { RecentSearch } from './user/entities/recent-search.entity';
 
 @Module({
   imports: [
@@ -23,11 +26,12 @@ import { IsNotSuspendedGuard } from './auth/guards/IsNotSuspended.guard';
         username: config.get<string>('DB_USER'),
         password: config.get<string>('DB_PASS'),
         database: config.get<string>('DB_NAME'),
-        entities: [User], // Ensure the User entity is included
+        entities: [User, Car, RecentSearch], // Add RecentSearch entity here
         synchronize: true, // Ensure this is true for development only
       }),
     }),
     UserModule, // Ensure UserModule is imported
+    SearchModule, // <-- add this line
   ],
   providers: [
     SmsService,

@@ -8,7 +8,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { MoreThanOrEqual, Repository } from 'typeorm';
+import { MoreThanOrEqual, Repository, ILike } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { OtpType, User, UserRole, UserStatus } from 'src/user/entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
@@ -16,6 +16,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UserService } from 'src/user/user.service';
 import { EmailService } from 'src/user/services/email.service';
+import { checkIfSuspended } from 'src/common/utils/user-status.util';
 
 @Injectable()
 export class AuthService {
@@ -32,6 +33,8 @@ export class AuthService {
     if (!user) {
       throw new NotFoundException('User not registered.');
     }
+
+    checkIfSuspended(user);
 
     if (user.loginAttempts >= 10) {
       throw new UnauthorizedException('Account blocked due to too many failed login attempts. Please contact support.');
@@ -76,17 +79,24 @@ export class AuthService {
   }
 
   async save(createUserDto: CreateUserDto) {
+    // Check for existing user (including soft-deleted)
     let user = await this.userRepository.findOne({
       where: { email: createUserDto.email },
+      withDeleted: true,
     });
 
-    // Always check for username conflict
+    if (user) {
+      checkIfSuspended(user);
+    }
+
+    // Always check for username conflict (including soft-deleted)
     const usernameConflict = await this.userRepository.findOne({
-      where: { userName: createUserDto.userName }
+      where: { userName: createUserDto.userName },
+      withDeleted: true,
     });
 
     if (usernameConflict && (!user || usernameConflict.id !== user.id)) {
-      throw new ConflictException('Please use a different username, it is already taken!');
+      throw new ConflictException('This username is already taken. Please choose another username or contact support to restore your account.');
     }
 
     if (user) {
@@ -124,14 +134,11 @@ export class AuthService {
       user.age = age;
       await this.userRepository.save(user);
     }
-
-    const role = user.role;
-
     await this.userRepository.save(user);
 
     // Send OTP via Email only (no SMS during registration)
     await this.emailService.sendOtpEmail(user.email, user.otp || '', user.first_name);
-    return { message: `${role} registered successfully. OTP sent to email.` };
+    return { message: `${user.role} registered successfully. OTP sent to email.` };
   }
 
   // async logout(id: string) {
@@ -216,13 +223,15 @@ export class AuthService {
   }
 
   async storeRefreshToken(refresh_token: string, userId: string, role: UserRole, email: string) {
-    const expiresIn = new Date();
-    expiresIn.setDate(expiresIn.getDate() + 7); // 7 days expiration
+    const expiryDate = new Date();
+    expiryDate.setDate(expiryDate.getDate() + 7); // 7 days from now
 
     await this.userRepository.update(
       { id: userId },
-      { refresh_token, role, expiryDate_token: expiresIn, email },
+      { refresh_token, role, expiryDate_token: expiryDate, email },
     );
+
+    console.log('Now:', new Date());
   }
 
   async refreshToken(refresh_token: string) {
@@ -259,6 +268,9 @@ export class AuthService {
     if (user) {
       user.status = UserStatus.SUSPENDED;
       user.suspensionReason = message;
+      user.is_logged_in = false;
+      user.refresh_token = null;
+      user.expiryDate_token = null;
     } else {
       throw new NotFoundException('User not found.');
     }
@@ -276,9 +288,10 @@ export class AuthService {
     }
 
     user.status = UserStatus.ACTIVE;
-    user.suspensionReason == null;
+    user.suspensionReason = null;
     await this.userRepository.save(user);
 
     return { message: `${user.first_name} Account Re-Activated Successfully...!` }
   }
+
 }
