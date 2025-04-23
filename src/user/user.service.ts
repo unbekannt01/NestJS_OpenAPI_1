@@ -16,13 +16,11 @@ import { SmsService } from 'src/user/services/sms.service';
 import { AuthService } from 'src/auth/auth.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { checkIfSuspended } from 'src/common/utils/user-status.util';
-import { RecentSearch } from './entities/recent-search.entity';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectRepository(User) private readonly userRepository: Repository<User>,
-    @InjectRepository(RecentSearch) private readonly recentSeachRepository: Repository<RecentSearch>,
     @Inject(forwardRef(() => AuthService)) private readonly authService: AuthService,
     private readonly emailService: EmailService,
     private readonly smsService: SmsService,
@@ -320,7 +318,7 @@ export class UserService {
   async getAllUsers(): Promise<User[]> {
     return await this.userRepository.find({
       select: ["role", "userName", "first_name", "last_name", "mobile_no", "email", "status", "refresh_token", "expiryDate_token"],
-    }); // Fetches all users
+    }); 
   }
 
   generateOtp(): string {
@@ -328,8 +326,8 @@ export class UserService {
   }
 
   getOtpExpiration(): Date {
-    return new Date(Date.now() + 1 * 60 * 1000); // 5 minutes expiration
-  }
+    return new Date(Date.now() + 2 * 60 * 1000); // 2 minutes expiration
+  } 
 
   async getUserByEmail(email: string) {
     const user = await this.userRepository.findOne({ where: { email } });
@@ -371,58 +369,5 @@ export class UserService {
       email: user.email,
       userName: user.userName
     };
-  }
-
-  // async searchUser(query:string){
-  //   if(!query){ 
-  //     throw new NotFoundException('Detail Not Found...! Please write something in a Search...!')
-  //   }
-  //   return this.userRepository.find({
-  //     where : [
-  //       { email : ILike(`%${query}%`) },
-  //       { userName : ILike(`%${query}%`) },
-  //       { first_name : ILike(`%${query}%`) },
-  //       { last_name : ILike(`%${query}%`) },
-  //       { mobile_no : ILike(`%${query}%`) },
-  //     ],
-  //     select: [
-  //       'email',
-  //       'userName',
-  //       'first_name',
-  //       'last_name',
-  //       'mobile_no'
-  //     ],
-  //     take: 20,
-  //   }) 
-  // }
-
-  // src/user/user.service.ts
-  
-  async searchUser(query: string) {
-    if (!query) {
-      throw new NotFoundException('Detail Not Found...! Please write something in a Search...!');
-    }
-  
-    // Save recent search (anonymous)
-    await this.recentSeachRepository.save({ query });
-  
-    return this.userRepository.find({
-      where: [
-        { email: ILike(`%${query}%`) },
-        { userName: ILike(`%${query}%`) },
-        { first_name: ILike(`%${query}%`) },
-        { last_name: ILike(`%${query}%`) },
-        { mobile_no: ILike(`%${query}%`) },
-      ],
-      select: ['email', 'userName', 'first_name', 'last_name', 'mobile_no'],
-      take: 20,
-    });
-  }
-  
-  async getRecentSearches(limit = 10) {
-    return this.recentSeachRepository.find({
-      order: { createdAt: 'DESC' },
-      take: limit,
-    });
   }
 }

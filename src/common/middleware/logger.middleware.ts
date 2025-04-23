@@ -1,4 +1,4 @@
-import { Injectable, NestMiddleware } from '@nestjs/common';
+import { ForbiddenException, HttpStatus, Injectable, NestMiddleware } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 
 @Injectable()
@@ -15,5 +15,25 @@ export class LoggerMiddleware implements NestMiddleware {
       );
     });
     next();
+
+    //   const ua = req.headers['user-agent'];
+
+    //   if (!ua || !this.isUserAgenetAcceptable(ua)) {
+    //       throw new ForbiddenException('Not Allowed..!')
+    //   } 
+
+    //   req['ua'] = ua;
+
+    //   next();
+    // }
+
+    // private isUserAgenetAcceptable(userAgent: string) {
+    //   const acceptedUserAgenets = ['postman'];
+
+    //   return acceptedUserAgenets.some((agent) =>
+    //     userAgent.toLowerCase().includes(agent.toLowerCase()))
+
+    // }
+
   }
 }

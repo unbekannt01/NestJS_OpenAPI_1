@@ -17,12 +17,14 @@ import { Roles } from 'src/user/decorators/roles.decorator';
 import { UserRole } from 'src/user/entities/user.entity';
 import { IsNotSuspendedGuard } from './guards/isNotSuspended.guard';
 import { Public } from 'src/user/decorators/public.decorator';
+import { ConfigService } from '@nestjs/config';
 
 @Controller('auth')
 export class AuthController {
   constructor(
     private readonly userService: UserService,
     private readonly authService: AuthService,
+    private readonly configService: ConfigService
   ) { }
 
   @Post('/register')
@@ -42,7 +44,7 @@ export class AuthController {
 
       res.cookie('access_token', access_token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: this.configService.get<string>('NODE_ENV') === 'production',
         sameSite: 'strict',
         maxAge: 60 * 60 * 1000,
       });
@@ -75,7 +77,7 @@ export class AuthController {
 
   //   res.clearCookie('access_token', {
   //     httpOnly: true,
-  //     secure: process.env.NODE_ENV === 'production',
+  //     secure: this.configService.get<string>('NODE_ENV') === 'production',
   //     sameSite: 'strict',
   //   });
 
@@ -95,7 +97,7 @@ export class AuthController {
 
     res.clearCookie('access_token', {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: this.configService.get<string>('NODE_ENV') === 'production',
       sameSite: 'strict',
     });
 

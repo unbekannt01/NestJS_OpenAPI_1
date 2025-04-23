@@ -2,10 +2,11 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { SearchService } from './search.service';
 import { SearchController } from './search.controller';
-import { Car } from '../entity/car.entity';
+import { RecentSearch } from './entity/recent-search.entity';
+import { User } from '../user/entities/user.entity'
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Car])],
+  imports: [TypeOrmModule.forFeature([RecentSearch, User])],
   controllers: [SearchController],
   providers: [SearchService],
 })

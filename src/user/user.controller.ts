@@ -84,16 +84,6 @@ export class UserController {
     return this.userService.hardDelete(id);
   }
 
-  @Get('/search')
-  search(@Query('query') query: string) {
-    return this.userService.searchUser(query);
-  }
-  
-  @Get('/recent-search')
-  getRecentSearches(@Query('limit') limit?: number) {
-    return this.userService.getRecentSearches(limit);
-  }
-
   // // Example : Why need middlewares
   // @Get('/getUser')
   // async getUserByEmail(@Query('email') email: string) {   

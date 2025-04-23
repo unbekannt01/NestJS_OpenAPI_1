@@ -1,6 +1,6 @@
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { BaseEntity } from '../../common/entities/base.entity';
-import { RecentSearch } from './recent-search.entity';
+import { RecentSearch } from 'src/search/entity/recent-search.entity';
 
 export enum UserRole {
     USER = 'USER',
@@ -86,4 +86,7 @@ export class User extends BaseEntity {
 
     // @OneToMany(() => RecentSearch, (recentSearch) => recentSearch.user)
     // recentSearches: RecentSearch[];
+
+    @OneToMany(() => RecentSearch, (recentSearch) => recentSearch)
+    recentSearch: RecentSearch[];
 }

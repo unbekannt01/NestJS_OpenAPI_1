@@ -5,33 +5,34 @@ import { User } from './user/entities/user.entity';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { SmsService } from './user/services/sms.service';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { IsNotSuspendedGuard } from './auth/guards/isNotSuspended.guard';
-import { SearchModule } from './search/search/search.module';
-import { Car } from './search/entity/car.entity';
-import { RecentSearch } from './user/entities/recent-search.entity';
+import { SearchModule } from './search/search.module';
+import { RecentSearch } from './search/entity/recent-search.entity';
+import { LoggerInterceptor } from './common/interceptors/logger.interceptor';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: `.env`
+      // envFilePath: ['.env'],
+      expandVariables: true
     }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: async (config: ConfigService) => ({
         type: 'postgres',
         host: config.get<string>('DB_HOST'),
-        port: parseInt(config.get<string>('DB_PORT') || '5432', 10),
+        port: (config.get<number>('DB_PORT') || 5432), // Fix the port configuration
         username: config.get<string>('DB_USER'),
         password: config.get<string>('DB_PASS'),
         database: config.get<string>('DB_NAME'),
-        entities: [User, Car, RecentSearch], // Add RecentSearch entity here
+        entities: [User, RecentSearch],
         synchronize: true, // Ensure this is true for development only
       }),
     }),
-    UserModule, // Ensure UserModule is imported
-    SearchModule, // <-- add this line
+    UserModule,
+    SearchModule,
   ],
   providers: [
     SmsService,
@@ -39,10 +40,14 @@ import { RecentSearch } from './user/entities/recent-search.entity';
       provide: APP_GUARD,
       useClass: IsNotSuspendedGuard,
     },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: LoggerInterceptor,
+    }
   ],
 })
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(LoggerMiddleware).forRoutes('*'); // Apply to all routes
+    consumer.apply(LoggerMiddleware).forRoutes('user'); // Apply to all routes
   }
 }

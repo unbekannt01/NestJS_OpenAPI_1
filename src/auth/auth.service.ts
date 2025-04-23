@@ -17,6 +17,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UserService } from 'src/user/user.service';
 import { EmailService } from 'src/user/services/email.service';
 import { checkIfSuspended } from 'src/common/utils/user-status.util';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
@@ -25,6 +26,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     @Inject(forwardRef(() => UserService)) private readonly userService: UserService,
     private readonly emailService: EmailService,
+    private readonly configService: ConfigService
   ) { }
 
   async loginUser(email: string, password: string): Promise<{ message: string; access_token: string; refresh_token: string; role: UserRole }> {
@@ -200,13 +202,22 @@ export class AuthService {
   }
 
   async generateUserToken(userId: string, role: UserRole, email: string) {
+    // let expiration : Date | undefined;
+    const expiresIn = 3600; // Define expiresIn in seconds (e.g., 1 hour)
+    let expiration: Date | undefined;
+    const secret = this.configService.get<string>('JWT_SECRET');
+    if (secret) {
+      expiration = new Date();
+      expiration.setTime(expiration.getTime() + expiresIn * 1000);
+    }
+
     const payload = {
       id: userId,
       UserRole: role, // Ensure the role field is named 'role'
       email: email
     };
 
-    const secret = process.env.JWT_SECRET; // Fallback for missing secret
+    // const secret = this.configService.get<string>('JWT_SECRET') // Fallback for missing secret
     // console.log('Using JWT_SECRET:', secret); // Debugging
 
     const access_token = this.jwtService.sign(payload, {
@@ -258,7 +269,7 @@ export class AuthService {
 
   async verifyToken(token: string) {
     const decoded = this.jwtService.verify(token, {
-      secret: process.env.JWT_SECRET,
+      secret: this.configService.get<string>('JWT_SECRET')
     });
     return decoded;
   }
@@ -293,5 +304,4 @@ export class AuthService {
 
     return { message: `${user.first_name} Account Re-Activated Successfully...!` }
   }
-
 }
