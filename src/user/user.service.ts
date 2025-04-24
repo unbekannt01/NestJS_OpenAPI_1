@@ -318,7 +318,7 @@ export class UserService {
   async getAllUsers(): Promise<User[]> {
     return await this.userRepository.find({
       select: ["role", "userName", "first_name", "last_name", "mobile_no", "email", "status", "refresh_token", "expiryDate_token"],
-    }); 
+    });
   }
 
   generateOtp(): string {
@@ -327,7 +327,7 @@ export class UserService {
 
   getOtpExpiration(): Date {
     return new Date(Date.now() + 2 * 60 * 1000); // 2 minutes expiration
-  } 
+  }
 
   async getUserByEmail(email: string) {
     const user = await this.userRepository.findOne({ where: { email } });

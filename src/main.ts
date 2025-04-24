@@ -11,7 +11,12 @@ dotenv.config(); // Load .env file
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const config = app.get(ConfigService);
-  app.enableCors();
+  app.enableCors({
+    origin: 'http://localhost:5173', // Your frontend URL
+    credentials: true,  // Important for cookies
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  });
   // const config1 = new DocumentBuilder()
   //   .setTitle('API')
   //   .setDescription('This is Open API')

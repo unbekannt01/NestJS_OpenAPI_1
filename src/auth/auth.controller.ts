@@ -104,12 +104,12 @@ export class AuthController {
     return res.status(HttpStatus.OK).json({ message: "User logged out successfully!" });
   }
 
-
   @Post("/verify-otp")
   async verifyOtp(@Body() verifyOtpDto: VerifyOTPDto) {
+    // console.log("Received verify OTP request:", verifyOtpDto); // Add log
     return this.userService.verifyOtp(verifyOtpDto.otp, verifyOtpDto.email);
   }
-
+  
   @Post('/resend-otp')
   resendOtp(@Body() { email }: ResendOTPDto) {
     return this.userService.resendOtp(email);
