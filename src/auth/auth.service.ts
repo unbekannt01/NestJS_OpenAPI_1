@@ -143,35 +143,28 @@ export class AuthService {
     return { message: `${user.role} registered successfully. OTP sent to email.` };
   }
 
-  // async logout(id: string) {
-  //   const user = await this.userRepository.findOne({ where: { id } });
+  async logout(email: string) {
+    const user = await this.userRepository.findOne({ where: { email } });
 
-  //   if (!user) {
-  //     throw new NotFoundException('User Not Found!');
-  //   }
+    if (!user) {
+      throw new NotFoundException('User Not Found!');
+    }
 
-  //   if (user.is_logged_in === false) {
-  //     throw new UnauthorizedException('User Already Logged Out!');
-  //   }
+    if (user.is_logged_in === false) {
+      throw new UnauthorizedException('User Already Logged Out!');
+    }
 
-  //   // Clear all authentication related fields
-  //   await this.userRepository.update(
-  //     { id },
-  //     {
-  //       is_logged_in: false,
-  //       refresh_token: null,
-  //       expiryDate_token: null
-  //     }
-  //   );
-
-  //   return { message: 'User Logout Successfully!' };
-  // }
-
-  async logout(userId: string) {
+    // Clear all authentication related fields
     await this.userRepository.update(
-      { id: userId },
-      { is_logged_in: false, refresh_token: null, expiryDate_token: null },
+      { email },
+      {
+        is_logged_in: false,
+        refresh_token: null,
+        expiryDate_token: null
+      }
     );
+
+    return { message: 'User Logout Successfully!' };
   }
 
   async changepwd(email: string, password: string, newpwd: string) {

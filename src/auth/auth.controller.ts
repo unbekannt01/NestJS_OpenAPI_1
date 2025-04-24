@@ -91,16 +91,16 @@ export class AuthController {
     @Req() req: Request & { user: JwtPayload },
     @Res() res: Response
   ) {
-    const userId = req.user.id;
-
-    await this.authService.logout(userId); // Optional: if you're invalidating refresh tokens in DB
-
+    const email = req.user.email; // Extracted from JWT, not from frontend
+  
+    await this.authService.logout(email);
+  
     res.clearCookie('access_token', {
       httpOnly: true,
       secure: this.configService.get<string>('NODE_ENV') === 'production',
       sameSite: 'strict',
     });
-
+  
     return res.status(HttpStatus.OK).json({ message: "User logged out successfully!" });
   }
 
