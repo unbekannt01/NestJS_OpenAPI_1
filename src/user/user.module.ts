@@ -13,7 +13,6 @@ import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
   imports: [
-    // ConfigModule.forRoot(),
     TypeOrmModule.forFeature([User]), // Import the User entity
     forwardRef(() => AuthModule), // Use forwardRef to resolve circular dependency
   ],
