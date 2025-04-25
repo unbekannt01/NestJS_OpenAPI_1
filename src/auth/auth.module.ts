@@ -4,18 +4,27 @@ import { AuthService } from './auth.service';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { UserModule } from 'src/user/user.module';
 import { ConfigService } from '@nestjs/config';
-import { JWT_CONFIG } from 'src/config/jwt.config';
+import { OtpModule } from 'src/otp/otp.module'; // <-- Import OtpModule
 
 @Module({
-  imports: [forwardRef(() => UserModule),
+  imports: [
+    forwardRef(() => UserModule),
+    forwardRef(() => OtpModule), // <-- Add OtpModule to imports
     JwtModule.registerAsync({
-      // imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: JWT_CONFIG
+      useFactory: (configService: ConfigService) => {
+        const jwtConfig = configService.get('JWT');
+        return {
+          secret: jwtConfig.SECRET,
+          signOptions: {
+            expiresIn: jwtConfig.EXPIRES_IN,
+          },
+        };
+      },
     }),
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtService],
   exports: [AuthService, JwtService],
 })
-export class AuthModule {}
+export class AuthModule { }

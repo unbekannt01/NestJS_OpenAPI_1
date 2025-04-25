@@ -6,11 +6,13 @@ import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as dotenv from 'dotenv';
 import { ConfigService } from '@nestjs/config';
+import * as cookieParser from 'cookie-parser';
 
 dotenv.config(); // Load .env file
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const config = app.get(ConfigService);
+  app.use(cookieParser())
   app.enableCors({
     origin: 'http://localhost:5173', // Your frontend URL
     credentials: true,  // Important for cookies

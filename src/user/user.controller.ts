@@ -1,12 +1,8 @@
 import { Controller, Body, Get, NotFoundException, Param, UseGuards, Response as Res, Req, Query, Patch, ParseUUIDPipe, UsePipes, HttpStatus, Post, UnauthorizedException, Delete } from '@nestjs/common';
 import { UserService } from './user.service';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { UserRole } from './entities/user.entity';
-import { Roles } from './decorators/roles.decorator';
-import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { JwtPayload } from 'src/auth/interfaces/jwt-payload.interface';
-import { UnblockUserDto } from './dto/unblock-user.dto';
 
 @Controller('user')
 export class UserController {
@@ -42,46 +38,10 @@ export class UserController {
     };
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN) // Ensure the required role is ADMIN
-  @Get("/getAllUsers")
-  async getAllUsers() {
-    const user = await this.userService.getAllUsers();
-    return { message: 'Users fetched successfully!', user };
-  }
-
   @Get('/getUserById/:id')
   async getUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string) {
     console.log(typeof id)
     return this.userService.getUserById(id);
-  }
-
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN) // Only admins can unblock users
-  @Post('/unblock')
-  async unblockUser(@Body() unblockUserDto: UnblockUserDto) {
-    return this.userService.unblockUser(unblockUserDto.email);
-  }
-
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN) // Only admins can softDelete users
-  @Delete('/softDelete/:id')
-  async softDeleteUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string) {
-    return this.userService.softDeleteUser(id);
-  }
-
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
-  @Patch('/restore/:id')
-  async reStoreUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string) {
-    return this.userService.reStoreUser(id);
-  }
-
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN) // Only admins can hardDelete users
-  @Delete('/hardDelete/:id')
-  async permanantDeleteUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string) {
-    return this.userService.hardDelete(id);
   }
 
   // // Example : Why need middlewares

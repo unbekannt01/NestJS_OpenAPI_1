@@ -2,7 +2,6 @@ import {
   Injectable,
   UnauthorizedException,
   NotFoundException,
-  BadRequestException,
   Inject,
   forwardRef,
   ConflictException,
@@ -11,19 +10,21 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Not, ILike } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { OtpType, User, UserStatus } from './entities/user.entity';
-import { EmailService } from './services/email.service';
-import { SmsService } from 'src/user/services/sms.service';
+// import { EmailService } from './services/email.service';
+// import { SmsService } from 'src/user/services/sms.service';
 import { AuthService } from 'src/auth/auth.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { checkIfSuspended } from 'src/common/utils/user-status.util';
+import { OtpService } from 'src/otp/otp.service';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectRepository(User) private readonly userRepository: Repository<User>,
     @Inject(forwardRef(() => AuthService)) private readonly authService: AuthService,
-    private readonly emailService: EmailService,
-    private readonly smsService: SmsService,
+    @Inject(forwardRef(() => OtpService)) private readonly otpService: OtpService,
+    // private readonly emailService: EmailService,
+    // private readonly smsService: SmsService,
   ) { }
 
   // @Cron('* * * * * *') // Runs every second (adjust for production)
@@ -35,49 +36,6 @@ export class UserService {
   //   );
   // }
 
-  async verifyOtp(otp: string, email: string) {
-    const user = await this.userRepository.findOne({ where: { email } });
-    if (!user) {
-      throw new NotFoundException("User Not Found..!");
-    }
-
-    if (!user.otp || !user.otpExpiration || !user.otp_type) {
-      // console.log("Invalid OTP or OTP Expired or OTP Type Missing");
-      throw new BadRequestException("Invalid OTP or OTP Expired or OTP Type Missing");
-    }
-
-    if (new Date() > user.otpExpiration) {
-      console.log("OTP Expired");
-      user.otp = null;
-      user.otpExpiration = null;
-      user.otp_type = null;
-      await this.userRepository.update(
-        { email },
-        { otp: null, otpExpiration: null, otp_type: null },
-      );
-      throw new UnauthorizedException("OTP Expired. Please request a new one.");
-    }
-
-    if (user.otp !== otp) {
-      console.log("Incorrect OTP");
-      throw new BadRequestException("Incorrect OTP");
-    }
-
-    if (user.otp_type === "EMAIL_VERIFICATION") {
-      user.status = UserStatus.ACTIVE;
-    } else if (user.otp_type === "FORGOT_PASSWORD") {
-      user.is_Verified = true;
-    }
-
-    user.otp = null;
-    user.otpExpiration = null;
-    user.otp_type = null;
-    await this.userRepository.save(user);
-
-    // console.log("OTP Verified Successfully");
-    return { message: "OTP Verified Successfully" };
-  }
-
   async forgotPassword(email: string) {
     const user = await this.userRepository.findOne({ where: { email } });
     if (!user) {
@@ -85,30 +43,30 @@ export class UserService {
     }
 
     if (user.is_logged_in === false) {
-      user.otp = this.generateOtp();
-      user.otpExpiration = this.getOtpExpiration();
+      user.otp = this.otpService.generateOtp();
+      user.otpExpiration = this.otpService.getOtpExpiration();
       user.otp_type = OtpType.FORGOT_PASSWORD;
       user.is_Verified = false;
 
       await this.userRepository.save(user);
 
-      // Send OTP via Email
-      await this.emailService.sendOtpEmail(
-        user.email,
-        user.otp,
-        user.first_name,
-      );
+      // // Send OTP via Email
+      // await this.emailService.sendOtpEmail(
+      //   user.email,
+      //   user.otp,
+      //   user.first_name,
+      // );
 
-      // Send OTP via SMS if mobile_no is provided
-      let smsResult = { message: 'SMS not sent', phoneNumber: '' };
-      if (user.mobile_no) {
-        try {
-          smsResult = await this.smsService.sendOtpSms(user.mobile_no, user.otp || '');
-        } catch (error) {
-        }
-      } else {
-        console.log('No mobile number provided for SMS OTP.');
-      }
+      // // Send OTP via SMS if mobile_no is provided
+      // let smsResult = { message: 'SMS not sent', phoneNumber: '' };
+      // if (user.mobile_no) {
+      //   try {
+      //     smsResult = await this.smsService.sendOtpSms(user.mobile_no, user.otp || '');
+      //   } catch (error) {
+      //   }
+      // } else {
+      //   console.log('No mobile number provided for SMS OTP.');
+      // }
 
       return { message: 'OTP Sent to Your Email and SMS (if mobile provided)' };
     } else {
@@ -153,52 +111,6 @@ export class UserService {
     await this.userRepository.save(user);
 
     return { message: 'Password Reset Successfully. Now You Can Login' };
-  }
-
-  async resendOtp(email: string) {
-    const user = await this.userRepository.findOne({ where: { email } });
-
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-
-    if (user.status === 'INACTIVE') {
-      user.otp = this.generateOtp();
-      user.otpExpiration = this.getOtpExpiration();
-      user.otp_type = OtpType.EMAIL_VERIFICATION;
-      await this.userRepository.save(user);
-
-      // Send OTP via Email only (no SMS)
-      await this.emailService.sendOtpEmail(
-        user.email,
-        user.otp || '',
-        user.first_name,
-      );
-
-      return { message: 'New OTP sent to your email for Email Verification!' };
-    }
-
-    if (user.status === 'ACTIVE' && user.is_logged_in === false) {
-      user.otp = this.generateOtp();
-      user.otpExpiration = this.getOtpExpiration();
-      user.otp_type = OtpType.FORGOT_PASSWORD;
-      await this.userRepository.save(user);
-
-      // Send OTP via Email only (no SMS)
-      await this.emailService.sendOtpEmail(
-        user.email,
-        user.otp || '',
-        user.first_name,
-      );
-
-      return { message: 'New OTP sent to your email for Forgot Password!' };
-    }
-
-    if (user.status === 'ACTIVE' && user.is_logged_in === true) {
-      return {
-        message: 'You are already logged in! Use Change Password instead.',
-      };
-    }
   }
 
   async getUserById(id: string): Promise<User | null> {
@@ -279,56 +191,6 @@ export class UserService {
     };
   }
 
-  async softDeleteUser(id: string) {
-    const user = await this.userRepository.findOne({ where: { id } });
-    if (!user) {
-      throw new NotFoundException('User not found!');
-    }
-
-    user.is_logged_in === false;
-    await this.userRepository.softDelete({ id });
-    return { message: 'User Temporary Deleted Successfully!' };
-  }
-
-  async reStoreUser(id: string) {
-    const user = await this.userRepository.findOne({ where: { id }, withDeleted: true });
-
-    if (!user) {
-      throw new NotFoundException('User not found!');
-    }
-
-    if (!user.deletedAt) {
-      throw new BadRequestException('User is not soft-deleted and cannot be restored.');
-    }
-
-    await this.userRepository.restore({ id });
-    return { message: 'User Restored Successfully!' };
-  }
-
-  async hardDelete(id: string) {
-    const user = await this.userRepository.findOne({ where: { id } });
-    if (!user) {
-      throw new NotFoundException('User not found!');
-    }
-
-    await this.userRepository.delete({ id });
-    return { message: 'User Permanently Deleted Successfully!' };
-  }
-
-  async getAllUsers(): Promise<User[]> {
-    return await this.userRepository.find({
-      select: ["role", "userName", "first_name", "last_name", "mobile_no", "email", "status", "refresh_token", "expiryDate_token"],
-    });
-  }
-
-  generateOtp(): string {
-    return Math.floor(100000 + Math.random() * 900000).toString();
-  }
-
-  getOtpExpiration(): Date {
-    return new Date(Date.now() + 2 * 60 * 1000); // 2 minutes expiration
-  }
-
   async getUserByEmail(email: string) {
     const user = await this.userRepository.findOne({ where: { email } });
     if (!user) {
@@ -342,32 +204,5 @@ export class UserService {
     if (!user) {
       throw new NotFoundException('User not found !')
     }
-  }
-
-  async unblockUser(email: string) {
-    const user = await this.userRepository.findOne({ where: { email } });
-
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-
-    if (!user.isBlocked) {
-      throw new BadRequestException('User is not blocked');
-    }
-
-    // Reset login attempts and blocked status
-    await this.userRepository.update(
-      { id: user.id },
-      {
-        loginAttempts: 0,
-        isBlocked: false
-      }
-    );
-
-    return {
-      message: 'User has been unblocked successfully',
-      email: user.email,
-      userName: user.userName
-    };
   }
 }

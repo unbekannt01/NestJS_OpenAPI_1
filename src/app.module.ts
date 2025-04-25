@@ -8,16 +8,21 @@ import { LoggerMiddleware } from './common/middleware/logger.middleware';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { IsNotSuspendedGuard } from './auth/guards/isNotSuspended.guard';
 import { LoggerInterceptor } from './common/interceptors/logger.interceptor';
-import { typeOrmConfig } from './config/typeorm.config';
+import { typeOrmConfig } from './config/typeorm.config'; // 👈 import here
+import { SMTP_CONFIG } from './config/gmail.config';
+import { JWT_CONFIG } from './config/jwt.config';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      load: [typeOrmConfig, SMTP_CONFIG, JWT_CONFIG], // 👈 load custom config
     }),
     TypeOrmModule.forRootAsync({
-      inject:[ConfigService],
-      useFactory: typeOrmConfig,
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) =>
+        configService.get('typeorm') as any, 
     }),
     UserModule,
     SearchModule,
@@ -31,7 +36,7 @@ import { typeOrmConfig } from './config/typeorm.config';
     {
       provide: APP_INTERCEPTOR,
       useClass: LoggerInterceptor,
-    }
+    },
   ],
 })
 export class AppModule {

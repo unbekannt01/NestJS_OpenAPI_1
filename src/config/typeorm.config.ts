@@ -1,17 +1,16 @@
-import { ConfigService } from '@nestjs/config';
-import { TypeOrmModuleOptions } from '@nestjs/typeorm';
-import { User } from '../user/entities/user.entity';
-import { RecentSearch } from '../search/entity/recent-search.entity';
+// src/config/typeorm.config.ts
 
-export const typeOrmConfig = async (
-  configService: ConfigService,
-): Promise<TypeOrmModuleOptions> => ({
+import { registerAs } from '@nestjs/config';
+import { RecentSearch } from 'src/search/entity/recent-search.entity';
+import { User } from 'src/user/entities/user.entity'; 
+
+export const typeOrmConfig = registerAs('typeorm', () => ({
   type: 'postgres',
-  host: configService.get<string>('DB_HOST'),
-  port: configService.get<number>('DB_PORT'),
-  username: configService.get<string>('DB_USER'),
-  password: configService.get<string>('DB_PASS'),
-  database: configService.get<string>('DB_NAME'),
+  host: process.env['DB_HOST'],
+  port: parseInt(process.env['DB_PORT'] || '5432', 10),
+  username: process.env['DB_USER'],
+  password: process.env['DB_PASS'],
+  database: process.env['DB_NAME'],
   entities: [User, RecentSearch],
-  synchronize: configService.get<string>('NODE_ENV') !== 'production',
-});
+  synchronize: process.env['NODE_ENV'] !== 'production',
+}));

@@ -1,7 +1,5 @@
-import { Controller, Post, Body, Get, NotFoundException, Put, Param, HttpStatus, HttpCode, Patch, BadRequestException, Query, UseGuards, Request, Response as Res, ValidationPipe, UnauthorizedException, Req, ParseUUIDPipe, UsePipes } from '@nestjs/common';
+import { Controller, Post, Body, Get, NotFoundException, Put, Param, HttpStatus, HttpCode, Patch, BadRequestException, Query, UseGuards, Request, Response as Res, ValidationPipe, UnauthorizedException, Req, ParseUUIDPipe, UsePipes, Delete } from '@nestjs/common';
 import { UserService } from 'src/user/user.service';
-import { VerifyOTPDto } from './dto/verify-otp-user.dto';
-import { ResendOTPDto } from './dto/resend-otp-user.dto';
 import { ChangePwdDto } from 'src/user/dto/change-pwd-user.dto';
 import { ForgotPwdDto } from './dto/forgot-pwd-user.dto';
 import { ResetPwdDto } from './dto/reset-pwd-user.dto';
@@ -18,6 +16,7 @@ import { UserRole } from 'src/user/entities/user.entity';
 import { IsNotSuspendedGuard } from './guards/isNotSuspended.guard';
 import { Public } from 'src/user/decorators/public.decorator';
 import { ConfigService } from '@nestjs/config';
+import { UnblockUserDto } from 'src/user/dto/unblock-user.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -45,8 +44,9 @@ export class AuthController {
       res.cookie('access_token', access_token, {
         httpOnly: true,
         secure: this.configService.get<string>('NODE_ENV') === 'production',
-        sameSite: 'strict',
+        sameSite: 'lax',
         maxAge: 60 * 60 * 1000,
+        path: '/'
       });
 
       return { message: `${role} Login Successfully!`, refresh_token };
@@ -92,27 +92,16 @@ export class AuthController {
     @Res() res: Response
   ) {
     const email = req.user.email; // Extracted from JWT, not from frontend
-  
+
     await this.authService.logout(email);
-  
+
     res.clearCookie('access_token', {
       httpOnly: true,
       secure: this.configService.get<string>('NODE_ENV') === 'production',
       sameSite: 'strict',
     });
-  
-    return res.status(HttpStatus.OK).json({ message: "User logged out successfully!" });
-  }
 
-  @Post("/verify-otp")
-  async verifyOtp(@Body() verifyOtpDto: VerifyOTPDto) {
-    // console.log("Received verify OTP request:", verifyOtpDto); // Add log
-    return this.userService.verifyOtp(verifyOtpDto.otp, verifyOtpDto.email);
-  }
-  
-  @Post('/resend-otp')
-  resendOtp(@Body() { email }: ResendOTPDto) {
-    return this.userService.resendOtp(email);
+    return res.status(HttpStatus.OK).json({ message: "User logged out successfully!" });
   }
 
   @HttpCode(HttpStatus.OK)
@@ -145,5 +134,52 @@ export class AuthController {
   @Patch('/reActivated/:id')
   async reActivatedUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string) {
     return this.authService.reActivatedUser(id)
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN) // Only admins can unblock users
+  @Post('/unblock')
+  async unblockUser(@Body() unblockUserDto: UnblockUserDto) {
+    return this.authService.unblockUser(unblockUserDto.email);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN) // Only admins can softDelete users
+  @Delete('/softDelete/:id')
+  async softDeleteUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string) {
+    return this.authService.softDeleteUser(id);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @Patch('/restore/:id')
+  async reStoreUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string) {
+    return this.authService.reStoreUser(id);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN) // Only admins can hardDelete users
+  @Delete('/hardDelete/:id')
+  async permanantDeleteUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string) {
+    return this.authService.hardDelete(id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('me')
+  getCurrentUser(@Req() req) {
+    const user = req.user; // this comes from the JWT payload
+    return {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN) // Ensure the required role is ADMIN
+  @Get("/getAllUsers")
+  async getAllUsers() {
+    const user = await this.authService.getAllUsers();
+    return { message: 'Users fetched successfully!', user };
   }
 }

@@ -15,9 +15,10 @@ import { JwtService } from '@nestjs/jwt';
 import { v4 as uuidv4 } from 'uuid';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UserService } from 'src/user/user.service';
-import { EmailService } from 'src/user/services/email.service';
+// import { EmailService } from 'src/user/services/email.service';
 import { checkIfSuspended } from 'src/common/utils/user-status.util';
 import { ConfigService } from '@nestjs/config';
+import { OtpService } from 'src/otp/otp.service';
 
 @Injectable()
 export class AuthService {
@@ -25,7 +26,8 @@ export class AuthService {
     @InjectRepository(User) private readonly userRepository: Repository<User>,
     private readonly jwtService: JwtService,
     @Inject(forwardRef(() => UserService)) private readonly userService: UserService,
-    private readonly emailService: EmailService,
+    @Inject(forwardRef(() => OtpService)) private readonly otpService: OtpService,
+    // private readonly emailService: EmailService,
     private readonly configService: ConfigService
   ) { }
 
@@ -81,9 +83,13 @@ export class AuthService {
   }
 
   async save(createUserDto: CreateUserDto) {
-    // Check for existing user (including soft-deleted)
+    // Normalize email and username to lowercase
+    const normalizedEmail = createUserDto.email.toLowerCase();
+    const normalizedUserName = createUserDto.userName.toLowerCase();
+
+    // Check for existing user (including soft-deleted) by normalized email
     let user = await this.userRepository.findOne({
-      where: { email: createUserDto.email },
+      where: { email: normalizedEmail },
       withDeleted: true,
     });
 
@@ -91,9 +97,9 @@ export class AuthService {
       checkIfSuspended(user);
     }
 
-    // Always check for username conflict (including soft-deleted)
+    // Always check for username conflict (including soft-deleted) by normalized username
     const usernameConflict = await this.userRepository.findOne({
-      where: { userName: createUserDto.userName },
+      where: { userName: normalizedUserName },
       withDeleted: true,
     });
 
@@ -107,18 +113,20 @@ export class AuthService {
       }
 
       if (!user.otp) {
-        user.otp = this.userService.generateOtp();
-        user.otpExpiration = this.userService.getOtpExpiration();
+        user.otp = this.otpService.generateOtp();
+        user.otpExpiration = this.otpService.getOtpExpiration();
         user.otp_type = OtpType.EMAIL_VERIFICATION;
       }
     } else {
       const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
       user = this.userRepository.create({
         ...createUserDto,
+        email: normalizedEmail, // Store the email in lowercase
+        userName: normalizedUserName, // Store the username in lowercase
         password: hashedPassword,
         status: UserStatus.INACTIVE,
-        otp: this.userService.generateOtp(),
-        otpExpiration: this.userService.getOtpExpiration(),
+        otp: this.otpService.generateOtp(),
+        otpExpiration: this.otpService.getOtpExpiration(),
         otp_type: OtpType.EMAIL_VERIFICATION,
         role: UserRole.USER,
         birth_date: createUserDto.birth_date || undefined,
@@ -136,10 +144,11 @@ export class AuthService {
       user.age = age;
       await this.userRepository.save(user);
     }
+
     await this.userRepository.save(user);
 
     // Send OTP via Email only (no SMS during registration)
-    await this.emailService.sendOtpEmail(user.email, user.otp || '', user.first_name);
+    // await this.emailService.sendOtpEmail(user.email, user.otp || '', user.first_name);
     return { message: `${user.role} registered successfully. OTP sent to email.` };
   }
 
@@ -192,50 +201,6 @@ export class AuthService {
     await this.userRepository.save(user);
 
     return { message: 'User Successfully Changed their Password!' };
-  }
-
-  async generateUserToken(userId: string, role: UserRole, email: string) {
-    // let expiration : Date | undefined;
-    const expiresIn = 3600; // Define expiresIn in seconds (e.g., 1 hour)
-    let expiration: Date | undefined;
-    const secret = this.configService.get<string>('JWT_SECRET');
-    if (secret) {
-      expiration = new Date();
-      expiration.setTime(expiration.getTime() + expiresIn * 1000);
-    }
-
-    const payload = {
-      id: userId,
-      UserRole: role, // Ensure the role field is named 'role'
-      email: email
-    };
-
-    // const secret = this.configService.get<string>('JWT_SECRET') // Fallback for missing secret
-    // console.log('Using JWT_SECRET:', secret); // Debugging
-
-    const access_token = this.jwtService.sign(payload, {
-      secret,
-      expiresIn: '1h',
-    })
-
-    const refresh_token = uuidv4();
-    await this.storeRefreshToken(refresh_token, userId, role, email);
-    return {
-      access_token,
-      refresh_token,
-    };
-  }
-
-  async storeRefreshToken(refresh_token: string, userId: string, role: UserRole, email: string) {
-    const expiryDate = new Date();
-    expiryDate.setDate(expiryDate.getDate() + 7); // 7 days from now
-
-    await this.userRepository.update(
-      { id: userId },
-      { refresh_token, role, expiryDate_token: expiryDate, email },
-    );
-
-    console.log('Now:', new Date());
   }
 
   async refreshToken(refresh_token: string) {
@@ -296,5 +261,118 @@ export class AuthService {
     await this.userRepository.save(user);
 
     return { message: `${user.first_name} Account Re-Activated Successfully...!` }
+  }
+
+  async reStoreUser(id: string) {
+    const user = await this.userRepository.findOne({ where: { id }, withDeleted: true });
+
+    if (!user) {
+      throw new NotFoundException('User not found!');
+    }
+
+    if (!user.deletedAt) {
+      throw new BadRequestException('User is not soft-deleted and cannot be restored.');
+    }
+
+    await this.userRepository.restore({ id });
+    return { message: 'User Restored Successfully!' };
+  }
+
+  async softDeleteUser(id: string) {
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      throw new NotFoundException('User not found!');
+    }
+
+    user.is_logged_in === false;
+    await this.userRepository.softDelete({ id });
+    return { message: 'User Temporary Deleted Successfully!' };
+  }
+
+  async hardDelete(id: string) {
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      throw new NotFoundException('User not found!');
+    }
+
+    await this.userRepository.delete({ id });
+    return { message: 'User Permanently Deleted Successfully!' };
+  }
+
+  async unblockUser(email: string) {
+    const user = await this.userRepository.findOne({ where: { email } });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (!user.isBlocked) {
+      throw new BadRequestException('User is not blocked');
+    }
+
+    // Reset login attempts and blocked status
+    await this.userRepository.update(
+      { id: user.id },
+      {
+        loginAttempts: 0,
+        isBlocked: false
+      }
+    );
+
+    return {
+      message: 'User has been unblocked successfully',
+      email: user.email,
+      userName: user.userName
+    };
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return await this.userRepository.find({
+      select: ["role", "userName", "first_name", "last_name", "mobile_no", "email", "status", "refresh_token", "expiryDate_token"],
+    });
+  }
+
+  async generateUserToken(userId: string, role: UserRole, email: string) {
+    // let expiration : Date | undefined;
+    const expiresIn = 3600; // Define expiresIn in seconds (e.g., 1 hour)
+    let expiration: Date | undefined;
+    const secret = this.configService.get<string>('JWT_SECRET');
+    if (secret) {
+      expiration = new Date();
+      expiration.setTime(expiration.getTime() + expiresIn * 1000);
+    }
+
+    const payload = {
+      id: userId,
+      UserRole: role, // Ensure the role field is named 'role'
+      email: email
+    };
+
+    // const secret = this.configService.get<string>('JWT_SECRET') // Fallback for missing secret
+    // console.log('Using JWT_SECRET:', secret); // Debugging
+
+    const access_token = this.jwtService.sign(payload, {
+      secret,
+      expiresIn: '1h',
+    })
+
+    const refresh_token = uuidv4();
+    await this.storeRefreshToken(refresh_token, userId, role, email);
+    return {
+      access_token,
+      refresh_token,
+    };
+  }
+
+  async storeRefreshToken(refresh_token: string, userId: string, role: UserRole, email: string) {
+    const expiryDate = new Date();
+    expiryDate.setDate(expiryDate.getDate() + 7); // 7 days from now
+
+    await this.userRepository.update(
+      { id: userId },
+      { refresh_token, role, expiryDate_token: expiryDate, email },
+    );
+
+    console.log('Now:', new Date());
   }
 }

@@ -12,20 +12,23 @@ export class SearchService {
   ) { }
 
   async searchUser(query: string) {
-    if (!query) {
+    if (!query || query.trim() === '') {
       throw new NotFoundException('Detail Not Found...! Please write something in a Search...!');
     }
 
-    // Save recent search (anonymous)
-    await this.recentSearchRepository.save({ query });
+    const normalizedQuery = query.toLowerCase();  // Normalize query to lowercase
 
+    // Save recent search (anonymous)
+    await this.recentSearchRepository.save({ query: normalizedQuery });
+
+    // Perform case-insensitive search on multiple fields
     return this.userRepository.find({
       where: [
-        { email: ILike(`%${query}%`) },
-        { userName: ILike(`%${query}%`) },
-        { first_name: ILike(`%${query}%`) },
-        { last_name: ILike(`%${query}%`) },
-        { mobile_no: ILike(`%${query}%`) },
+        { email: ILike(`%${normalizedQuery}%`) },
+        { userName: ILike(`%${normalizedQuery}%`) },
+        { first_name: ILike(`%${normalizedQuery}%`) },
+        { last_name: ILike(`%${normalizedQuery}%`) },
+        { mobile_no: ILike(`%${normalizedQuery}%`) },
       ],
       select: ['email', 'userName', 'first_name', 'last_name', 'mobile_no'],
       take: 20,
@@ -38,4 +41,5 @@ export class SearchService {
   //     take: limit,
   //   });
   // }
+
 }

@@ -1,6 +1,6 @@
 import { registerAs } from "@nestjs/config";
 
-export const SMS = registerAs("TWILLIO", ()=>{
+export const SMS = registerAs("SMS", ()=>{
     return {
         ACCOUNT_SID : process.env['TWILIO_ACCOUNT_SID'],
         AUTH_TOKEN : process.env['TWILIO_AUTH_TOKEN'],
