@@ -156,24 +156,29 @@ export class AuthService {
     const user = await this.userRepository.findOne({ where: { email } });
 
     if (!user) {
-      throw new NotFoundException('User Not Found!');
+      throw new NotFoundException('User not found.');
     }
 
-    if (user.is_logged_in === false) {
-      throw new UnauthorizedException('User Already Logged Out!');
+    if (!user.is_logged_in) {
+      throw new UnauthorizedException('User already logged out.');
     }
 
-    // Clear all authentication related fields
-    await this.userRepository.update(
-      { email },
-      {
-        is_logged_in: false,
-        refresh_token: null,
-        expiryDate_token: null
-      }
-    );
+    user.is_logged_in = false;
+    user.refresh_token = null;
+    user.expiryDate_token = null;
+    await this.userRepository.save(user);
 
-    return { message: 'User Logout Successfully!' };
+    return { message: 'User logout successful.' };
+  }
+
+  // Helper method to verify access token (JWT)
+  verifyAccessToken(token: string): any {
+    const jwt = require('jsonwebtoken');
+    try {
+      return jwt.verify(token, process.env.JWT_SECRET);
+    } catch (error) {
+      throw new UnauthorizedException('Invalid access token.');
+    }
   }
 
   async changepwd(email: string, password: string, newpwd: string) {

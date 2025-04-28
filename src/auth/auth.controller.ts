@@ -84,24 +84,36 @@ export class AuthController {
   //   return res.status(HttpStatus.OK).json({ message: "User logged out successfully!" });
   // }
 
-  @UseGuards(JwtAuthGuard)
-  @HttpCode(HttpStatus.OK)
   @Post('/logout')
   async logout(
-    @Req() req: Request & { user: JwtPayload },
-    @Res() res: Response
+    @Req() request: Request & { cookies: { [key: string]: string } },
+    @Res({ passthrough: true }) response: Response,
   ) {
-    const email = req.user.email; // Extracted from JWT, not from frontend
+    try {
+      const accessToken = request.cookies['access_token'];
 
-    await this.authService.logout(email);
+      if (!accessToken) {
+        throw new UnauthorizedException('No access token found.');
+      }
 
-    res.clearCookie('access_token', {
-      httpOnly: true,
-      secure: this.configService.get<string>('NODE_ENV') === 'production',
-      sameSite: 'strict',
-    });
+      const payload = this.authService.verifyAccessToken(accessToken); // You'll create this method
+      const email = payload.email;
 
-    return res.status(HttpStatus.OK).json({ message: "User logged out successfully!" });
+      await this.authService.logout(email);
+
+      // Clear the access token cookie
+      response.clearCookie('access_token', {
+        path: '/',
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+      });
+
+      return { message: 'Logged out successfully' };
+    } catch (error) {
+      console.error('Error during logout:', error);
+      throw new UnauthorizedException('Logout failed.');
+    }
   }
 
   @HttpCode(HttpStatus.OK)

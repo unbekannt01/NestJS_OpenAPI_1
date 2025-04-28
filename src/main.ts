@@ -16,9 +16,8 @@ async function bootstrap() {
   app.enableCors({
     origin: 'http://localhost:5173', // Your frontend URL
     credentials: true,  // Important for cookies
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
   });
+
   // const config1 = new DocumentBuilder()
   //   .setTitle('API')
   //   .setDescription('This is Open API')
@@ -26,6 +25,7 @@ async function bootstrap() {
   //   .build(); 
   // const documentFactory = () => SwaggerModule.createDocument(app, config1);
   // SwaggerModule.setup('api', app, documentFactory);
+
   await app.listen(config.get<number>('PORT') || 3000, () => {
     console.log(`Server is running on port ${config.get('PORT') || 3000}`);
   });

@@ -133,7 +133,7 @@ export class UserService {
 
     return this.userRepository.findOne({
       where: { id },
-      select: ["first_name", "last_name", "mobile_no", "email", "status", "userName", "birth_date", "age"],
+      select: ["id","first_name", "last_name", "mobile_no", "email", "status", "userName", "birth_date", "age", "role"],
     });
   }
 
@@ -204,5 +204,6 @@ export class UserService {
     if (!user) {
       throw new NotFoundException('User not found !')
     }
+    return user;
   }
 }

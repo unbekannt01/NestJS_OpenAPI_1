@@ -22,7 +22,7 @@ import { JWT_CONFIG } from './config/jwt.config';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) =>
-        configService.get('typeorm') as any, 
+        configService.get('typeorm') as any,
     }),
     UserModule,
     SearchModule,
@@ -39,8 +39,4 @@ import { JWT_CONFIG } from './config/jwt.config';
     },
   ],
 })
-export class AppModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer.apply(LoggerMiddleware).forRoutes('user');
-  }
-}
+export class AppModule { }

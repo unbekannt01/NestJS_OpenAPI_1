@@ -3,10 +3,14 @@ import { UserService } from './user.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { JwtPayload } from 'src/auth/interfaces/jwt-payload.interface';
+import { JwtService } from '@nestjs/jwt';
 
 @Controller('user')
 export class UserController {
-  constructor(private readonly userService: UserService) { }
+  constructor(
+    private readonly userService: UserService,
+    private readonly jwtService: JwtService
+  ) { }
 
   @UseGuards(JwtAuthGuard)
   @Patch('/update')
@@ -41,7 +45,36 @@ export class UserController {
   @Get('/getUserById/:id')
   async getUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string) {
     console.log(typeof id)
-    return this.userService.getUserById(id);
+    const user = await this.userService.getUserById(id);
+    return user;
+  }
+
+  @Get('/user')
+  async user(@Req() request: Request & { cookies: { [key: string]: string } }) {
+    try {
+      const cookie = request.cookies['access_token']; // corrected cookie name
+
+      if (!cookie) {
+        throw new UnauthorizedException('No access token found.');
+      }
+      
+      const data = await this.jwtService.verifyAsync<JwtPayload>(cookie, { secret: process.env.JWT_SECRET });
+
+      if (!data || !data.id) {
+        throw new UnauthorizedException('Invalid token data.');
+      }
+
+      const user = await this.userService.getUserById(data.id);
+
+      if (!user) {
+        throw new UnauthorizedException('User not found.');
+      }
+
+      return user;
+    } catch (error) {
+      console.error('Error fetching user:', error);
+      throw new UnauthorizedException('Unauthorized');
+    }
   }
 
   // // Example : Why need middlewares
