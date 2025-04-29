@@ -4,6 +4,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { JwtPayload } from 'src/auth/interfaces/jwt-payload.interface';
 import { JwtService } from '@nestjs/jwt';
+import { PaginationQueryDto } from './dto/pagination-query.dto';
 
 @Controller('user')
 export class UserController {
@@ -57,7 +58,7 @@ export class UserController {
       if (!cookie) {
         throw new UnauthorizedException('No access token found.');
       }
-      
+
       const data = await this.jwtService.verifyAsync<JwtPayload>(cookie, { secret: process.env.JWT_SECRET });
 
       if (!data || !data.id) {
@@ -85,7 +86,7 @@ export class UserController {
       if (!cookie) {
         throw new UnauthorizedException('No access token found.');
       }
-      
+
       const data = await this.jwtService.verifyAsync<JwtPayload>(cookie, { secret: process.env.JWT_SECRET });
 
       if (!data || !data.id) {
@@ -103,6 +104,11 @@ export class UserController {
       console.error('Error fetching user:', error);
       throw new UnauthorizedException('Unauthorized');
     }
+  }
+
+  @Get('/pagination')
+  async findAll(@Query() paginationDto: PaginationQueryDto) {
+    return this.userService.getAllUser(paginationDto);
   }
 
   // // Example : Why need middlewares

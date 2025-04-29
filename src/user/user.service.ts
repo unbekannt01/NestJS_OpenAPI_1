@@ -16,6 +16,7 @@ import { AuthService } from 'src/auth/auth.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { checkIfSuspended } from 'src/common/utils/user-status.util';
 import { OtpService } from 'src/otp/otp.service';
+import { PaginationQueryDto } from './dto/pagination-query.dto';
 
 @Injectable()
 export class UserService {
@@ -133,7 +134,7 @@ export class UserService {
 
     return this.userRepository.findOne({
       where: { id },
-      select: ["id","first_name", "last_name", "mobile_no", "email", "status", "userName", "birth_date", "age", "role"],
+      select: ["id", "first_name", "last_name", "mobile_no", "email", "status", "userName", "birth_date", "age", "role"],
     });
   }
 
@@ -219,7 +220,24 @@ export class UserService {
 
     return this.userRepository.findOne({
       where: { id },
-      select: ["id","role", "userName", "first_name", "last_name", "birth_date","mobile_no", "email", "status", "refresh_token", "expiryDate_token", "age", "is_logged_in","is_Verified", "loginAttempts", "createdAt", "updatedAt", "createdAt", "isBlocked", "suspensionReason"],
+      select: ["id", "role", "userName", "first_name", "last_name", "birth_date", "mobile_no", "email", "status", "refresh_token", "expiryDate_token", "age", "is_logged_in", "is_Verified", "loginAttempts", "createdAt", "updatedAt", "createdAt", "isBlocked", "suspensionReason"],
     });
+  }
+
+  async getAllUser(paginationDto: PaginationQueryDto) {
+    const { limit = 10, offset = 0 } = paginationDto;
+
+    const [products, total] = await this.userRepository.findAndCount({
+      take: limit,
+      skip: offset,
+    });
+
+    return {
+      data: products,
+      total: total,
+      limit,
+      offset,
+      nextPage: total > offset + limit ? offset + limit : null,
+    };
   }
 }
