@@ -199,11 +199,27 @@ export class UserService {
     return user;
   }
 
-  async getUserByID(id: string) {
-    const user = await this.userRepository.findOne({ where: { id } })
+  async getUserByID(id: string): Promise<User | null> {
+    const user = await this.userRepository.findOne({ where: { id } });
     if (!user) {
-      throw new NotFoundException('User not found !')
+      throw new NotFoundException('User not found!');
     }
-    return user;
+
+    checkIfSuspended(user);
+
+    if (user.birth_date) {
+      const today = new Date();
+      const birthDate = new Date(user.birth_date);
+      let age = today.getFullYear() - birthDate.getFullYear();
+      // const monthDiff = today.getMonth() - birthDate.getMonth();
+
+      user.age = age;
+      await this.userRepository.save(user);
+    }
+
+    return this.userRepository.findOne({
+      where: { id },
+      select: ["id","role", "userName", "first_name", "last_name", "birth_date","mobile_no", "email", "status", "refresh_token", "expiryDate_token", "age", "is_logged_in","is_Verified", "loginAttempts", "createdAt", "updatedAt", "createdAt", "isBlocked", "suspensionReason"],
+    });
   }
 }

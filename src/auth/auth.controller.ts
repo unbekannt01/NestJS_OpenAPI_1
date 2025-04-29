@@ -17,13 +17,15 @@ import { IsNotSuspendedGuard } from './guards/isNotSuspended.guard';
 import { Public } from 'src/user/decorators/public.decorator';
 import { ConfigService } from '@nestjs/config';
 import { UnblockUserDto } from 'src/user/dto/unblock-user.dto';
+import { JwtService } from '@nestjs/jwt';
 
 @Controller('auth')
 export class AuthController {
   constructor(
     private readonly userService: UserService,
     private readonly authService: AuthService,
-    private readonly configService: ConfigService
+    private readonly configService: ConfigService,
+    private readonly jwtService: JwtService
   ) { }
 
   @Post('/register')
@@ -134,43 +136,43 @@ export class AuthController {
     return this.userService.resetPassword(email, newpwd);
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
+  // @UseGuards(JwtAuthGuard, RolesGuard)
+  // @Roles(UserRole.ADMIN)
   @Patch('/suspend/:id')
   async suspedUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string, @Body() message: string) {
     return this.authService.suspendUser(id, message)
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
+  // @UseGuards(JwtAuthGuard, RolesGuard)
+  // @Roles(UserRole.ADMIN)
   @Patch('/reActivated/:id')
   async reActivatedUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string) {
     return this.authService.reActivatedUser(id)
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN) // Only admins can unblock users
-  @Post('/unblock')
-  async unblockUser(@Body() unblockUserDto: UnblockUserDto) {
-    return this.authService.unblockUser(unblockUserDto.email);
+  // @UseGuards(JwtAuthGuard, RolesGuard)
+  // @Roles(UserRole.ADMIN) // Only admins can unblock users
+  @Patch('/unblock/:id')
+  async unblockUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string) {
+    return this.authService.unblockUser(id);
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN) // Only admins can softDelete users
+  // @UseGuards(JwtAuthGuard, RolesGuard)
+  // @Roles(UserRole.ADMIN) // Only admins can softDelete users
   @Delete('/softDelete/:id')
   async softDeleteUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string) {
     return this.authService.softDeleteUser(id);
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
+  // @UseGuards(JwtAuthGuard, RolesGuard)
+  // @Roles(UserRole.ADMIN)
   @Patch('/restore/:id')
   async reStoreUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string) {
     return this.authService.reStoreUser(id);
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN) // Only admins can hardDelete users
+  // @UseGuards(JwtAuthGuard, RolesGuard)
+  // @Roles(UserRole.ADMIN) // Only admins can hardDelete users
   @Delete('/hardDelete/:id')
   async permanantDeleteUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string) {
     return this.authService.hardDelete(id);
@@ -187,11 +189,39 @@ export class AuthController {
     };
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN) // Ensure the required role is ADMIN
+  // @UseGuards(JwtAuthGuard, RolesGuard)
+  // @Roles(UserRole.ADMIN) // Ensure the required role is ADMIN
   @Get("/getAllUsers")
   async getAllUsers() {
-    const user = await this.authService.getAllUsers();
-    return { message: 'Users fetched successfully!', user };
+    const users = await this.authService.getAllUsers();  // Ensure this returns an array of users
+    return { message: 'Users fetched successfully!', users }; // Use `users` in the response object, not `user`
   }
+
+  // @Get('/getAllUsers')
+  // async user(@Req() request: Request & { cookies: { [key: string]: string } }) {
+  //   try {
+  //     const cookie = request.cookies['access_token']; // corrected cookie name
+
+  //     if (!cookie) {
+  //       throw new UnauthorizedException('No access token found.');
+  //     }
+
+  //     const data = await this.jwtService.verifyAsync<JwtPayload>(cookie, { secret: process.env.JWT_SECRET });
+
+  //     if (!data || !data.id) {
+  //       throw new UnauthorizedException('Invalid token data.');
+  //     }
+
+  //     const user = await this.authService.getAllUsers();
+
+  //     if (!user) {
+  //       throw new UnauthorizedException('User not found.');
+  //     }
+
+  //     return user;
+  //   } catch (error) {
+  //     console.error('Error fetching user:', error);
+  //     throw new UnauthorizedException('Unauthorized');
+  //   }
+  // }
 }

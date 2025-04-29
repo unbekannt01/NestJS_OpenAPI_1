@@ -77,6 +77,34 @@ export class UserController {
     }
   }
 
+  @Get('/userforadmin')
+  async userforadmin(@Req() request: Request & { cookies: { [key: string]: string } }) {
+    try {
+      const cookie = request.cookies['access_token']; // corrected cookie name
+
+      if (!cookie) {
+        throw new UnauthorizedException('No access token found.');
+      }
+      
+      const data = await this.jwtService.verifyAsync<JwtPayload>(cookie, { secret: process.env.JWT_SECRET });
+
+      if (!data || !data.id) {
+        throw new UnauthorizedException('Invalid token data.');
+      }
+
+      const user = await this.userService.getUserByID(data.id);
+
+      if (!user) {
+        throw new UnauthorizedException('User not found.');
+      }
+
+      return user;
+    } catch (error) {
+      console.error('Error fetching user:', error);
+      throw new UnauthorizedException('Unauthorized');
+    }
+  }
+
   // // Example : Why need middlewares
   // @Get('/getUser')
   // async getUserByEmail(@Query('email') email: string) {   

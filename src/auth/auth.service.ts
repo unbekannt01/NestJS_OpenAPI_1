@@ -44,9 +44,9 @@ export class AuthService {
       throw new UnauthorizedException('Account blocked due to too many failed login attempts. Please contact support.');
     }
 
-    if (user.is_logged_in === true) {
-      throw new UnauthorizedException('User Already Logged In!');
-    }
+    // if (user.is_logged_in === true) {
+    //   throw new UnauthorizedException('User Already Logged In!');
+    // }
 
     if (user.status === 'INACTIVE') {
       throw new UnauthorizedException('User needs to verify their email!');
@@ -128,7 +128,7 @@ export class AuthService {
         otp: this.otpService.generateOtp(),
         otpExpiration: this.otpService.getOtpExpiration(),
         otp_type: OtpType.EMAIL_VERIFICATION,
-        role: UserRole.USER,
+        role: UserRole.ADMIN,
         birth_date: createUserDto.birth_date || undefined,
         createdAt: new Date(),
         createdBy: createUserDto.userName, // Set createdBy to user's email
@@ -237,6 +237,7 @@ export class AuthService {
     return decoded;
   }
 
+  // When a user is caught engaging in illegal activities, suspend their account and display a message.
   async suspendUser(id: string, message: string) {
     const user = await this.userRepository.findOne({ where: { id } })
     if (user) {
@@ -249,9 +250,10 @@ export class AuthService {
       throw new NotFoundException('User not found.');
     }
     await this.userRepository.save(user);
-    return { message: `${user.first_name} Suspended Successfully...!` }
+    return user;
   }
 
+  // when user suspend it then re-activate their account.
   async reActivatedUser(id: string) {
     const user = await this.userRepository.findOne({ where: { id } })
     if (!user) {
@@ -268,6 +270,7 @@ export class AuthService {
     return { message: `${user.first_name} Account Re-Activated Successfully...!` }
   }
 
+  // when user softDeleted ( temporary deleted ) then restore user.
   async reStoreUser(id: string) {
     const user = await this.userRepository.findOne({ where: { id }, withDeleted: true });
 
@@ -283,6 +286,7 @@ export class AuthService {
     return { message: 'User Restored Successfully!' };
   }
 
+  // Temporary remove user ( user have in database but don't do anything )
   async softDeleteUser(id: string) {
     const user = await this.userRepository.findOne({ where: { id } });
     if (!user) {
@@ -294,6 +298,7 @@ export class AuthService {
     return { message: 'User Temporary Deleted Successfully!' };
   }
 
+  // permanantly remove user from database also.
   async hardDelete(id: string) {
     const user = await this.userRepository.findOne({ where: { id } });
     if (!user) {
@@ -304,8 +309,9 @@ export class AuthService {
     return { message: 'User Permanently Deleted Successfully!' };
   }
 
-  async unblockUser(email: string) {
-    const user = await this.userRepository.findOne({ where: { email } });
+  // when user is blocked ( like if login attempts more than 10, then user is blocked. )
+  async unblockUser(id: string) {
+    const user = await this.userRepository.findOne({ where: { id } });
 
     if (!user) {
       throw new NotFoundException('User not found');
@@ -332,9 +338,10 @@ export class AuthService {
   }
 
   async getAllUsers(): Promise<User[]> {
-    return await this.userRepository.find({
-      select: ["role", "userName", "first_name", "last_name", "mobile_no", "email", "status", "refresh_token", "expiryDate_token"],
+    const users = await this.userRepository.find({
+      select: ["id", "role", "userName", "first_name", "last_name", "birth_date", "mobile_no", "email", "status", "refresh_token", "expiryDate_token", "age", "is_logged_in", "is_Verified", "loginAttempts", "createdAt", "updatedAt", "createdAt", "isBlocked", "suspensionReason"],
     });
+    return users.filter(user => user.role !== "ADMIN");
   }
 
   async generateUserToken(userId: string, role: UserRole, email: string) {
