@@ -8,7 +8,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { MoreThanOrEqual, Repository, ILike } from 'typeorm';
+import { MoreThanOrEqual, Repository, ILike, Not, IsNull } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { OtpType, User, UserRole, UserStatus } from 'src/user/entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
@@ -339,7 +339,8 @@ export class AuthService {
 
   async getAllUsers(): Promise<User[]> {
     const users = await this.userRepository.find({
-      select: ["id", "role", "userName", "first_name", "last_name", "birth_date", "mobile_no", "email", "status", "refresh_token", "expiryDate_token", "age", "is_logged_in", "is_Verified", "loginAttempts", "createdAt", "updatedAt", "createdAt", "isBlocked", "suspensionReason"],
+      withDeleted: true,
+      select: ["id", "role", "userName", "first_name", "last_name", "birth_date", "mobile_no", "email", "status", "refresh_token", "expiryDate_token", "age", "is_logged_in", "is_Verified", "loginAttempts", "createdAt", "updatedAt", "createdAt", "isBlocked", "suspensionReason", "deletedAt"],
     });
     return users.filter(user => user.role !== "ADMIN");
   }
