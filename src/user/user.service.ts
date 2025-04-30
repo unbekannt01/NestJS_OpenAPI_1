@@ -227,13 +227,14 @@ export class UserService {
   async getAllUser(paginationDto: PaginationQueryDto) {
     const { limit = 10, offset = 0 } = paginationDto;
 
-    const [products, total] = await this.userRepository.findAndCount({
+    const [data, total] = await this.userRepository.findAndCount({
       take: limit,
       skip: offset,
+      select: ["id", "first_name", "last_name", "mobile_no", "email", "status", "userName", "birth_date", "age", "role"],
     });
 
     return {
-      data: products,
+      data: data,
       total: total,
       limit,
       offset,

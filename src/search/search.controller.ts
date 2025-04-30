@@ -1,18 +1,29 @@
-import { Controller, Get, Query, UseInterceptors } from '@nestjs/common';
+import { Controller, Get, ParseFloatPipe, ParseIntPipe, Query, UseInterceptors } from '@nestjs/common';
 import { SearchService } from './search.service';
 
 @Controller('search')
 export class SearchController {
-  constructor(private readonly searchService: SearchService) {}
+  constructor(private readonly searchService: SearchService) { }
 
   @Get('/search')
-  search(@Query('query') query: string) {
-    return this.searchService.searchUser(query);
+  search(
+    @Query('query') query: string,
+    @Query('minPrice') minPrice: number,
+    @Query('maxPrice') maxPrice: number,
+    @Query('sortBy') sortBy: string = 'brand',
+    @Query('sortOrder') sortOrder: 'ASC' | 'DESC' = 'ASC',
+  ) {
+    return this.searchService.globalSearch(query, sortBy, sortOrder, minPrice, maxPrice);
   }
 
-  // @Get('/recent-search')
-  // getRecentSearches(@Query('limit') limit?: number) {
-  //   return this.searchService.getRecentSearches(limit);
-  // }
+  @Get('/getAllCars')
+  async getAllCars() {
+    return this.searchService.getAllCars();
+  }
+
+  @Get('/recentSearch')
+  async getRecent(@Query('limit') limit?: number) {
+    return this.searchService.getRecentSearches(limit || 10);
+  }
 }
 

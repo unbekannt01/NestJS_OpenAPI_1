@@ -8,7 +8,7 @@ import { LoggerMiddleware } from './common/middleware/logger.middleware';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { IsNotSuspendedGuard } from './auth/guards/isNotSuspended.guard';
 import { LoggerInterceptor } from './common/interceptors/logger.interceptor';
-import { typeOrmConfig } from './config/typeorm.config'; // 👈 import here
+import { typeOrmConfig } from './config/typeorm.config'; // import here
 import { SMTP_CONFIG } from './config/gmail.config';
 import { JWT_CONFIG } from './config/jwt.config';
 
@@ -16,7 +16,7 @@ import { JWT_CONFIG } from './config/jwt.config';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [typeOrmConfig, SMTP_CONFIG, JWT_CONFIG], // 👈 load custom config
+      load: [typeOrmConfig, SMTP_CONFIG, JWT_CONFIG], // load custom config
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
@@ -38,5 +38,9 @@ import { JWT_CONFIG } from './config/jwt.config';
       useClass: LoggerInterceptor,
     },
   ],
-})
-export class AppModule { }
+}) export class AppModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(LoggerMiddleware).forRoutes('*'); // Apply to all routes
+    consumer.apply(LoggerMiddleware).forRoutes('user'); // Apply to all routes
+  }
+}

@@ -128,7 +128,7 @@ export class AuthService {
         otp: this.otpService.generateOtp(),
         otpExpiration: this.otpService.getOtpExpiration(),
         otp_type: OtpType.EMAIL_VERIFICATION,
-        role: UserRole.ADMIN,
+        role: UserRole.USER,
         birth_date: createUserDto.birth_date || undefined,
         createdAt: new Date(),
         createdBy: createUserDto.userName, // Set createdBy to user's email
