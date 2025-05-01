@@ -160,10 +160,6 @@ export class AuthService {
     });
   }
 
-  async saveUser(user: User): Promise<User> {
-    return this.userRepository.save(user);
-  }
-
   async save(createUserDto: CreateUserDto) {
     // Normalize email and username to lowercase
     const normalizedEmail = createUserDto.email.toLowerCase();

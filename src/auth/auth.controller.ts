@@ -225,7 +225,7 @@ export class AuthController {
   //   }
   // }
 
-  @Get('verify-email')
+  @Post('verify-email')
   async verifyEmail(@Query('token') token: string) {
     if (!token) {
       throw new BadRequestException('Verification token is required');
@@ -245,10 +245,11 @@ export class AuthController {
 
     // Update user status to ACTIVE and clear verification token
     user.status = UserStatus.ACTIVE;
+    user.isEmailVerified = true;
     user.verificationToken = null;
     user.tokenExpiration = null;
 
-    await this.authService.saveUser(user);
+    await this.authService.save(user);
 
     return { message: 'Email verified successfully. You can now log in.' };
   }
