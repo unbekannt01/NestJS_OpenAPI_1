@@ -89,4 +89,13 @@ export class User extends BaseEntity {
 
     @OneToMany(() => RecentSearch, (recentSearch) => recentSearch)
     recentSearch: RecentSearch[];
+
+    @Column({ type : 'varchar', nullable: true })
+    verificationToken: string | null;
+
+    @Column({ type: 'timestamp', nullable: true })
+    tokenExpiration: Date | null;
+
+    @Column({ default : false})
+    isEmailVerified: boolean;
 }

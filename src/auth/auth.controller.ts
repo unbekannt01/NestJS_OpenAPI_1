@@ -12,7 +12,7 @@ import { LoginUserDto } from './dto/login-user.dto';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
 import { RolesGuard } from './guards/roles.guard';
 import { Roles } from 'src/user/decorators/roles.decorator';
-import { UserRole } from 'src/user/entities/user.entity';
+import { UserRole, UserStatus } from 'src/user/entities/user.entity';
 import { IsNotSuspendedGuard } from './guards/isNotSuspended.guard';
 import { Public } from 'src/user/decorators/public.decorator';
 import { ConfigService } from '@nestjs/config';
@@ -224,4 +224,46 @@ export class AuthController {
   //     throw new UnauthorizedException('Unauthorized');
   //   }
   // }
+
+  @Get('verify-email')
+  async verifyEmail(@Query('token') token: string) {
+    if (!token) {
+      throw new BadRequestException('Verification token is required');
+    }
+
+    // Find user by verification token
+    const user = await this.authService.findByVerificationToken(token);
+
+    if (!user) {
+      throw new NotFoundException('Invalid or expired verification token');
+    }
+
+    // Check if token is expired or null
+    if (!user.tokenExpiration || user.tokenExpiration < new Date()) {
+      throw new BadRequestException('Verification link has expired');
+    }
+
+    // Update user status to ACTIVE and clear verification token
+    user.status = UserStatus.ACTIVE;
+    user.verificationToken = null;
+    user.tokenExpiration = null;
+
+    await this.authService.saveUser(user);
+
+    return { message: 'Email verified successfully. You can now log in.' };
+  }
+
+  @Post('resend-verification')
+  async resendVerificationEmail(@Body('email') email: string) {
+    if (!email) {
+      throw new BadRequestException('Email is required');
+    }
+
+    const user = await this.authService.resendVerificationEmail(email.toLowerCase());
+    if (!user) {
+      throw new NotFoundException('User not found or already verified');
+    }
+
+    return { message: 'Verification email resent successfully' };
+  }
 }

@@ -14,20 +14,20 @@ async function bootstrap() {
   const config = app.get(ConfigService);
   app.use(cookieParser())
   app.enableCors({
-    origin: 'http://localhost:5173', // Your frontend URL
-    credentials: true,  // Important for cookies
+    origin: 'http://localhost:5173',
+    credentials: true,
   });
 
   // const config1 = new DocumentBuilder()
   //   .setTitle('API')
   //   .setDescription('This is Open API')
   //   .setVersion('1.0')
-  //   .build(); 
+  //   .build();
   // const documentFactory = () => SwaggerModule.createDocument(app, config1);
   // SwaggerModule.setup('api', app, documentFactory);
 
-  await app.listen(config.get<number>('PORT') || 3000, () => {
-    console.log(`Server is running on port ${config.get('PORT') || 3000}`);
+  await app.listen(config.get<number>('PORT') || 3001, () => {
+    console.log(`Server is running on port ${config.get('PORT') || 3001}`);
   });
 }
 bootstrap();

@@ -24,8 +24,6 @@ export class UserService {
     @InjectRepository(User) private readonly userRepository: Repository<User>,
     @Inject(forwardRef(() => AuthService)) private readonly authService: AuthService,
     @Inject(forwardRef(() => OtpService)) private readonly otpService: OtpService,
-    // private readonly emailService: EmailService,
-    // private readonly smsService: SmsService,
   ) { }
 
   // @Cron('* * * * * *') // Runs every second (adjust for production)
