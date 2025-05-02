@@ -11,12 +11,13 @@ import { LoggerInterceptor } from './common/interceptors/logger.interceptor';
 import { typeOrmConfig } from './config/typeorm.config'; // import here
 import { SMTP_CONFIG } from './config/gmail.config';
 import { JWT_CONFIG } from './config/jwt.config';
+import { GOOGLE_OAUTH } from './config/google-oauth.config';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [typeOrmConfig, SMTP_CONFIG, JWT_CONFIG], // load custom config
+      load: [typeOrmConfig, SMTP_CONFIG, JWT_CONFIG, GOOGLE_OAUTH], // load custom config
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
