@@ -36,10 +36,10 @@ export class User extends BaseEntity {
     @Column()
     email: string;
 
-    @Column()
+    @Column({ nullable: true })  // Make password nullable
     password: string;
 
-    @Column()
+    @Column({ nullable: true })  // Make mobile_no nullable
     mobile_no: string;
 
     @Column({ type: 'date', nullable: true })
@@ -84,18 +84,21 @@ export class User extends BaseEntity {
     @Column({ type: 'text', nullable: true })
     suspensionReason: string | null;
 
-    // @OneToMany(() => RecentSearch, (recentSearch) => recentSearch.user)
-    // recentSearches: RecentSearch[];
-
     @OneToMany(() => RecentSearch, (recentSearch) => recentSearch)
     recentSearch: RecentSearch[];
 
-    @Column({ type : 'varchar', nullable: true })
+    @Column({ type: 'varchar', nullable: true })
     verificationToken: string | null;
 
     @Column({ type: 'timestamp', nullable: true })
     tokenExpiration: Date | null;
 
-    @Column({ default : false})
+    @Column({ default: false })
     isEmailVerified: boolean;
+
+    // @Column({ nullable: true })
+    // provider: string;
+
+    // @Column({nullable:true})
+    // picture: string;
 }

@@ -239,4 +239,8 @@ export class UserService {
       nextPage: total > offset + limit ? offset + limit : null,
     };
   }
+
+  async findByEmail(email): Promise<User | null> {
+    return this.userRepository.findOne({ where: { email } })
+  }
 }

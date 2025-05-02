@@ -18,6 +18,7 @@ import { Public } from 'src/user/decorators/public.decorator';
 import { ConfigService } from '@nestjs/config';
 import { UnblockUserDto } from 'src/user/dto/unblock-user.dto';
 import { JwtService } from '@nestjs/jwt';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('auth')
 export class AuthController {
@@ -267,4 +268,15 @@ export class AuthController {
 
     return { message: 'Verification email resent successfully' };
   }
+
+  // @Get('google')
+  // @UseGuards(AuthGuard('google'))
+  // googleAuth() { }
+
+  // @Get('google/redirect')
+  // @UseGuards(AuthGuard('google'))
+  // googleAuthRedirect(@Req() req) {
+  //   return req.user;
+  // }
+
 }

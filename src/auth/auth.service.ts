@@ -20,7 +20,8 @@ import { checkIfSuspended } from 'src/common/utils/user-status.util';
 import { ConfigService } from '@nestjs/config';
 import { OtpService } from 'src/otp/otp.service';
 import { EmailService } from 'src/user/services/email.service';
-
+import { GoogleUserDto } from './dto/google-user.dto';
+import { DeepPartial } from 'typeorm';
 
 @Injectable()
 export class AuthService {
@@ -84,6 +85,7 @@ export class AuthService {
     );
   }
 
+  // Using OTP Based
   // async save(createUserDto: CreateUserDto) {
   //   // Normalize email and username to lowercase
   //   const normalizedEmail = createUserDto.email.toLowerCase();
@@ -160,6 +162,7 @@ export class AuthService {
     });
   }
 
+  // After Register sent a Verification Mail 
   async save(createUserDto: CreateUserDto) {
     // Normalize email and username to lowercase
     const normalizedEmail = createUserDto.email.toLowerCase();
@@ -224,7 +227,7 @@ export class AuthService {
     }
     const verificationLink = `${FRONTEND_BASE_URL}/verify-email?token=${user.verificationToken}`;
     await this.emailService.sendVerificationEmail(user.email, verificationLink, user.first_name);
-    
+
     return { message: `${user.role} registered successfully. Verification link sent to email.` };
   }
 
@@ -494,4 +497,35 @@ export class AuthService {
 
     return user;
   }
+
+  // async findByEmail(email:string): Promise<User | null>{
+  //   return this.userRepository.findOne({ where : { email }})
+  // }
+
+  // async registerOAuthUser(googleUser: GoogleUserDto): Promise<User> {
+  //   // Check if the user already exists by email
+  //   const existingUser = await this.userRepository.findOne({ where: { email: googleUser.email } });
+  
+  //   if (existingUser) {
+  //     // User already exists, return them or do any other operation
+  //     return existingUser;
+  //   }
+  
+  //   // Create the user with the details from the Google user object
+  //   const newUser: DeepPartial<User> = {
+  //     email: googleUser.email,
+  //     first_name: googleUser.first_name || '',
+  //     last_name: googleUser.last_name || '',
+  //     picture: googleUser.picture,
+  //     provider: 'google',
+  //     password: '',  // Placeholder
+  //     mobile_no: '', // Placeholder
+  //     status: UserStatus.ACTIVE, // Default status
+  //     isEmailVerified: true,  // Email verification handled via OAuth
+  //   };
+  
+  //   // Save the new user in the database
+  //   return await this.userRepository.save(newUser as User);
+  // }
+  
 }
