@@ -5,6 +5,7 @@ import { JwtModule, JwtService } from '@nestjs/jwt';
 import { UserModule } from 'src/user/user.module';
 import { ConfigService } from '@nestjs/config';
 import { OtpModule } from 'src/otp/otp.module'; // <-- Import OtpModule
+import { EmailServiceForSupension } from './services/suspend-mail.service';
 // import { GoogleStrategy } from './strategies/google.strategy';
 
 @Module({
@@ -25,7 +26,7 @@ import { OtpModule } from 'src/otp/otp.module'; // <-- Import OtpModule
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtService],
-  exports: [AuthService, JwtService],
+  providers: [AuthService, JwtService,EmailServiceForSupension],
+  exports: [AuthService, JwtService,EmailServiceForSupension],
 })
 export class AuthModule { }

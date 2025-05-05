@@ -3,14 +3,15 @@ import { UserService } from './user.service';
 import { UserController } from './user.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
-import { EmailService } from './services/email.service';
-import { SmsService } from 'src/user/services/sms.service';
+import { EmailServiceForVerifyMail } from 'src/email-verification-by-link/services/email.service';
+import { SmsService } from 'src/otp/services/sms.service';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { JwtStrategy } from 'src/auth/strategies/jwt.strategy';
 import { AuthModule } from 'src/auth/auth.module';
 import { OtpModule } from 'src/otp/otp.module';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { EmailServiceForOTP } from 'src/otp/services/email.service';
 
 @Module({
   imports: [
@@ -30,7 +31,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
   ],
   providers: [
     UserService,
-    EmailService,
+    EmailServiceForOTP,
+    EmailServiceForVerifyMail,
     SmsService,
     RolesGuard,
     JwtStrategy,
@@ -38,7 +40,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
   controllers: [UserController],
   exports: [
     UserService,
-    EmailService,
+    EmailServiceForVerifyMail,
+    EmailServiceForOTP,
     TypeOrmModule,  
   ],
 })

@@ -9,10 +9,8 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { AuthService } from './auth.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
-import { UserRole, UserStatus } from 'src/user/entities/user.entity';
 import { Public } from 'src/user/decorators/public.decorator';
 import { ConfigService } from '@nestjs/config';
-import { JwtService } from '@nestjs/jwt';
 
 @Controller('auth')
 export class AuthController {
@@ -20,7 +18,6 @@ export class AuthController {
     private readonly userService: UserService,
     private readonly authService: AuthService,
     private readonly configService: ConfigService,
-    private readonly jwtService: JwtService
   ) { }
 
   @Post('/register')
@@ -36,7 +33,7 @@ export class AuthController {
   @UsePipes(ValidationPipe)
   async login(@Body() login: LoginUserDto, @Res({ passthrough: true }) res: Response): Promise<{ message: string; refresh_token: string; }> {
     try {
-      const { role, access_token, refresh_token } = await this.authService.loginUser(login.email, login.password);
+      const { role, access_token, refresh_token } = await this.authService.loginUser(login.identifier, login.password);
 
       res.cookie('access_token', access_token, {
         httpOnly: true,
@@ -51,30 +48,6 @@ export class AuthController {
       throw new BadRequestException(error.message || 'Login failed');
     }
   }
-
-  // @Public()
-  // @Post('google-login')
-  // @HttpCode(HttpStatus.OK)
-  // async googleLogin(
-  //   @Body() googleLoginDto: GoogleLoginDto,
-  //   @Res({ passthrough: true }) response: Response
-  // ) {
-  //   const { access_token, refresh_token, ...result } = await this.authService.googleLogin(googleLoginDto);
-
-  //   // Set access token in HTTP-only cookie
-  //   response.cookie('access_token', access_token, {
-  //     httpOnly: true,
-  //     secure: process.env.NODE_ENV === 'production',
-  //     sameSite: 'lax',
-  //     maxAge: 15 * 60 * 1000, // 15 minutes
-  //     path: '/'
-  //   });
-
-  //   return {
-  //     ...result,
-  //     refresh_token
-  //   };
-  // }
 
   @Post("/refresh-token")
   async refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
@@ -158,8 +131,12 @@ export class AuthController {
   // @UseGuards(JwtAuthGuard, RolesGuard)
   // @Roles(UserRole.ADMIN)
   @Patch('/suspend/:id')
-  async suspedUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string, @Body() message: string) {
-    return this.authService.suspendUser(id, message)
+  async suspendUser(
+    @Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string,
+    @Body() body: { message: string } // Expecting object with message property
+  ) {
+    const { message } = body;
+    return this.authService.suspendUser(id, message);
   }
 
   // @UseGuards(JwtAuthGuard, RolesGuard)
@@ -243,58 +220,5 @@ export class AuthController {
   //     throw new UnauthorizedException('Unauthorized');
   //   }
   // }
-
-  @Post('verify-email')
-  async verifyEmail(@Query('token') token: string) {
-    if (!token) {
-      throw new BadRequestException('Verification token is required');
-    }
-
-    // Find user by verification token
-    const user = await this.authService.findByVerificationToken(token);
-
-    if (!user) {
-      throw new NotFoundException('Invalid or expired verification token');
-    }
-
-    // Check if token is expired or null
-    if (!user.tokenExpiration || user.tokenExpiration < new Date()) {
-      throw new BadRequestException('Verification link has expired');
-    }
-
-    // Update user status to ACTIVE and clear verification token
-    user.status = UserStatus.ACTIVE;
-    user.isEmailVerified = true;
-    user.verificationToken = null;
-    user.tokenExpiration = null;
-
-    await this.authService.save(user);
-
-    return { message: 'Email verified successfully. You can now log in.' };
-  }
-
-  @Post('resend-verification')
-  async resendVerificationEmail(@Body('email') email: string) {
-    if (!email) {
-      throw new BadRequestException('Email is required');
-    }
-
-    const user = await this.authService.resendVerificationEmail(email.toLowerCase());
-    if (!user) {
-      throw new NotFoundException('User not found or already verified');
-    }
-
-    return { message: 'Verification email resent successfully' };
-  }
 }
-
-// @Get('google')
-// @UseGuards(AuthGuard('google'))
-// googleAuth() { }
-
-// @Get('google/redirect')
-// @UseGuards(AuthGuard('google'))
-// googleAuthRedirect(@Req() req) {
-//   return req.user;
-// }
 

@@ -5,6 +5,7 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { JwtPayload } from 'src/auth/interfaces/jwt-payload.interface';
 import { JwtService } from '@nestjs/jwt';
 import { PaginationQueryDto } from './dto/pagination-query.dto';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('user')
 export class UserController {
@@ -13,19 +14,21 @@ export class UserController {
     private readonly jwtService: JwtService
   ) { }
 
-  @UseGuards(JwtAuthGuard)
+  // @UseGuards(JwtAuthGuard)
+
+
   @Patch('/update')
+  @UseGuards(AuthGuard('jwt'))
   async updateUser(
     @Query('email') email: string,
-    @Body() updateUserDto: UpdateUserDto, currentUser: string,
+    @Body() updateUserDto: UpdateUserDto,
     @Req() req: Request & { user: JwtPayload }
   ) {
-    // Check if user is trying to update their own profile
     if (req.user.email !== email) {
       throw new UnauthorizedException('You are not authorized to update profile...!');
     }
 
-    return await this.userService.updateUser(email, updateUserDto, currentUser);
+    return await this.userService.updateUser(email, updateUserDto, req.user.email); // assuming currentUser is req.user.email
   }
 
   @UseGuards(JwtAuthGuard)

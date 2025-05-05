@@ -1,24 +1,36 @@
 import { Injectable } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
 import { PassportStrategy } from '@nestjs/passport';
-import { Strategy } from 'passport-jwt';
+import { Strategy, ExtractJwt } from 'passport-jwt';
 import { Request } from 'express';
 import { JwtPayload } from '../interfaces/jwt-payload.interface';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(private jwtService: JwtService) {
+  constructor() {
     super({
       jwtFromRequest: (req: Request) => {
-        const token = req.cookies['access_token']; // Get the token from the cookie
-        return token || null;
+        // Try to extract token from cookie
+        const cookieToken = req?.cookies?.['access_token'];
+
+        // If not found in cookies, fallback to Authorization header
+        const authHeader = req?.headers?.authorization;
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+          return authHeader.split(' ')[1];
+        }
+
+        return cookieToken || null;
       },
+      ignoreExpiration: false,
       secretOrKey: process.env.JWT_SECRET,
     });
   }
 
   async validate(payload: JwtPayload) {
-    // Return user info based on the JWT payload
-    return { userId: payload.id, email: payload.email, role: payload.role };
+    // You can return more fields as needed
+    return {
+      userId: payload.id,
+      email: payload.email,
+      role: payload.role,
+    };
   }
 }
