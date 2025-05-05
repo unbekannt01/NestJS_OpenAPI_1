@@ -22,17 +22,23 @@ import { OtpService } from 'src/otp/otp.service';
 import { EmailService } from 'src/user/services/email.service';
 import { GoogleUserDto } from './dto/google-user.dto';
 import { DeepPartial } from 'typeorm';
+import { OAuth2Client } from 'google-auth-library';
+import { GoogleLoginDto } from './dto/google-login.dto';
 
 @Injectable()
 export class AuthService {
+  private googleClient: OAuth2Client;
+
   constructor(
     @InjectRepository(User) private readonly userRepository: Repository<User>,
     private readonly jwtService: JwtService,
     @Inject(forwardRef(() => UserService)) private readonly userService: UserService,
     @Inject(forwardRef(() => OtpService)) private readonly otpService: OtpService,
     private readonly emailService: EmailService,
-    private readonly configService: ConfigService
-  ) { }
+    private readonly configService: ConfigService,
+  ) {
+    this.googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+  }
 
   async loginUser(email: string, password: string): Promise<{ message: string; access_token: string; refresh_token: string; role: UserRole }> {
     const user = await this.userRepository.findOne({ where: { email } });
@@ -425,34 +431,42 @@ export class AuthService {
   }
 
   async generateUserToken(userId: string, role: UserRole, email: string) {
-    // let expiration : Date | undefined;
-    const expiresIn = 3600; // Define expiresIn in seconds (e.g., 1 hour)
-    let expiration: Date | undefined;
+    const expiresIn = 3600; // 1 hour in seconds
     const secret = this.configService.get<string>('JWT_SECRET');
-    if (secret) {
-      expiration = new Date();
-      expiration.setTime(expiration.getTime() + expiresIn * 1000);
+    
+    if (!secret) {
+      throw new Error('JWT_SECRET is not defined in environment variables');
     }
 
     const payload = {
       id: userId,
-      UserRole: role, // Ensure the role field is named 'role'
+      role: role,
       email: email
     };
-
-    // const secret = this.configService.get<string>('JWT_SECRET') // Fallback for missing secret
-    // console.log('Using JWT_SECRET:', secret); // Debugging
 
     const access_token = this.jwtService.sign(payload, {
       secret,
       expiresIn: '1h',
-    })
+    });
 
     const refresh_token = uuidv4();
-    await this.storeRefreshToken(refresh_token, userId, role, email);
+    const expiryDate = new Date();
+    expiryDate.setDate(expiryDate.getDate() + 7); // 7 days from now
+
+    // Update user with refresh token
+    await this.userRepository.update(
+      { id: userId },
+      { 
+        refresh_token,
+        expiryDate_token: expiryDate,
+        is_logged_in: true
+      }
+    );
+
     return {
       access_token,
       refresh_token,
+      expires_in: expiresIn
     };
   }
 
@@ -527,5 +541,102 @@ export class AuthService {
   //   // Save the new user in the database
   //   return await this.userRepository.save(newUser as User);
   // }
-  
+
+  async googleLogin(googleLoginDto: GoogleLoginDto) {
+    try {
+      console.log('Received Google login request:', googleLoginDto);
+      
+      if (!googleLoginDto.credential) {
+        throw new BadRequestException('Google credential is required');
+      }
+
+      // Verify the Google token
+      const ticket = await this.googleClient.verifyIdToken({
+        idToken: googleLoginDto.credential,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+
+      const payload = ticket.getPayload();
+      console.log('Google payload:', payload);
+
+      if (!payload || !payload.email) {
+        throw new UnauthorizedException("Invalid Google credentials");
+      }
+
+      // Check if user exists with this email
+      let user = await this.userRepository.findOne({ where: { email: payload.email } });
+
+      if (!user) {
+        // Create a new user if they don't exist
+        user = this.userRepository.create({
+          email: payload.email,
+          first_name: payload.given_name || "",
+          last_name: payload.family_name || "",
+          password: await bcrypt.hash(uuidv4(), 10), // Generate a random password
+          isEmailVerified: true, // Google already verified the email
+          status: UserStatus.ACTIVE,
+          role: UserRole.USER,
+          userName: payload.email.split('@')[0], // Use email prefix as username
+          is_logged_in: true,
+          mobile_no: "0000000000", // Set a default mobile number
+          createdBy: payload.email.split('@')[0], // Set createdBy to username
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+
+        await this.userRepository.save(user);
+        console.log('Created new user:', user);
+      } else {
+        // Update existing user's login status
+        user.is_logged_in = true;
+        await this.userRepository.save(user);
+        console.log('Updated existing user:', user);
+      }
+
+      // Generate tokens
+      const tokens = await this.generateUserToken(user.id, user.role, user.email);
+      console.log('Generated tokens:', { access_token: '***', refresh_token: tokens.refresh_token });
+
+      return {
+        message: "Google login successful",
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token,
+        expires_in: tokens.expires_in,
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.first_name,
+          lastName: user.last_name,
+          role: user.role,
+          userName: user.userName
+        },
+      };
+    } catch (error) {
+      console.error('Google login error:', error);
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException("Failed to authenticate with Google: " + error.message);
+    }
+  }
+
+  // private generateAccessToken(user: User): string {
+  //   const payload = {
+  //     sub: user.id,
+  //     email: user.email,
+  //     role: user.role,
+  //   }
+
+  //   return this.jwtService.sign(payload, {
+  //     secret: process.env.JWT_SECRET,
+  //     expiresIn: "15m", // 15 minutes
+  //   })
+  // }
+
+  // private generateRefreshToken(): string {
+  //   return uuidv4()
+  // }
 }

@@ -9,25 +9,40 @@ import { ConfigService } from '@nestjs/config';
 import * as cookieParser from 'cookie-parser';
 
 dotenv.config(); // Load .env file
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  const config = app.get(ConfigService);
-  app.use(cookieParser())
+  const configService = app.get(ConfigService);
+
+  // Configure CORS
   app.enableCors({
-    origin: 'http://localhost:5173',
+    origin: ['http://localhost:5173', 'http://localhost:3000'],
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+    exposedHeaders: ['Set-Cookie'],
   });
 
-  // const config1 = new DocumentBuilder()
-  //   .setTitle('API')
-  //   .setDescription('This is Open API')
-  //   .setVersion('1.0')
-  //   .build();
-  // const documentFactory = () => SwaggerModule.createDocument(app, config1);
-  // SwaggerModule.setup('api', app, documentFactory);
-
-  await app.listen(config.get<number>('PORT') || 3001, () => {
-    console.log(`Server is running on port ${config.get('PORT') || 3001}`);
+  // Security headers
+  app.use((req, res, next) => {
+    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+    res.setHeader('Cross-Origin-Embedder-Policy', 'credentialless');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    next();
   });
+
+  app.use(cookieParser());
+
+  const config = new DocumentBuilder()
+    .setTitle('Open API')
+    .setDescription('The Open API description')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
+
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api', app, document);
+
+  await app.listen(3001);
 }
 bootstrap();

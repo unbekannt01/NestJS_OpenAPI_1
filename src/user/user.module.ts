@@ -9,12 +9,24 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { JwtStrategy } from 'src/auth/strategies/jwt.strategy';
 import { AuthModule } from 'src/auth/auth.module';
 import { OtpModule } from 'src/otp/otp.module';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([User]), // Import the User entity
     forwardRef(() => AuthModule), 
-    forwardRef(() => OtpModule) // Use forwardRef to resolve circular dependency
+    forwardRef(() => OtpModule), 
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get('JWT_SECRET'),
+        signOptions: {
+          expiresIn: '15m',
+        },
+      }),
+    }),
   ],
   providers: [
     UserService,
