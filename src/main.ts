@@ -13,6 +13,7 @@ dotenv.config(); // Load .env file
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
+  const PORT = configService.get<number>('PORT') || 3001;
 
   // Configure CORS
   app.enableCors({
@@ -33,16 +34,17 @@ async function bootstrap() {
 
   app.use(cookieParser());
 
-  const config = new DocumentBuilder()
-    .setTitle('Open API')
-    .setDescription('The Open API description')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build();
+  // const config = new DocumentBuilder()
+  //   .setTitle('Open API')
+  //   .setDescription('The Open API description')
+  //   .setVersion('1.0')
+  //   .addBearerAuth()
+  //   .build();
 
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+  // const document = SwaggerModule.createDocument(app, config);
+  // SwaggerModule.setup('api', app, document);
 
-  await app.listen(3001);
+  await app.listen(PORT);
+  console.log(`🚀 Server is running PORT on ${PORT}`);
 }
 bootstrap();

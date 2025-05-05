@@ -5,12 +5,12 @@ import { JwtModule, JwtService } from '@nestjs/jwt';
 import { UserModule } from 'src/user/user.module';
 import { ConfigService } from '@nestjs/config';
 import { OtpModule } from 'src/otp/otp.module'; // <-- Import OtpModule
-import { GoogleStrategy } from './strategies/google.strategy';
+// import { GoogleStrategy } from './strategies/google.strategy';
 
 @Module({
   imports: [
     forwardRef(() => UserModule),
-    forwardRef(() => OtpModule), // <-- Add OtpModule to imports
+    forwardRef(() => OtpModule),
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
@@ -25,7 +25,7 @@ import { GoogleStrategy } from './strategies/google.strategy';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtService, GoogleStrategy],
+  providers: [AuthService, JwtService],
   exports: [AuthService, JwtService],
 })
 export class AuthModule { }

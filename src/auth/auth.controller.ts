@@ -9,17 +9,10 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { AuthService } from './auth.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
-import { JwtPayload } from './interfaces/jwt-payload.interface';
-import { RolesGuard } from './guards/roles.guard';
-import { Roles } from 'src/user/decorators/roles.decorator';
 import { UserRole, UserStatus } from 'src/user/entities/user.entity';
-import { IsNotSuspendedGuard } from './guards/isNotSuspended.guard';
 import { Public } from 'src/user/decorators/public.decorator';
 import { ConfigService } from '@nestjs/config';
-import { UnblockUserDto } from 'src/user/dto/unblock-user.dto';
 import { JwtService } from '@nestjs/jwt';
-import { AuthGuard } from '@nestjs/passport';
-import { GoogleLoginDto } from './dto/google-login.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -59,29 +52,29 @@ export class AuthController {
     }
   }
 
-  @Public()
-  @Post('google-login')
-  @HttpCode(HttpStatus.OK)
-  async googleLogin(
-    @Body() googleLoginDto: GoogleLoginDto,
-    @Res({ passthrough: true }) response: Response
-  ) {
-    const { access_token, refresh_token, ...result } = await this.authService.googleLogin(googleLoginDto);
+  // @Public()
+  // @Post('google-login')
+  // @HttpCode(HttpStatus.OK)
+  // async googleLogin(
+  //   @Body() googleLoginDto: GoogleLoginDto,
+  //   @Res({ passthrough: true }) response: Response
+  // ) {
+  //   const { access_token, refresh_token, ...result } = await this.authService.googleLogin(googleLoginDto);
 
-    // Set access token in HTTP-only cookie
-    response.cookie('access_token', access_token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 15 * 60 * 1000, // 15 minutes
-      path: '/'
-    });
+  //   // Set access token in HTTP-only cookie
+  //   response.cookie('access_token', access_token, {
+  //     httpOnly: true,
+  //     secure: process.env.NODE_ENV === 'production',
+  //     sameSite: 'lax',
+  //     maxAge: 15 * 60 * 1000, // 15 minutes
+  //     path: '/'
+  //   });
 
-    return {
-      ...result,
-      refresh_token
-    };
-  }
+  //   return {
+  //     ...result,
+  //     refresh_token
+  //   };
+  // }
 
   @Post("/refresh-token")
   async refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
@@ -293,15 +286,15 @@ export class AuthController {
 
     return { message: 'Verification email resent successfully' };
   }
-
-  // @Get('google')
-  // @UseGuards(AuthGuard('google'))
-  // googleAuth() { }
-
-  // @Get('google/redirect')
-  // @UseGuards(AuthGuard('google'))
-  // googleAuthRedirect(@Req() req) {
-  //   return req.user;
-  // }
-
 }
+
+// @Get('google')
+// @UseGuards(AuthGuard('google'))
+// googleAuth() { }
+
+// @Get('google/redirect')
+// @UseGuards(AuthGuard('google'))
+// googleAuthRedirect(@Req() req) {
+//   return req.user;
+// }
+

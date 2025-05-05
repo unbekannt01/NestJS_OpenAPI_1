@@ -37,9 +37,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
   ],
   controllers: [UserController],
   exports: [
-    UserService, // Export UserService
+    UserService,
     EmailService,
-    TypeOrmModule, // Export TypeOrmModule to make UserRepository available
+    TypeOrmModule,  
   ],
 })
 export class UserModule {}

@@ -12,6 +12,8 @@ import { typeOrmConfig } from './config/typeorm.config'; // import here
 import { SMTP_CONFIG } from './config/gmail.config';
 import { JWT_CONFIG } from './config/jwt.config';
 import { GOOGLE_OAUTH } from './config/google-oauth.config';
+import { LoginUsingGoogleModule } from './login-using-google/login-using-google.module';
+import { EmailVerificationByLinkModule } from './email-verification-by-link/email-verification-by-link.module';
 
 @Module({
   imports: [
@@ -27,6 +29,8 @@ import { GOOGLE_OAUTH } from './config/google-oauth.config';
     }),
     UserModule,
     SearchModule,
+    LoginUsingGoogleModule,
+    EmailVerificationByLinkModule,
   ],
   providers: [
     SmsService,
