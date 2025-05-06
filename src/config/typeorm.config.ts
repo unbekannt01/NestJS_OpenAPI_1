@@ -13,5 +13,5 @@ export const typeOrmConfig = registerAs('typeorm', () => ({
   password: process.env['DB_PASS'],
   database: process.env['DB_NAME'],
   entities: [User, RecentSearch,Car],
-  synchronize: process.env['NODE_ENV'] !== 'production',
+  synchronize: true,
 }));

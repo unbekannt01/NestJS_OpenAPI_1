@@ -13,6 +13,10 @@ import { Public } from 'src/user/decorators/public.decorator';
 import { ConfigService } from '@nestjs/config';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
+import { AuthGuard } from '@nestjs/passport';
+import { RolesGuard } from './guards/roles.guard';
+import { Roles } from 'src/user/decorators/roles.decorator';
+import { UserRole } from 'src/user/entities/user.entity';
 
 @Controller('auth')
 export class AuthController {
@@ -22,40 +26,39 @@ export class AuthController {
     private readonly configService: ConfigService,
   ) { }
 
-  @Post('/upload')
-  @UseInterceptors(
-    FileInterceptor('file'),
-  )
-  uploadFile(
-    @UploadedFile(
-      new ParseFilePipeBuilder()
-        .addMaxSizeValidator({
-          maxSize: 1024 * 1024 * 5, // 5MB
-        })
-        .addFileTypeValidator({
-          fileType: /(jpg|jpeg|png|gif)$/,
-        })
-        .build({
-          errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
-        }),
-    )
-    file: Express.Multer.File,
-  ) {
-    return {
-      message: 'File uploaded successfully!',
-      filename: file.originalname,
-      mimetype: file.mimetype,
-      size: file.size,
-    };
-  }
+  // @Post('/upload')
+  // @UseInterceptors(
+  //   FileInterceptor('file'),
+  // )
+  // uploadFile(
+  //   @UploadedFile(
+  //     new ParseFilePipeBuilder()
+  //       .addMaxSizeValidator({
+  //         maxSize: 1024 * 1024 * 5, // 5MB
+  //       })
+  //       .addFileTypeValidator({
+  //         fileType: /(jpg|jpeg|png|gif)$/,
+  //       })
+  //       .build({
+  //         errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+  //       }),
+  //   )
+  //   file: Express.Multer.File,
+  // ) {
+  //   return {
+  //     message: 'File uploaded successfully!',
+  //     filename: file.originalname,
+  //     mimetype: file.mimetype,
+  //     size: file.size,
+  //   };
+  // }
 
-  @Post('/register')
-  @HttpCode(HttpStatus.CREATED)
-  @UsePipes(ValidationPipe)
-  async create(@Body() createUserDto: CreateUserDto) {
-    return this.authService.save(createUserDto);
+  @Post('register')
+  @UseInterceptors(FileInterceptor('avatar'))
+  async register(@UploadedFile() file: Express.Multer.File, @Body() registerDto: CreateUserDto) {
+    return await this.authService.save(registerDto, file);
   }
-
+  
   @Public()
   @HttpCode(HttpStatus.OK)
   @Post('/login')
@@ -66,7 +69,7 @@ export class AuthController {
 
       res.cookie('access_token', access_token, {
         httpOnly: true,
-        secure: this.configService.get<string>('NODE_ENV') === 'production',
+        // secure: this.configService.get<string>('NODE_ENV') === 'production',
         sameSite: 'lax',
         maxAge: 60 * 60 * 1000,
         path: '/'
@@ -107,6 +110,7 @@ export class AuthController {
   //   return res.status(HttpStatus.OK).json({ message: "User logged out successfully!" });
   // }
 
+  @UseGuards(AuthGuard('jwt'))
   @Post('/logout')
   async logout(
     @Req() request: Request & { cookies: { [key: string]: string } },
@@ -139,6 +143,7 @@ export class AuthController {
     }
   }
 
+  @UseGuards(AuthGuard('jwt'))
   @HttpCode(HttpStatus.OK)
   @Post('/changepwd')
   changepwd(@Body() { email, password, newpwd }: ChangePwdDto) {
@@ -157,8 +162,8 @@ export class AuthController {
     return this.userService.resetPassword(email, newpwd);
   }
 
-  // @UseGuards(JwtAuthGuard, RolesGuard)
-  // @Roles(UserRole.ADMIN)
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(UserRole.ADMIN)
   @Patch('/suspend/:id')
   async suspendUser(
     @Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string,
@@ -168,36 +173,36 @@ export class AuthController {
     return this.authService.suspendUser(id, message);
   }
 
-  // @UseGuards(JwtAuthGuard, RolesGuard)
-  // @Roles(UserRole.ADMIN)
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(UserRole.ADMIN)
   @Patch('/reActivated/:id')
   async reActivatedUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string) {
     return this.authService.reActivatedUser(id)
   }
 
-  // @UseGuards(JwtAuthGuard, RolesGuard)
-  // @Roles(UserRole.ADMIN) // Only admins can unblock users
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(UserRole.ADMIN)
   @Patch('/unblock/:id')
   async unblockUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string) {
     return this.authService.unblockUser(id);
   }
 
-  // @UseGuards(JwtAuthGuard, RolesGuard)
-  // @Roles(UserRole.ADMIN) // Only admins can softDelete users
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(UserRole.ADMIN)
   @Delete('/softDelete/:id')
   async softDeleteUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string) {
     return this.authService.softDeleteUser(id);
   }
 
-  // @UseGuards(JwtAuthGuard, RolesGuard)
-  // @Roles(UserRole.ADMIN)
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(UserRole.ADMIN)
   @Patch('/restore/:id')
   async reStoreUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string) {
     return this.authService.reStoreUser(id);
   }
 
-  // @UseGuards(JwtAuthGuard, RolesGuard)
-  // @Roles(UserRole.ADMIN) // Only admins can hardDelete users
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(UserRole.ADMIN)
   @Delete('/hardDelete/:id')
   async permanantDeleteUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string) {
     return this.authService.hardDelete(id);
@@ -214,8 +219,8 @@ export class AuthController {
     };
   }
 
-  // @UseGuards(JwtAuthGuard, RolesGuard)
-  // @Roles(UserRole.ADMIN) // Ensure the required role is ADMIN
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(UserRole.ADMIN)
   @Get("/getAllUsers")
   async getAllUsers() {
     const users = await this.authService.getAllUsers();  // Ensure this returns an array of users

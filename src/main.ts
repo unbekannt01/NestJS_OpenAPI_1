@@ -7,17 +7,20 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as dotenv from 'dotenv';
 import { ConfigService } from '@nestjs/config';
 import * as cookieParser from 'cookie-parser';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import * as path from 'path';
 
 dotenv.config(); // Load .env file
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const configService = app.get(ConfigService);
   const PORT = configService.get<number>('PORT') || 3001;
 
+  app.useStaticAssets(path.join(__dirname, '..', 'uploads'), { prefix: '/uploads/' });
   // Configure CORS
   app.enableCors({
-    origin: ['http://localhost:5173', 'http://localhost:3000'],
+    origin: ['http://localhost:5173', 'http://localhost:3001'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
@@ -34,15 +37,15 @@ async function bootstrap() {
 
   app.use(cookieParser());
 
-  // const config = new DocumentBuilder()
-  //   .setTitle('Open API')
-  //   .setDescription('The Open API description')
-  //   .setVersion('1.0')
-  //   .addBearerAuth()
-  //   .build();
+  const config = new DocumentBuilder()
+    .setTitle('Open API')
+    .setDescription('The Open API description')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
 
-  // const document = SwaggerModule.createDocument(app, config);
-  // SwaggerModule.setup('api', app, document);
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api', app, document);
 
   await app.listen(PORT);
   console.log(`🚀 Server is running PORT on ${PORT}`);

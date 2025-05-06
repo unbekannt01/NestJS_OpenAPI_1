@@ -12,22 +12,34 @@ import { OtpModule } from 'src/otp/otp.module';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { EmailServiceForOTP } from 'src/otp/services/email.service';
+import { FileUploadModule } from 'src/file-upload/file-upload.module';
+import { MulterModule } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([User]), // Import the User entity
-    forwardRef(() => AuthModule), 
-    forwardRef(() => OtpModule), 
-    JwtModule.registerAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        secret: configService.get('JWT_SECRET'),
-        signOptions: {
-          expiresIn: '15m',
-        },
-      }),
-    }),
+    forwardRef(() => AuthModule),
+    forwardRef(() => OtpModule),
+    MulterModule.register({
+      storage: diskStorage({
+        destination: './uploads',
+        filename: (req, file, cb) => {
+          const filename = `${file.originalname}`;
+          cb(null, filename);
+        }
+      })
+    })
+    // JwtModule.registerAsync({
+    //   imports: [ConfigModule],
+    //   inject: [ConfigService],
+    //   useFactory: (configService: ConfigService) => ({
+    //     secret: configService.get('JWT_SECRET'),
+    //     signOptions: {
+    //       expiresIn: '15m',
+    //     },
+    //   }),
+    // }),
   ],
   providers: [
     UserService,
@@ -42,7 +54,7 @@ import { EmailServiceForOTP } from 'src/otp/services/email.service';
     UserService,
     EmailServiceForVerifyMail,
     EmailServiceForOTP,
-    TypeOrmModule,  
+    TypeOrmModule,
   ],
 })
-export class UserModule {}
+export class UserModule { }

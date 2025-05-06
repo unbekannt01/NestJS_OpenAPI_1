@@ -45,44 +45,43 @@ export class AuthService {
         { userName: identifier },
       ],
     });
-  
+
     if (!user) {
       throw new NotFoundException('User not registered.');
     }
-  
+
     checkIfSuspended(user);
-  
+
     if (user.loginAttempts >= 10) {
       throw new UnauthorizedException('Account blocked due to too many failed login attempts. Please contact support.');
     }
-  
+
     if (user.status === 'INACTIVE') {
       throw new UnauthorizedException('User needs to verify their email!');
     }
-  
+
     try {
       await this.verifyPassword(password, user.password);
       user.loginAttempts = 0;
       user.is_logged_in = true;
       await this.userRepository.save(user);
-  
+
       const role = user.role;
       const token = await this.generateUserToken(user.id, user.role, user.email);
-  
+
       return { message: `${role} Login Successfully!`, role, ...token };
     } catch (error) {
       user.loginAttempts = (user.loginAttempts || 0) + 1;
       await this.userRepository.save(user);
-  
+
       if (user.loginAttempts >= 10) {
         await this.userRepository.update(user.id, { isBlocked: true });
         throw new UnauthorizedException('Account blocked due to too many failed login attempts. Please contact support.');
       }
-  
+
       throw new UnauthorizedException(`Wrong Credentials. ${10 - user.loginAttempts} attempts remaining.`);
     }
   }
-  
 
   async resetLoginAttempts(email: string): Promise<void> {
     await this.userRepository.update(
@@ -91,78 +90,7 @@ export class AuthService {
     );
   }
 
-  // -- Using OTP Based
-  async save(createUserDto: CreateUserDto) {
-    // Normalize email and username to lowercase
-    const normalizedEmail = createUserDto.email.toLowerCase();
-    const normalizedUserName = createUserDto.userName.toLowerCase();
-
-    // Check for existing user (including soft-deleted) by normalized email
-    let user = await this.userRepository.findOne({
-      where: { email: normalizedEmail },
-      withDeleted: true,
-    });
-
-    if (user) {
-      checkIfSuspended(user);
-    }
-
-    // Always check for username conflict (including soft-deleted) by normalized username
-    const usernameConflict = await this.userRepository.findOne({
-      where: { userName: normalizedUserName },
-      withDeleted: true,
-    });
-
-    if (usernameConflict && (!user || usernameConflict.id !== user.id)) {
-      throw new ConflictException('This username is already taken. Please choose another username or contact support to restore your account.');
-    }
-
-    if (user) {
-      if (user.status === 'ACTIVE') {
-        throw new ConflictException('Email already registered...!');
-      }
-
-      if (!user.otp) {
-        user.otp = this.otpService.generateOtp();
-        user.otpExpiration = this.otpService.getOtpExpiration();
-        user.otp_type = OtpType.EMAIL_VERIFICATION;
-      }
-    } else {
-      const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
-      user = this.userRepository.create({
-        ...createUserDto,
-        email: normalizedEmail, // Store the email in lowercase
-        userName: normalizedUserName, // Store the username in lowercase
-        password: hashedPassword,
-        status: UserStatus.INACTIVE,
-        otp: this.otpService.generateOtp(),
-        otpExpiration: this.otpService.getOtpExpiration(),
-        otp_type: OtpType.EMAIL_VERIFICATION,
-        role: UserRole.USER,
-        birth_date: createUserDto.birth_date || undefined,
-        createdAt: new Date(),
-        createdBy: createUserDto.userName, // Set createdBy to user's email
-      });
-    }
-
-    if (user.birth_date) {
-      const today = new Date();
-      const birthDate = new Date(user.birth_date);
-      let age = today.getFullYear() - birthDate.getFullYear();
-      // const monthDiff = today.getMonth() - birthDate.getMonth();
-
-      user.age = age;
-      await this.userRepository.save(user);
-    }
-
-    await this.userRepository.save(user);
-
-    // Send OTP via Email only (no SMS during registration)
-    await this.emailServiceForOTP.sendOtpEmail(user.email, user.otp || '', user.first_name);
-    return { message: `${user.role} registered successfully. OTP sent to email.` };
-  }
-
-  // -- After Register sent a Verification Mail 
+  // // -- Using OTP Based
   // async save(createUserDto: CreateUserDto) {
   //   // Normalize email and username to lowercase
   //   const normalizedEmail = createUserDto.email.toLowerCase();
@@ -192,21 +120,27 @@ export class AuthService {
   //     if (user.status === 'ACTIVE') {
   //       throw new ConflictException('Email already registered...!');
   //     }
+
+  //     if (!user.otp) {
+  //       user.otp = this.otpService.generateOtp();
+  //       user.otpExpiration = this.otpService.getOtpExpiration();
+  //       user.otp_type = OtpType.EMAIL_VERIFICATION;
+  //     }
   //   } else {
   //     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
-  //     const verificationToken = uuidv4(); // Generate UUID token for email verification
   //     user = this.userRepository.create({
   //       ...createUserDto,
-  //       email: normalizedEmail,
-  //       userName: normalizedUserName,
+  //       email: normalizedEmail, // Store the email in lowercase
+  //       userName: normalizedUserName, // Store the username in lowercase
   //       password: hashedPassword,
   //       status: UserStatus.INACTIVE,
-  //       verificationToken, // Store the verification token
-  //       tokenExpiration: new Date(Date.now() + 24 * 60 * 60 * 1000), // Token expires in 24 hours
+  //       otp: this.otpService.generateOtp(),
+  //       otpExpiration: this.otpService.getOtpExpiration(),
+  //       otp_type: OtpType.EMAIL_VERIFICATION,
   //       role: UserRole.USER,
   //       birth_date: createUserDto.birth_date || undefined,
   //       createdAt: new Date(),
-  //       createdBy: createUserDto.userName,
+  //       createdBy: createUserDto.userName, // Set createdBy to user's email
   //     });
   //   }
 
@@ -214,21 +148,85 @@ export class AuthService {
   //     const today = new Date();
   //     const birthDate = new Date(user.birth_date);
   //     let age = today.getFullYear() - birthDate.getFullYear();
+  //     // const monthDiff = today.getMonth() - birthDate.getMonth();
+
   //     user.age = age;
+  //     await this.userRepository.save(user);
   //   }
 
   //   await this.userRepository.save(user);
 
-  //   // Send verification email with link
-  //   const FRONTEND_BASE_URL = this.configService.get<string>('FRONTEND_BASE_URL');
-  //   if (!FRONTEND_BASE_URL) {
-  //     throw new Error('FRONTEND_BASE_URL is not defined in environment variables');
-  //   }
-  //   const verificationLink = `${FRONTEND_BASE_URL}/verify-email?token=${user.verificationToken}`;
-  //   await this.emailServiceForVerification.sendVerificationEmail(user.email, verificationLink, user.first_name);
-
-  //   return { message: `${user.role} registered successfully. Verification link sent to email.` };
+  //   // Send OTP via Email only (no SMS during registration)
+  //   await this.emailServiceForOTP.sendOtpEmail(user.email, user.otp || '', user.first_name);
+  //   return { message: `${user.role} registered successfully. OTP sent to email.` };
   // }
+
+  // -- After Register sent a Verification Mail 
+  async save(createUserDto: CreateUserDto, file?: Express.Multer.File) {
+
+    const normalizedEmail = createUserDto.email.toLowerCase();
+    const normalizedUserName = createUserDto.userName.toLowerCase();
+
+    let user = await this.userRepository.findOne({
+      where: { email: normalizedEmail },
+      withDeleted: true,
+    });
+
+    if (user) {
+      checkIfSuspended(user);
+    }
+
+    const usernameConflict = await this.userRepository.findOne({
+      where: { userName: normalizedUserName },
+      withDeleted: true,
+    });
+
+    if (usernameConflict && (!user || usernameConflict.id !== user.id)) {
+      throw new ConflictException('This username is already taken. Please choose another username or contact support to restore your account.');
+    }
+
+    if (user) {
+      if (user.status === 'ACTIVE') {
+        throw new ConflictException('Email already registered...!');
+      }
+    } else {
+      const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+      const verificationToken = uuidv4(); // Generate UUID token for email verification
+      user = this.userRepository.create({
+        ...createUserDto,
+        email: normalizedEmail,
+        userName: normalizedUserName,
+        password: hashedPassword,
+        avatar: file ? file.filename.replace(/\\/g, '/') : undefined, // Save just the filename
+        status: UserStatus.INACTIVE,
+        verificationToken,
+        tokenExpiration: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        role: UserRole.USER,
+        birth_date: createUserDto.birth_date || undefined,
+        createdAt: new Date(),
+        createdBy: createUserDto.userName,
+      });
+    }
+
+    if (user.birth_date) {
+      const today = new Date();
+      const birthDate = new Date(user.birth_date);
+      let age = today.getFullYear() - birthDate.getFullYear();
+      user.age = age;
+    }
+
+    await this.userRepository.save(user);
+
+    // Send verification email with link
+    const FRONTEND_BASE_URL = this.configService.get<string>('FRONTEND_BASE_URL');
+    if (!FRONTEND_BASE_URL) {
+      throw new Error('FRONTEND_BASE_URL is not defined in environment variables');
+    }
+    const verificationLink = `${FRONTEND_BASE_URL}/verify-email?token=${user.verificationToken}`;
+    await this.emailServiceForVerification.sendVerificationEmail(user.email, verificationLink, user.first_name);
+
+    return { message: `${user.role} registered successfully. Verification link sent to email.` };
+  }
 
   async logout(email: string) {
     const user = await this.userRepository.findOne({ where: { email } });
@@ -476,132 +474,4 @@ export class AuthService {
 
     console.log('Now:', new Date());
   }
-
-  // async findByEmail(email:string): Promise<User | null>{
-  //   return this.userRepository.findOne({ where : { email }})
-  // }
-
-  // async registerOAuthUser(googleUser: GoogleUserDto): Promise<User> {
-  //   // Check if the user already exists by email
-  //   const existingUser = await this.userRepository.findOne({ where: { email: googleUser.email } });
-
-  //   if (existingUser) {
-  //     // User already exists, return them or do any other operation
-  //     return existingUser;
-  //   }
-
-  //   // Create the user with the details from the Google user object
-  //   const newUser: DeepPartial<User> = {
-  //     email: googleUser.email,
-  //     first_name: googleUser.first_name || '',
-  //     last_name: googleUser.last_name || '',
-  //     picture: googleUser.picture,
-  //     provider: 'google',
-  //     password: '',  // Placeholder
-  //     mobile_no: '', // Placeholder
-  //     status: UserStatus.ACTIVE, // Default status
-  //     isEmailVerified: true,  // Email verification handled via OAuth
-  //   };
-
-  //   // Save the new user in the database
-  //   return await this.userRepository.save(newUser as User);
-  // }
-
-  // async googleLogin(googleLoginDto: GoogleLoginDto) {
-  //   try {
-  //     // console.log('Received Google login request:', googleLoginDto);
-
-  //     if (!googleLoginDto.credential) {
-  //       throw new BadRequestException('Google credential is required');
-  //     }
-
-  //     // Verify the Google token
-  //     const ticket = await this.googleClient.verifyIdToken({
-  //       idToken: googleLoginDto.credential,
-  //       audience: process.env.GOOGLE_CLIENT_ID,
-  //     });
-
-  //     const payload = ticket.getPayload();
-  //     // console.log('Google payload:', payload);
-
-  //     if (!payload || !payload.email) {
-  //       throw new UnauthorizedException("Invalid Google credentials");
-  //     }
-
-  //     // Check if user exists with this email
-  //     let user = await this.userRepository.findOne({ where: { email: payload.email } });
-
-  //     if (!user) {
-  //       // Create a new user if they don't exist
-  //       user = this.userRepository.create({
-  //         email: payload.email,
-  //         first_name: payload.given_name || "",
-  //         last_name: payload.family_name || "",
-  //         password: await bcrypt.hash(uuidv4(), 10), 
-  //         isEmailVerified: true, 
-  //         status: UserStatus.ACTIVE,
-  //         role: UserRole.USER,
-  //         userName: payload.email.split('@')[0], 
-  //         is_logged_in: true,
-  //         mobile_no: "0000000000", 
-  //         createdBy: payload.email.split('@')[0], 
-  //         createdAt: new Date(),
-  //         updatedAt: new Date()
-  //       });
-
-  //       await this.userRepository.save(user);
-  //       // console.log('Created new user:', user);
-  //     } else {
-  //       // Update existing user's login status
-  //       user.is_logged_in = true;
-  //       await this.userRepository.save(user);
-  //       // console.log('Updated existing user:', user);
-  //     }
-
-  //     // Generate tokens
-  //     const tokens = await this.generateUserToken(user.id, user.role, user.email);
-  //     // console.log('Generated tokens:', { access_token: '***', refresh_token: tokens.refresh_token });
-
-  //     return {
-  //       message: "Google login successful",
-  //       access_token: tokens.access_token,
-  //       refresh_token: tokens.refresh_token,
-  //       expires_in: tokens.expires_in,
-  //       user: {
-  //         id: user.id,
-  //         email: user.email,
-  //         firstName: user.first_name,
-  //         lastName: user.last_name,
-  //         role: user.role,
-  //         userName: user.userName
-  //       },
-  //     };
-  //   } catch (error) {
-  //     console.error('Google login error:', error);
-  //     if (error instanceof UnauthorizedException) {
-  //       throw error;
-  //     }
-  //     if (error instanceof BadRequestException) {
-  //       throw error;
-  //     }
-  //     throw new BadRequestException("Failed to authenticate with Google: " + error.message);
-  //   }
-  // }
-
-  // private generateAccessToken(user: User): string {
-  //   const payload = {
-  //     sub: user.id,
-  //     email: user.email,
-  //     role: user.role,
-  //   }
-
-  //   return this.jwtService.sign(payload, {
-  //     secret: process.env.JWT_SECRET,
-  //     expiresIn: "15m", // 15 minutes
-  //   })
-  // }
-
-  // private generateRefreshToken(): string {
-  //   return uuidv4()
-  // }
 }

@@ -17,6 +17,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { checkIfSuspended } from 'src/common/utils/user-status.util';
 import { OtpService } from 'src/otp/otp.service';
 import { PaginationQueryDto } from './dto/pagination-query.dto';
+import * as path from 'path';
 
 @Injectable()
 export class UserService {
@@ -132,11 +133,11 @@ export class UserService {
 
     return this.userRepository.findOne({
       where: { id },
-      select: ["id", "first_name", "last_name", "mobile_no", "email", "status", "userName", "birth_date", "age", "role"],
+      select: ["id", "first_name", "last_name", "mobile_no", "email", "status", "userName", "birth_date", "age", "role", "avatar"],
     });
   }
 
-  async updateUser(email: string, updateUserDto: UpdateUserDto, currentUser: string) {
+  async updateUser(email: string, updateUserDto: UpdateUserDto, currentUser: string, avatarFile?: Express.Multer.File) {
     const user = await this.userRepository.findOne({
       where: { email, is_logged_in: true }
     });
@@ -172,6 +173,12 @@ export class UserService {
     if (updateUserDto.mobile_no) user.mobile_no = updateUserDto.mobile_no;
     if (updateUserDto.birth_date) user.birth_date = updateUserDto.birth_date;
 
+    // Handle avatar file update if provided
+    if (avatarFile) {
+      const avatarPath = this.saveAvatarToStorage(avatarFile);
+      user.avatar = avatarPath;
+    }
+
     user.updatedAt = new Date();
     user.updatedBy = currentUser; // Set the updater's identity, not from DTO
     await this.userRepository.save(user);
@@ -188,6 +195,13 @@ export class UserService {
       user: data,
       nextUpdateAvailable: new Date(updatedAt.getTime() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString()
     };
+  }
+
+  // Helper function to handle file storage
+  saveAvatarToStorage(avatarFile: Express.Multer.File) {
+    const filename = `${avatarFile.originalname}`;
+    const filePath = path.join(__dirname, '..', 'uploads', filename);
+    return filename;
   }
 
   async getUserByEmail(email: string) {

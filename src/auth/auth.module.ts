@@ -4,9 +4,10 @@ import { AuthService } from './auth.service';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { UserModule } from 'src/user/user.module';
 import { ConfigService } from '@nestjs/config';
-import { OtpModule } from 'src/otp/otp.module'; // <-- Import OtpModule
+import { OtpModule } from 'src/otp/otp.module';
 import { EmailServiceForSupension } from './services/suspend-mail.service';
-// import { GoogleStrategy } from './strategies/google.strategy';
+import { MulterModule } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
 
 @Module({
   imports: [
@@ -24,9 +25,18 @@ import { EmailServiceForSupension } from './services/suspend-mail.service';
         };
       },
     }),
+    MulterModule.register({
+      storage: diskStorage({
+        destination: './uploads',
+        filename: (req, file, cb) => {
+          const filename = `${Date.now}-${file.originalname}`;
+          cb(null, filename);
+        }
+      })
+    })
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtService,EmailServiceForSupension],
-  exports: [AuthService, JwtService,EmailServiceForSupension],
+  providers: [AuthService, JwtService, EmailServiceForSupension],
+  exports: [AuthService, JwtService, EmailServiceForSupension],
 })
 export class AuthModule { }

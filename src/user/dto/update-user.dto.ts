@@ -26,4 +26,8 @@ export class UpdateUserDto {
   @IsOptional()
   @ApiProperty({ type: 'string', default: "yyyy-mm-dd" })
   birth_date?: Date | null; // Ensure TypeORM can handle null correctly
+
+  @ApiProperty()
+  @IsOptional()
+  avatar? : string;
 }

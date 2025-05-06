@@ -96,9 +96,6 @@ export class User extends BaseEntity {
     @Column({ default: false })
     isEmailVerified: boolean;
 
-    // @Column({ nullable: true })
-    // provider: string;
-
-    // @Column({nullable:true})
-    // picture: string;
+    @Column({  type: 'varchar', nullable: true })
+    avatar: string;
 }

@@ -14,6 +14,7 @@ import { JWT_CONFIG } from './config/jwt.config';
 import { GOOGLE_OAUTH } from './config/google-oauth.config';
 import { LoginUsingGoogleModule } from './login-using-google/login-using-google.module';
 import { EmailVerificationByLinkModule } from './email-verification-by-link/email-verification-by-link.module';
+import { FileUploadModule } from './file-upload/file-upload.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { EmailVerificationByLinkModule } from './email-verification-by-link/emai
     SearchModule,
     LoginUsingGoogleModule,
     EmailVerificationByLinkModule,
+    FileUploadModule,
   ],
   providers: [
     SmsService,

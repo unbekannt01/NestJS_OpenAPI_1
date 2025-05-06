@@ -1,6 +1,6 @@
 import { Transform } from "@nestjs/class-transformer";
 import { ApiProperty } from "@nestjs/swagger";
-import { IsEmail, IsNotEmpty, IsNumber, IsString, Matches, MinLength } from "class-validator";
+import { IsEmail, IsNotEmpty, IsNumber, IsOptional, IsString, Matches, MinLength } from "class-validator";
 
 export class CreateUserDto {
 
@@ -9,7 +9,6 @@ export class CreateUserDto {
     @ApiProperty()
     @Transform(({ value }) => value.toLowerCase())
     userName: string;
-  
 
     @IsNotEmpty()
     @IsString()
@@ -39,5 +38,9 @@ export class CreateUserDto {
     @ApiProperty({ type: 'string', default: "yyyy-mm-dd" })
     @IsNotEmpty()
     birth_date: Date | null;
+
+    @ApiProperty()
+    @IsOptional()
+    avatar? : string;
 }
 

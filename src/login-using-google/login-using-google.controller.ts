@@ -21,7 +21,7 @@ export class LoginUsingGoogleController {
     // Set access token in HTTP-only cookie
     response.cookie('access_token', access_token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      // secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 15 * 60 * 1000, // 15 minutes
       path: '/'
