@@ -1,4 +1,4 @@
-import { Module, MiddlewareConsumer } from '@nestjs/common';
+import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserModule } from './user/user.module';
@@ -15,6 +15,7 @@ import { GOOGLE_OAUTH } from './config/google-oauth.config';
 import { LoginUsingGoogleModule } from './login-using-google/login-using-google.module';
 import { EmailVerificationByLinkModule } from './email-verification-by-link/email-verification-by-link.module';
 import { FileUploadModule } from './file-upload/file-upload.module';
+import { CheckSuspendedMiddleware } from './common/middleware/check-suspended.middleware';
 
 @Module({
   imports: [
@@ -47,9 +48,11 @@ import { FileUploadModule } from './file-upload/file-upload.module';
       useClass: LoggerInterceptor,
     },
   ],
-}) export class AppModule {
+}) export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(LoggerMiddleware).forRoutes('*'); // Apply to all routes
-    consumer.apply(LoggerMiddleware).forRoutes('user'); // Apply to all routes
+    consumer
+      .apply(LoggerMiddleware, CheckSuspendedMiddleware) 
+      .exclude('/auth/register')
+      .forRoutes('*'); 
   }
 }

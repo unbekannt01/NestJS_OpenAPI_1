@@ -37,6 +37,7 @@ export class UserService {
   // }
 
   async forgotPassword(email: string) {
+
     const user = await this.userRepository.findOne({ where: { email } });
     if (!user) {
       throw new NotFoundException('User Not Found..!');

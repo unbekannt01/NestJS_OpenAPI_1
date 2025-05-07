@@ -17,6 +17,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from './guards/roles.guard';
 import { Roles } from 'src/user/decorators/roles.decorator';
 import { UserRole } from 'src/user/entities/user.entity';
+import { IsNotSuspendedGuard } from './guards/isNotSuspended.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -69,7 +70,6 @@ export class AuthController {
 
       res.cookie('access_token', access_token, {
         httpOnly: true,
-        // secure: this.configService.get<string>('NODE_ENV') === 'production',
         sameSite: 'lax',
         maxAge: 60 * 60 * 1000,
         path: '/'
@@ -103,7 +103,6 @@ export class AuthController {
 
   //   res.clearCookie('access_token', {
   //     httpOnly: true,
-  //     secure: this.configService.get<string>('NODE_ENV') === 'production',
   //     sameSite: 'strict',
   //   });
 
@@ -132,7 +131,6 @@ export class AuthController {
       response.clearCookie('access_token', {
         path: '/',
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
       });
 
@@ -150,6 +148,7 @@ export class AuthController {
     return this.authService.changepwd(email, password, newpwd);
   }
 
+  @UseGuards(IsNotSuspendedGuard)
   @HttpCode(HttpStatus.OK)
   @Post('/forgotpwd')
   forgotpwd(@Body() { email }: ForgotPwdDto) {
