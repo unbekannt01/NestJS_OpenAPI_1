@@ -95,8 +95,9 @@ export class UserService {
       );
     }
 
-    await this.authService.verifyPassword(newpwd, user.password);
-    if (newpwd === user.password) {
+    // await this.authService.verifyPassword(newpwd, user.password);
+    const isSame = await bcrypt.compare(newpwd, user.password);
+    if (isSame) {
       throw new UnauthorizedException(
         'New Password cannot be the same as the old Password!',
       );

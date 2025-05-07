@@ -52,7 +52,7 @@ export class UserController {
     return user;
   }
 
-  @UseGuards(AuthGuard('jwt'))
+  // @UseGuards(AuthGuard('jwt'))
   @Get('/user')
   async user(@Req() request: Request & { cookies: { [key: string]: string } }) {
     try {

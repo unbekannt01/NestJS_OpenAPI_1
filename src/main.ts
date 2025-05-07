@@ -10,7 +10,7 @@ import * as cookieParser from 'cookie-parser';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import * as path from 'path';
 
-dotenv.config(); // Load .env file
+dotenv.config();
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -20,7 +20,7 @@ async function bootstrap() {
   app.useStaticAssets(path.join(__dirname, '..', 'uploads'), { prefix: '/uploads/' });
   // Configure CORS
   app.enableCors({
-    origin: ['http://localhost:5173', 'http://localhost:3001'],
+    origin: ['http://localhost:5173', 'http://localhost:3001', 'http://192.168.1.33:5173', '192.168.1.33:5173'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
@@ -47,7 +47,7 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
-  await app.listen(PORT);
+  await app.listen(PORT, '0.0.0.0');
   console.log(`🚀 Server is running PORT on ${PORT}`);
 }
 bootstrap();

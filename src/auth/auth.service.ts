@@ -259,31 +259,31 @@ export class AuthService {
 
   async changepwd(email: string, password: string, newpwd: string) {
     const user = await this.userRepository.findOne({ where: { email } });
-
+  
     if (!user) {
       throw new UnauthorizedException('Email is Invalid!');
     }
-
+  
     if (!user.is_logged_in) {
       throw new UnauthorizedException('Please Login First!');
     }
-
-    await this.verifyPassword(password, user.password);
-    if (password !== user.password) {
+  
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
       throw new UnauthorizedException('Invalid old password!');
     }
-
-    await this.verifyPassword(newpwd, user.password);
-    if (newpwd === user.password) {
+  
+    const isSame = await bcrypt.compare(newpwd, user.password);
+    if (isSame) {
       throw new UnauthorizedException('New password cannot be the same as the old password!');
     }
-
+  
     user.password = await bcrypt.hash(newpwd, 10);
     await this.userRepository.save(user);
-
+  
     return { message: 'User Successfully Changed their Password!' };
   }
-
+  
   async refreshToken(refresh_token: string) {
     const token = await this.userRepository.findOne({
       where: {
