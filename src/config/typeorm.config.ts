@@ -1,17 +1,22 @@
-// src/config/typeorm.config.ts
-
 import { registerAs } from '@nestjs/config';
-import { Car } from 'src/search/entity/car.entity';
-import { RecentSearch } from 'src/search/entity/recent-search.entity';
-import { User } from 'src/user/entities/user.entity'; 
+import { DataSourceOptions } from 'typeorm';
+import { join } from 'path';
 
-export const typeOrmConfig = registerAs('typeorm', () => ({
+// Plain config for CLI (used in data-source.ts)
+export const dataSourceOptions: DataSourceOptions = {
   type: 'postgres',
-  host: process.env['DB_HOST'],
-  port: parseInt(process.env['DB_PORT'] || '5432', 10),
-  username: process.env['DB_USER'],
-  password: process.env['DB_PASS'],
-  database: process.env['DB_NAME'],
-  entities: [User, RecentSearch,Car],
-  synchronize: true,
+  host: process.env.DB_HOST || 'localhost',
+  port: parseInt(process.env.DB_PORT || '5432', 10),
+  username: process.env.DB_USER || 'postgres',
+  password: process.env.DB_PASS || 'buddy',
+  database: process.env.DB_NAME || 'postgres',
+  entities: [join(__dirname, '..', '**', '*.entity.{ts,js}')],
+  migrations: [join(__dirname, '..', 'db', 'migrations', '*.{ts,js}')],
+  synchronize: false,
+};
+
+// Config for NestJS module
+export const typeOrmConfig = registerAs('typeorm', () => ({
+  ...dataSourceOptions,
+  synchronize: false,
 }));
