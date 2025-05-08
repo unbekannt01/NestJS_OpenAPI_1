@@ -36,10 +36,10 @@ export class User extends BaseEntity {
     @Column()
     email: string;
 
-    @Column({ nullable: true })  // Make password nullable
+    @Column({ nullable: true }) 
     password: string;
 
-    @Column({ nullable: true })  // Make mobile_no nullable
+    @Column({ nullable: true })
     mobile_no: string;
 
     @Column({ type: 'date', nullable: true })
