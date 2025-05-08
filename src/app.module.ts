@@ -15,7 +15,6 @@ import { GOOGLE_OAUTH } from './config/google-oauth.config';
 import { LoginUsingGoogleModule } from './login-using-google/login-using-google.module';
 import { EmailVerificationByLinkModule } from './email-verification-by-link/email-verification-by-link.module';
 import { FileUploadModule } from './file-upload/file-upload.module';
-import { CheckSuspendedMiddleware } from './common/middleware/check-suspended.middleware';
 
 @Module({
   imports: [
@@ -42,7 +41,7 @@ import { CheckSuspendedMiddleware } from './common/middleware/check-suspended.mi
     {
       provide: APP_GUARD,
       useClass: IsNotSuspendedGuard,
-    },
+    }, 
     {
       provide: APP_INTERCEPTOR,
       useClass: LoggerInterceptor,
@@ -51,8 +50,7 @@ import { CheckSuspendedMiddleware } from './common/middleware/check-suspended.mi
 }) export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
-      .apply(LoggerMiddleware, CheckSuspendedMiddleware) 
-      .exclude('/auth/register')
+      .apply(LoggerMiddleware) 
       .forRoutes('*'); 
   }
 }

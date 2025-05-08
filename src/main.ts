@@ -37,15 +37,15 @@ async function bootstrap() {
 
   app.use(cookieParser());
 
-  const config = new DocumentBuilder()
-    .setTitle('Open API')
-    .setDescription('The Open API description')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build();
+  // const config = new DocumentBuilder()
+  //   .setTitle('Open API')
+  //   .setDescription('The Open API description')
+  //   .setVersion('1.0')
+  //   .addBearerAuth()
+  //   .build();
 
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+  // const document = SwaggerModule.createDocument(app, config);
+  // SwaggerModule.setup('api', app, document);
 
   await app.listen(PORT, '0.0.0.0');
   console.log(`🚀 Server is running PORT on ${PORT}`);
