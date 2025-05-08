@@ -22,7 +22,8 @@
     "migration:create": "typeorm-ts-node-commonjs migration:create",
     "migration:generate": "typeorm-ts-node-commonjs migration:generate -d src/db/data-source.ts",
     "migration:run": "npm run typeorm -- migration:run",
-    "migration:revert": "npm run typeorm -- migration:revert"
+    "migration:revert": "npm run typeorm -- migration:revert",
+    "migration:show" : "typeorm-ts-node-commonjs migration:show -d src/db/data-source.ts"
   },
   "dependencies": {
     "@ccmos/nestjs-moment": "^0.1.0",
