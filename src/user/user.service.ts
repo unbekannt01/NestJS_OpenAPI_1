@@ -43,6 +43,10 @@ export class UserService {
       throw new NotFoundException('User Not Found..!');
     }
 
+    if(user.status === UserStatus.SUSPENDED){
+      throw new UnauthorizedException('You are Supsended. Please Contact Support Team...!')
+    }
+
     if (user.is_logged_in === false) {
       user.otp = this.otpService.generateOtp();
       user.otpExpiration = this.otpService.getOtpExpiration();

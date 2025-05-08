@@ -148,7 +148,6 @@ export class AuthController {
     return this.authService.changepwd(email, password, newpwd);
   }
 
-  @UseGuards(IsNotSuspendedGuard)
   @HttpCode(HttpStatus.OK)
   @Post('/forgotpwd')
   forgotpwd(@Body() { email }: ForgotPwdDto) {

@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, NotFoundException, Post, Query } from '@nestjs/common';
+import { BadRequestException, Body, Controller, NotFoundException, Post, Query, UnauthorizedException } from '@nestjs/common';
 import { EmailVerificationByLinkService } from './email-verification-by-link.service';
 import { User, UserStatus } from 'src/user/entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';

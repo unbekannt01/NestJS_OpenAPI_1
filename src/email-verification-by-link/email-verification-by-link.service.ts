@@ -101,7 +101,7 @@ export class EmailVerificationByLinkService {
             where: { email },
         });
 
-        if (!user || user.isEmailVerified === true) {
+        if (!user || user.status == UserStatus.ACTIVE) {
             throw new UnauthorizedException('User Already Verified..!'); // User not found or already verified
         }
 
