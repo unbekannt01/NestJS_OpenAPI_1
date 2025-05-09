@@ -9,7 +9,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Not, ILike } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { OtpType, User, UserStatus } from './entities/user.entity';
+import { OtpType, User, UserRole, UserStatus } from './entities/user.entity';
 // import { EmailService } from './services/email.service';
 // import { SmsService } from 'src/user/services/sms.service';
 import { AuthService } from 'src/auth/auth.service';
@@ -153,14 +153,14 @@ export class UserService {
     }
 
     // Check if a week has passed since last update
-    if (user.updatedAt) {
-      const oneWeekAgo = new Date();
-      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    if (user.updatedAt && user.role == UserRole.USER) {
+      const oneDayAgo = new Date();
+      oneDayAgo.setDate(oneDayAgo.getDate() - 1);
 
-      if (user.updatedAt > oneWeekAgo) {
+      if (user.updatedAt > oneDayAgo) {
         const nextUpdateDate = new Date(user.updatedAt);
-        nextUpdateDate.setDate(nextUpdateDate.getDate() + 7);
-        throw new UnauthorizedException(`Profile can only be updated once per week. Next update available on ${nextUpdateDate.toLocaleDateString()}`);
+        nextUpdateDate.setDate(nextUpdateDate.getDate() + 1);
+        throw new UnauthorizedException(`Profile can only be updated once per day. Next update available on ${nextUpdateDate.toLocaleDateString()}`);
       }
     }
 
