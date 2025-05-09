@@ -54,6 +54,3 @@ pids
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
-uploads/Logo.png
-uploads/Nepal.jpg
-uploads/pexels-cottonbro-5082578.jpg
