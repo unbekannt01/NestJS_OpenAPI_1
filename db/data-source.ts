@@ -2,12 +2,13 @@
 
 import 'dotenv/config'; // Load .env before anything else
 import { DataSource } from 'typeorm';
-import { dataSourceOptions } from '../config/typeorm.config';
+import { dataSourceOptions } from '../../open-api-backend/src/config/typeorm.config';
 
 const dataSource = new DataSource({
   ...dataSourceOptions,
-  migrations: ['src/db/migrations/*.ts'],
-  migrationsRun: true
+  migrations: ['db/migrations/*.ts'],
+  migrationsRun: true,
+  migrationsTableName: 'migrations'
 });
 
 export default dataSource;
