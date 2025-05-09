@@ -152,17 +152,17 @@ export class UserService {
       throw new NotFoundException('User not found or not logged in');
     }
 
-    // Check if a week has passed since last update
-    if (user.updatedAt && user.role == UserRole.USER) {
-      const oneDayAgo = new Date();
-      oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+    // // Check if a week has passed since last update
+    // if (user.updatedAt && user.role == UserRole.USER) {
+    //   const oneDayAgo = new Date();
+    //   oneDayAgo.setDate(oneDayAgo.getDate() - 1);
 
-      if (user.updatedAt > oneDayAgo) {
-        const nextUpdateDate = new Date(user.updatedAt);
-        nextUpdateDate.setDate(nextUpdateDate.getDate() + 1);
-        throw new UnauthorizedException(`Profile can only be updated once per day. Next update available on ${nextUpdateDate.toLocaleDateString()}`);
-      }
-    }
+    //   if (user.updatedAt > oneDayAgo) {
+    //     const nextUpdateDate = new Date(user.updatedAt);
+    //     nextUpdateDate.setDate(nextUpdateDate.getDate() + 1);
+    //     throw new UnauthorizedException(`Profile can only be updated once per day. Next update available on ${nextUpdateDate.toLocaleDateString()}`);
+    //   }
+    // }
 
     // Update user fields
     if (updateUserDto.first_name) user.first_name = updateUserDto.first_name;
