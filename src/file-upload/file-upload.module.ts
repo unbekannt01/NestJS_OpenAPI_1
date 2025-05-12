@@ -8,7 +8,7 @@ import { diskStorage } from 'multer';
   imports:[
     MulterModule.register({
       storage: diskStorage({
-        destination: './uploads1',
+        destination: './uploads',
         filename: (req, file, cb) =>{
           const filename = `${file.originalname}`;
           cb(null, filename);

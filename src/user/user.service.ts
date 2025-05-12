@@ -43,7 +43,7 @@ export class UserService {
       throw new NotFoundException('User Not Found..!');
     }
 
-    if(user.status === UserStatus.SUSPENDED){
+    if (user.status === UserStatus.SUSPENDED) {
       throw new UnauthorizedException('You are Supsended. Please Contact Support Team...!')
     }
 
@@ -119,6 +119,30 @@ export class UserService {
     return { message: 'Password Reset Successfully. Now You Can Login' };
   }
 
+  // async getUserById(id: string): Promise<User | null> {
+  //   const user = await this.userRepository.findOne({ where: { id } });
+  //   if (!user) {
+  //     throw new NotFoundException('User not found!');
+  //   }
+
+  //   checkIfSuspended(user);
+
+  //   if (user.birth_date) {
+  //     const today = new Date();
+  //     const birthDate = new Date(user.birth_date);
+  //     let age = today.getFullYear() - birthDate.getFullYear();
+  //     // const monthDiff = today.getMonth() - birthDate.getMonth();
+
+  //     user.age = age;
+  //     await this.userRepository.save(user);
+  //   }
+
+  //   return this.userRepository.findOne({
+  //     where: { id },
+  //     select: ["id", "first_name", "last_name", "mobile_no", "email", "status", "userName", "birth_date", "age", "role", "avatar"],
+  //   });
+  // }
+
   async getUserById(id: string): Promise<User | null> {
     const user = await this.userRepository.findOne({ where: { id } });
     if (!user) {
@@ -127,25 +151,27 @@ export class UserService {
 
     checkIfSuspended(user);
 
-    if (user.birth_date) {
-      const today = new Date();
-      const birthDate = new Date(user.birth_date);
-      let age = today.getFullYear() - birthDate.getFullYear();
-      // const monthDiff = today.getMonth() - birthDate.getMonth();
+    // if (user.birth_date) {
+    //   const today = new Date();
+    //   const birthDate = new Date(user.birth_date);
+    //   let age = today.getFullYear() - birthDate.getFullYear();
+    //   // const monthDiff = today.getMonth() - birthDate.getMonth();
 
-      user.age = age;
-      await this.userRepository.save(user);
-    }
+    //   user.age = age;
+    //   await this.userRepository.save(user);
+    // }
+
+    // return user;
 
     return this.userRepository.findOne({
       where: { id },
-      select: ["id", "first_name", "last_name", "mobile_no", "email", "status", "userName", "birth_date", "age", "role", "avatar"],
+      select: ["id", "first_name", "last_name", "mobile_no", "email", "status", "userName", "birth_date", "role", "avatar"],
     });
   }
 
-  async updateUser(email: string, updateUserDto: UpdateUserDto, currentUser: string, avatarFile?: Express.Multer.File) {
+  async updateUser(id: string, updateUserDto: UpdateUserDto, currentUser: string, avatarFile?: Express.Multer.File) {
     const user = await this.userRepository.findOne({
-      where: { email, is_logged_in: true }
+      where: { id, is_logged_in: true }
     });
 
     if (!user) {
@@ -191,7 +217,7 @@ export class UserService {
 
     // Remove sensitive data before returning
     const {
-      id, role, status, is_logged_in, age, updatedAt, createdAt,
+       role, status, is_logged_in, age, updatedAt, createdAt,
       password, otp, otpExpiration, otp_type, is_Verified,
       refresh_token, expiryDate_token, loginAttempts, isBlocked, ...data
     } = user;
@@ -226,15 +252,15 @@ export class UserService {
 
     checkIfSuspended(user);
 
-    if (user.birth_date) {
-      const today = new Date();
-      const birthDate = new Date(user.birth_date);
-      let age = today.getFullYear() - birthDate.getFullYear();
-      // const monthDiff = today.getMonth() - birthDate.getMonth();
+    // if (user.birth_date) {
+    //   const today = new Date();
+    //   const birthDate = new Date(user.birth_date);
+    //   let age = today.getFullYear() - birthDate.getFullYear();
+    //   // const monthDiff = today.getMonth() - birthDate.getMonth();
 
-      user.age = age;
-      await this.userRepository.save(user);
-    }
+    //   user.age = age;
+    //   await this.userRepository.save(user);
+    // }
 
     return this.userRepository.findOne({
       where: { id },

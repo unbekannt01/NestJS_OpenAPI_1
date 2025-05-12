@@ -19,15 +19,15 @@ export class UserController {
   @UseGuards(AuthGuard('jwt'))
   @UseInterceptors(FileInterceptor('avatar'))
   async updateUser(
-    @Query('email') email: string,
+    @Query('id') id: string,
     @Body() updateUserDto: UpdateUserDto,
     @UploadedFile() avatarFile: Express.Multer.File,
     @Req() req: Request & { user: JwtPayload }
   ) {
-    if (req.user.email !== email) {
+    if (req.user.id !== id) {
       throw new UnauthorizedException('You are not authorized to update profile...!');
     }
-    return await this.userService.updateUser(email, updateUserDto, req.user.email, avatarFile); // assuming currentUser is req.user.email
+    return await this.userService.updateUser(req.user.id, updateUserDto, req.user.id, avatarFile); // pass id, dto, currentUser, avatarFile
   }
 
   @UseGuards(AuthGuard('jwt'))

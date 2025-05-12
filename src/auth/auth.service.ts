@@ -67,7 +67,7 @@ export class AuthService {
       await this.userRepository.save(user);
 
       const role = user.role;
-      const token = await this.generateUserToken(user.id, user.role, user.email);
+      const token = await this.generateUserToken(user.id, user.role);
 
       return { message: `${role} Login Successfully!`, role, ...token };
     } catch (error) {
@@ -208,12 +208,12 @@ export class AuthService {
       });
     }
 
-    if (user.birth_date) {
-      const today = new Date();
-      const birthDate = new Date(user.birth_date);
-      let age = today.getFullYear() - birthDate.getFullYear();
-      user.age = age;
-    }
+    // if (user.birth_date) {
+    //   const today = new Date();
+    //   const birthDate = new Date(user.birth_date);
+    //   let age = today.getFullYear() - birthDate.getFullYear();
+    //   // user.age = age;
+    // }
 
     await this.userRepository.save(user);
 
@@ -296,7 +296,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid or expired refresh token.');
     }
 
-    return this.generateUserToken(token.id, token.role, token.email);
+    return this.generateUserToken(token.id, token.role);
   }
 
   async verifyPassword(password: string, hashedPassword: string) {
@@ -423,7 +423,7 @@ export class AuthService {
     return users.filter(user => user.role !== "ADMIN");
   }
 
-  async generateUserToken(userId: string, role: UserRole, email: string) {
+  async generateUserToken(userId: string, role: UserRole) {
     const expiresIn = 3600; // 1 hour in seconds
     const secret = this.configService.get<string>('JWT_SECRET');
 
@@ -434,7 +434,6 @@ export class AuthService {
     const payload = {
       id: userId,
       role: role,
-      email: email
     };
 
     const access_token = this.jwtService.sign(payload, {
@@ -465,7 +464,7 @@ export class AuthService {
 
   async storeRefreshToken(refresh_token: string, userId: string, role: UserRole, email: string) {
     const expiryDate = new Date();
-    expiryDate.setDate(expiryDate.getDate() + 7); // 7 days from now
+    expiryDate.setDate(expiryDate.getDate() + 7);
 
     await this.userRepository.update(
       { id: userId },
@@ -489,5 +488,4 @@ export class AuthService {
     // If no matching refresh_token, it's invalid
     return false
   }
-
 }

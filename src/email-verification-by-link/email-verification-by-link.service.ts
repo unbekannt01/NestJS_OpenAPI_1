@@ -64,13 +64,13 @@ export class EmailVerificationByLinkService {
             });
         }
 
-        if (user.birth_date) {
-            const today = new Date();
-            const birthDate = new Date(user.birth_date);
-            let age = today.getFullYear() - birthDate.getFullYear();
-            user.age = age;
-            await this.userRepository.save(user);
-        }
+        // if (user.birth_date) {
+        //     const today = new Date();
+        //     const birthDate = new Date(user.birth_date);
+        //     let age = today.getFullYear() - birthDate.getFullYear();
+        //     user.age = age;
+        //     await this.userRepository.save(user);
+        // }
 
         await this.userRepository.save(user);
 

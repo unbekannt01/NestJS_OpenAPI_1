@@ -1,22 +1,22 @@
+import { Exclude, Expose } from 'class-transformer';
+import { BaseEntity } from 'src/common/entities/base.entity';
+import { RecentSearch } from 'src/search/entity/recent-search.entity';
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
-import { BaseEntity } from '../../common/entities/base.entity';
-import { RecentSearch } from '../../search/entity/recent-search.entity';
 
-export enum UserRole {
-    USER = 'USER',
-    ADMIN = 'ADMIN',
-    SUPER_ADMIN = 'SUPER_ADMIN'
+export enum UserStatus {
+    ACTIVE = 'ACTIVE',
+    INACTIVE = 'INACTIVE',
+    SUSPENDED = 'SUSPENDED'
 }
 
 export enum OtpType {
-    EMAIL_VERIFICATION = "EMAIL_VERIFICATION",
-    FORGOT_PASSWORD = "FORGOT_PASSWORD",
+    FORGOT_PASSWORD = 'FORGOT_PASSWORD',
+    EMAIL_VERIFICATION = 'EMAIL_VERIFICATION'
 }
 
-export enum UserStatus {
-    INACTIVE = 'INACTIVE',
-    ACTIVE = 'ACTIVE',
-    SUSPENDED = 'SUSPENDED',
+export enum UserRole {
+    ADMIN = 'ADMIN',
+    USER = 'USER'
 }
 
 @Entity({ name: 'user_1' })
@@ -36,7 +36,8 @@ export class User extends BaseEntity {
     @Column()
     email: string;
 
-    @Column({ nullable: true }) 
+    @Exclude()
+    @Column()
     password: string;
 
     @Column({ nullable: true })
@@ -48,15 +49,19 @@ export class User extends BaseEntity {
     @Column({ type: 'enum', enum: UserStatus, default: UserStatus.INACTIVE })
     status: UserStatus;
 
+    @Exclude()
     @Column({ type: 'varchar', nullable: true })
     otp: string | null;
 
+    @Exclude()
     @Column({ type: 'timestamp', nullable: true })
     otpExpiration: Date | null;
 
+    @Exclude()
     @Column({ nullable: true, default: false })
     is_logged_in: boolean;
 
+    @Exclude()
     @Column({ type: 'enum', enum: OtpType, nullable: true })
     otp_type: OtpType | null;
 
@@ -66,14 +71,13 @@ export class User extends BaseEntity {
     @Column({ default: UserRole.USER })
     role: UserRole;
 
+    @Exclude()
     @Column({ type: 'text', nullable: true })
     refresh_token: string | null;
 
+    @Exclude()
     @Column({ type: 'timestamp', nullable: true })
     expiryDate_token: Date | null;
-
-    @Column({ type: 'integer', nullable: true })
-    age: number;
 
     @Column({ default: 0, nullable: true })
     loginAttempts: number;
@@ -87,9 +91,11 @@ export class User extends BaseEntity {
     @OneToMany(() => RecentSearch, (recentSearch) => recentSearch)
     recentSearch: RecentSearch[];
 
+    @Exclude()
     @Column({ type: 'varchar', nullable: true })
     verificationToken: string | null;
 
+    @Exclude()
     @Column({ type: 'timestamp', nullable: true })
     tokenExpiration: Date | null;
 
@@ -98,4 +104,18 @@ export class User extends BaseEntity {
 
     @Column({ type: 'varchar', nullable: true })
     avatar?: string;
+
+    // Calculated field: age
+    @Expose()
+    get age(): number | null {
+        if (!this.birth_date) return null;
+        const today = new Date();
+        const birthDate = new Date(this.birth_date);
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+        return age;
+    }
 }

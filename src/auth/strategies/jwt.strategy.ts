@@ -29,7 +29,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     // You can return more fields as needed
     return {
       userId: payload.id,
-      email: payload.email,
       role: payload.role,
     };
   }

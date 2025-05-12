@@ -71,7 +71,7 @@ export class LoginUsingGoogleService {
       }
 
       // Generate tokens
-      const tokens = await this.authService.generateUserToken(user.id, user.role, user.email);
+      const tokens = await this.authService.generateUserToken(user.id, user.role);
       // console.log('Generated tokens:', { access_token: '***', refresh_token: tokens.refresh_token });
 
       return {
