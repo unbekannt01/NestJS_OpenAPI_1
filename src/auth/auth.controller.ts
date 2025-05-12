@@ -59,7 +59,7 @@ export class AuthController {
   async register(@UploadedFile() file: Express.Multer.File, @Body() registerDto: CreateUserDto) {
     return await this.authService.save(registerDto, file);
   }
-  
+
   @Public()
   @HttpCode(HttpStatus.OK)
   @Post('/login')
@@ -71,6 +71,7 @@ export class AuthController {
       res.cookie('access_token', access_token, {
         httpOnly: true,
         sameSite: 'lax',
+        secure: false,
         maxAge: 60 * 60 * 1000,
         path: '/'
       });
@@ -131,6 +132,7 @@ export class AuthController {
       response.clearCookie('access_token', {
         path: '/',
         httpOnly: true,
+        secure: false,
         sameSite: 'lax',
       });
 
@@ -225,32 +227,13 @@ export class AuthController {
     return { message: 'Users fetched successfully!', users }; // Use `users` in the response object, not `user`
   }
 
-  // @Get('/getAllUsers')
-  // async user(@Req() request: Request & { cookies: { [key: string]: string } }) {
-  //   try {
-  //     const cookie = request.cookies['access_token']; // corrected cookie name
-
-  //     if (!cookie) {
-  //       throw new UnauthorizedException('No access token found.');
-  //     }
-
-  //     const data = await this.jwtService.verifyAsync<JwtPayload>(cookie, { secret: process.env.JWT_SECRET });
-
-  //     if (!data || !data.id) {
-  //       throw new UnauthorizedException('Invalid token data.');
-  //     }
-
-  //     const user = await this.authService.getAllUsers();
-
-  //     if (!user) {
-  //       throw new UnauthorizedException('User not found.');
-  //     }
-
-  //     return user;
-  //   } catch (error) {
-  //     console.error('Error fetching user:', error);
-  //     throw new UnauthorizedException('Unauthorized');
-  //   }
-  // }
+  @Post('validate-refresh-token')
+  async validateRefreshToken(@Body() body: { refresh_token: string }) {
+    const isValid = await this.authService.validateRefreshToken(body.refresh_token);
+    if (!isValid) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+    return { valid: true };
+  }
 }
 

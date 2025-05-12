@@ -17,7 +17,7 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const PORT = configService.get<number>('PORT') || 3001;
 
-  app.useStaticAssets(path.join(__dirname, '..', 'uploads'), { prefix: '/uploads/' });
+  app.useStaticAssets(path.resolve('uploads'), { prefix: '/uploads' });
   // Configure CORS
   app.enableCors({
     origin: ['http://localhost:5173', 'http://localhost:3001', 'http://192.168.1.33:5173'],

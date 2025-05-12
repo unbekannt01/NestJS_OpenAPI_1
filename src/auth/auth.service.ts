@@ -259,31 +259,31 @@ export class AuthService {
 
   async changepwd(email: string, password: string, newpwd: string) {
     const user = await this.userRepository.findOne({ where: { email } });
-  
+
     if (!user) {
       throw new UnauthorizedException('Email is Invalid!');
     }
-  
+
     if (!user.is_logged_in) {
       throw new UnauthorizedException('Please Login First!');
     }
-  
+
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       throw new UnauthorizedException('Invalid old password!');
     }
-  
+
     const isSame = await bcrypt.compare(newpwd, user.password);
     if (isSame) {
       throw new UnauthorizedException('New password cannot be the same as the old password!');
     }
-  
+
     user.password = await bcrypt.hash(newpwd, 10);
     await this.userRepository.save(user);
-  
+
     return { message: 'User Successfully Changed their Password!' };
   }
-  
+
   async refreshToken(refresh_token: string) {
     const token = await this.userRepository.findOne({
       where: {
@@ -474,4 +474,20 @@ export class AuthService {
 
     console.log('Now:', new Date());
   }
+
+  async validateRefreshToken(refresh_token: string): Promise<boolean> {
+    // Find user by refresh_token in the database
+    const user = await this.userRepository.findOne({
+      where: { refresh_token }, // Match the refresh_token in the DB
+    })
+
+    // If the user is found, refresh_token is valid
+    if (user) {
+      return true
+    }
+
+    // If no matching refresh_token, it's invalid
+    return false
+  }
+
 }
