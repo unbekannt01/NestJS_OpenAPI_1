@@ -1,5 +1,5 @@
 import { Exclude, Expose } from 'class-transformer';
-import { BaseEntity } from 'src/common/entities/base.entity';
+import { BaseEntity } from '../../common/entities/base.entity';
 import { RecentSearch } from 'src/search/entity/recent-search.entity';
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 
@@ -48,6 +48,9 @@ export class User extends BaseEntity {
 
     @Column({ type: 'enum', enum: UserStatus, default: UserStatus.INACTIVE })
     status: UserStatus;
+
+    @Column({ nullable: true })
+    sessionId: string
 
     @Exclude()
     @Column({ type: 'varchar', nullable: true })

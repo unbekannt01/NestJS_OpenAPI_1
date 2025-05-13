@@ -18,6 +18,7 @@ import { checkIfSuspended } from 'src/common/utils/user-status.util';
 import { OtpService } from 'src/otp/otp.service';
 import { PaginationQueryDto } from './dto/pagination-query.dto';
 import * as path from 'path';
+import { uuid } from 'uuidv4';
 
 @Injectable()
 export class UserService {
@@ -85,7 +86,7 @@ export class UserService {
     const user = await this.userRepository.findOne({ where: { email } });
 
     if (!user) {
-      throw new NotFoundException('User Not Registered!');
+      throw new NotFoundException('User Not Found...!');
     }
 
     if (!user.is_Verified) {
@@ -217,7 +218,7 @@ export class UserService {
 
     // Remove sensitive data before returning
     const {
-       role, status, is_logged_in, age, updatedAt, createdAt,
+      role, status, is_logged_in, age, updatedAt, createdAt,
       password, otp, otpExpiration, otp_type, is_Verified,
       refresh_token, expiryDate_token, loginAttempts, isBlocked, ...data
     } = user;
@@ -225,7 +226,7 @@ export class UserService {
     return {
       message: 'User updated successfully!',
       user: data,
-      nextUpdateAvailable: new Date(updatedAt.getTime() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString()
+      // nextUpdateAvailable: new Date(updatedAt.getTime() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString()
     };
   }
 

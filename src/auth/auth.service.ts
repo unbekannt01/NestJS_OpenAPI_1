@@ -228,8 +228,8 @@ export class AuthService {
     return { message: `${user.role} registered successfully. Verification link sent to email.` };
   }
 
-  async logout(email: string) {
-    const user = await this.userRepository.findOne({ where: { email } });
+  async logout(id: string) {
+    const user = await this.userRepository.findOne({ where: { id } });
 
     if (!user) {
       throw new NotFoundException('User not found.');
@@ -257,11 +257,11 @@ export class AuthService {
     }
   }
 
-  async changepwd(email: string, password: string, newpwd: string) {
-    const user = await this.userRepository.findOne({ where: { email } });
+  async changepwd(id: string, password: string, newpwd: string) {
+    const user = await this.userRepository.findOne({ where: { id } });
 
     if (!user) {
-      throw new UnauthorizedException('Email is Invalid!');
+      throw new NotFoundException('User Not Found...!');
     }
 
     if (!user.is_logged_in) {
@@ -418,7 +418,7 @@ export class AuthService {
   async getAllUsers(): Promise<User[]> {
     const users = await this.userRepository.find({
       withDeleted: true,
-      select: ["id", "role", "userName", "first_name", "last_name", "birth_date", "mobile_no", "email", "status", "refresh_token", "expiryDate_token", "age", "is_logged_in", "is_Verified", "loginAttempts", "createdAt", "updatedAt", "createdAt", "isBlocked", "suspensionReason", "deletedAt"],
+      select: ["id", "role", "userName", "first_name", "last_name", "birth_date", "mobile_no", "email", "status", "refresh_token", "expiryDate_token", "is_logged_in", "is_Verified", "loginAttempts", "createdAt", "updatedAt", "createdAt", "isBlocked", "suspensionReason", "deletedAt"],
     });
     return users.filter(user => user.role !== "ADMIN");
   }

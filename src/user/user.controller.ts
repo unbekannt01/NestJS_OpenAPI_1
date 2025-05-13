@@ -15,11 +15,11 @@ export class UserController {
     private readonly jwtService: JwtService
   ) { }
 
-  @Patch('/update')
   @UseGuards(AuthGuard('jwt'))
+  @Patch('/update/:id')
   @UseInterceptors(FileInterceptor('avatar'))
   async updateUser(
-    @Query('id') id: string,
+    @Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string,
     @Body() updateUserDto: UpdateUserDto,
     @UploadedFile() avatarFile: Express.Multer.File,
     @Req() req: Request & { user: JwtPayload }

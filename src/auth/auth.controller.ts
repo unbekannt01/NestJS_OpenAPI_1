@@ -124,9 +124,9 @@ export class AuthController {
       }
 
       const payload = this.authService.verifyAccessToken(accessToken); // You'll create this method
-      const email = payload.email;
+      const id = payload.id;
 
-      await this.authService.logout(email);
+      await this.authService.logout(id);
 
       // Clear the access token cookie
       response.clearCookie('access_token', {
@@ -145,9 +145,11 @@ export class AuthController {
 
   @UseGuards(AuthGuard('jwt'))
   @HttpCode(HttpStatus.OK)
-  @Post('/changepwd')
-  changepwd(@Body() { email, password, newpwd }: ChangePwdDto) {
-    return this.authService.changepwd(email, password, newpwd);
+  @Post('/changepwd/:id')
+  changepwd(
+    @Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string,
+    @Body() { password, newpwd }: ChangePwdDto) {
+    return this.authService.changepwd(id, password, newpwd);
   }
 
   @HttpCode(HttpStatus.OK)
