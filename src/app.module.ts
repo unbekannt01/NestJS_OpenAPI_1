@@ -8,13 +8,14 @@ import { LoggerMiddleware } from './common/middleware/logger.middleware';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { IsNotSuspendedGuard } from './auth/guards/isNotSuspended.guard';
 import { LoggerInterceptor } from './common/interceptors/logger.interceptor';
-import { typeOrmConfig } from './config/typeorm.config'; 
+import { typeOrmConfig } from './config/typeorm.config';
 import { SMTP_CONFIG } from './config/gmail.config';
 import { JWT_CONFIG } from './config/jwt.config';
 import { GOOGLE_OAUTH } from './config/google-oauth.config';
 import { LoginUsingGoogleModule } from './login-using-google/login-using-google.module';
 import { EmailVerificationByLinkModule } from './email-verification-by-link/email-verification-by-link.module';
 import { FileUploadModule } from './file-upload/file-upload.module';
+import { CacheInterceptor, CacheModule } from '@nestjs/cache-manager';
 
 @Module({
   imports: [
@@ -27,6 +28,11 @@ import { FileUploadModule } from './file-upload/file-upload.module';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) =>
         configService.get('typeorm') as any,
+    }),
+    CacheModule.register({
+      ttl: 60 * 5,
+      max: 10,
+      isGlobal: true
     }),
     EmailVerificationByLinkModule,
     LoginUsingGoogleModule,
@@ -41,10 +47,14 @@ import { FileUploadModule } from './file-upload/file-upload.module';
     {
       provide: APP_GUARD,
       useClass: IsNotSuspendedGuard,
-    }, 
+    },
     {
       provide: APP_INTERCEPTOR,
       useClass: LoggerInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: CacheInterceptor,
     },
     {
       provide: APP_INTERCEPTOR,
@@ -54,7 +64,7 @@ import { FileUploadModule } from './file-upload/file-upload.module';
 }) export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
-      .apply(LoggerMiddleware) 
-      .forRoutes('*'); 
+      .apply(LoggerMiddleware)
+      .forRoutes('*');
   }
 }

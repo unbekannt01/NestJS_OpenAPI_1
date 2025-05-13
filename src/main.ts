@@ -1,6 +1,5 @@
 /* eslint-disable prettier/prettier */
 /* eslint-disable @typescript-eslint/no-floating-promises */
-/* eslint-disable prettier/prettier */
 import { NestFactory, Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -9,7 +8,8 @@ import { ConfigService } from '@nestjs/config';
 import * as cookieParser from 'cookie-parser';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import * as path from 'path';
-import { ClassSerializerInterceptor } from '@nestjs/common';
+import { ClassSerializerInterceptor, ConsoleLogger, VersioningType } from '@nestjs/common';
+
 
 dotenv.config();
 
@@ -18,9 +18,18 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const PORT = configService.get<number>('PORT') || 3001;
 
-  app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
+  const reflector = app.get(Reflector);
+
+  app.enableVersioning({
+    type: VersioningType.URI
+  })
+
+  app.useGlobalInterceptors(
+    new ClassSerializerInterceptor(reflector),
+  );
 
   app.useStaticAssets(path.resolve('uploads'), { prefix: '/uploads' });
+
   // Configure CORS
   app.enableCors({
     origin: ['http://localhost:5173', 'http://localhost:3001', 'http://192.168.1.33:5173'],
@@ -30,7 +39,7 @@ async function bootstrap() {
     exposedHeaders: ['Set-Cookie'],
   });
 
-  // Security headers
+  // Add custom security headers
   app.use((req, res, next) => {
     res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
     res.setHeader('Cross-Origin-Embedder-Policy', 'credentialless');
@@ -40,17 +49,17 @@ async function bootstrap() {
 
   app.use(cookieParser());
 
+  // // Uncomment this if you want Swagger API documentation
   // const config = new DocumentBuilder()
   //   .setTitle('Open API')
   //   .setDescription('The Open API description')
   //   .setVersion('1.0')
   //   .addBearerAuth()
   //   .build();
-
   // const document = SwaggerModule.createDocument(app, config);
   // SwaggerModule.setup('api', app, document);
 
   await app.listen(PORT, '0.0.0.0');
-  console.log(`🚀 Server is running PORT on ${PORT}`);
+  console.log(`🚀 Server is running on PORT ${PORT}`);
 }
 bootstrap();

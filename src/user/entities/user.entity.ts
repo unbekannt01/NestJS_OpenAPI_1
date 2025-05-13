@@ -106,7 +106,7 @@ export class User extends BaseEntity {
     isEmailVerified: boolean;
 
     @Column({ type: 'varchar', nullable: true })
-    avatar?: string;
+    avatar?: string | null;
 
     // Calculated field: age
     @Expose()

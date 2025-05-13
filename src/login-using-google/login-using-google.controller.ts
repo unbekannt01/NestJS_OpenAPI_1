@@ -4,7 +4,7 @@ import { Public } from 'src/user/decorators/public.decorator';
 import { GoogleLoginDto } from './dto/google-login.dto';
 import { Response } from 'express';
 
-@Controller('google')
+@Controller({path:'google', version: '1'})
 export class LoginUsingGoogleController {
   constructor(
     private readonly loginUsingGoogleService: LoginUsingGoogleService

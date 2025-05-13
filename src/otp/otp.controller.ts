@@ -3,7 +3,7 @@ import { OtpService } from './otp.service';
 import { VerifyOTPDto } from './dto/verify-otp-user.dto'; 
 import { ResendOTPDto } from './dto/resend-otp-user.dto'; 
 
-@Controller('otp')
+@Controller({path:'otp', version: '1'})
 export class OtpController {
   constructor(private readonly otpService: OtpService) {}
 

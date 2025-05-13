@@ -4,7 +4,7 @@ import { User, UserStatus } from 'src/user/entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-@Controller('email-verification-by-link')
+@Controller({path :'email-verification-by-link', version : '1'})
 export class EmailVerificationByLinkController {
   constructor(
     @InjectRepository(User)

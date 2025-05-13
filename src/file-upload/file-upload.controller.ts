@@ -9,7 +9,7 @@ interface FileParams {
   fileName: string;
 }
 
-@Controller('file-upload')
+@Controller({path: 'file-upload', version: '1'})
 export class FileUploadController {
   constructor(private readonly fileUploadService: FileUploadService) { }
 

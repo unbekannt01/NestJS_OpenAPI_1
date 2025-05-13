@@ -19,7 +19,6 @@ export class IsNotSuspendedGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest<Request>();
 
-    // Flexible excluded route list
     const excludedPaths = [
       { path: '/auth/register', method: 'POST' },
     ];

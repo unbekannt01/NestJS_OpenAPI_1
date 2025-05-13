@@ -15,6 +15,7 @@ import { EmailServiceForOTP } from 'src/otp/services/email.service';
 import { FileUploadModule } from 'src/file-upload/file-upload.module';
 import { MulterModule } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
+import { CacheModule } from '@nestjs/cache-manager';
 
 @Module({
   imports: [

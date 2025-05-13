@@ -10,49 +10,18 @@ import { AuthService } from './auth.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
 import { Public } from 'src/user/decorators/public.decorator';
-import { ConfigService } from '@nestjs/config';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from './guards/roles.guard';
 import { Roles } from 'src/user/decorators/roles.decorator';
 import { UserRole } from 'src/user/entities/user.entity';
-import { IsNotSuspendedGuard } from './guards/isNotSuspended.guard';
 
-@Controller('auth')
+@Controller({ path: 'auth', version: '1' })
 export class AuthController {
   constructor(
     private readonly userService: UserService,
     private readonly authService: AuthService,
-    private readonly configService: ConfigService,
   ) { }
-
-  // @Post('/upload')
-  // @UseInterceptors(
-  //   FileInterceptor('file'),
-  // )
-  // uploadFile(
-  //   @UploadedFile(
-  //     new ParseFilePipeBuilder()
-  //       .addMaxSizeValidator({
-  //         maxSize: 1024 * 1024 * 5, // 5MB
-  //       })
-  //       .addFileTypeValidator({
-  //         fileType: /(jpg|jpeg|png|gif)$/,
-  //       })
-  //       .build({
-  //         errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
-  //       }),
-  //   )
-  //   file: Express.Multer.File,
-  // ) {
-  //   return {
-  //     message: 'File uploaded successfully!',
-  //     filename: file.originalname,
-  //     mimetype: file.mimetype,
-  //     size: file.size,
-  //   };
-  // }
 
   @Post('register')
   @UseInterceptors(FileInterceptor('avatar'))
@@ -86,29 +55,6 @@ export class AuthController {
   async refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
     return this.authService.refreshToken(refreshTokenDto.refresh_token)
   }
-
-  // @UseGuards(JwtAuthGuard)
-  // @HttpCode(HttpStatus.OK)
-  // @Post('/logout/:id')
-  // async logout(
-  //   @Param('id', new ParseUUIDPipe({ version: "4" })) id: string,
-  //   @Req() req: Request & { user: JwtPayload },
-  //   @Res() res: Response
-  // ) {
-  //   // Check if the token belongs to the user trying to logout
-  //   if (req.user.id !== id) {
-  //     throw new UnauthorizedException('You can only logout your own account');
-  //   }
-
-  //   await this.authService.logout(id);
-
-  //   res.clearCookie('access_token', {
-  //     httpOnly: true,
-  //     sameSite: 'strict',
-  //   });
-
-  //   return res.status(HttpStatus.OK).json({ message: "User logged out successfully!" });
-  // }
 
   @UseGuards(AuthGuard('jwt'))
   @Post('/logout')

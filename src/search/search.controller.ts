@@ -1,7 +1,7 @@
 import { Controller, Get, ParseFloatPipe, ParseIntPipe, Query, UseInterceptors } from '@nestjs/common';
 import { SearchService } from './search.service';
 
-@Controller('search')
+@Controller({path:'search', version: '1'})
 export class SearchController {
   constructor(private readonly searchService: SearchService) { }
 

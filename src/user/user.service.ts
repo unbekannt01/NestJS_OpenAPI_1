@@ -19,6 +19,7 @@ import { OtpService } from 'src/otp/otp.service';
 import { PaginationQueryDto } from './dto/pagination-query.dto';
 import * as path from 'path';
 import { uuid } from 'uuidv4';
+import { unlink } from 'fs/promises';
 
 @Injectable()
 export class UserService {
@@ -152,25 +153,13 @@ export class UserService {
 
     checkIfSuspended(user);
 
-    // if (user.birth_date) {
-    //   const today = new Date();
-    //   const birthDate = new Date(user.birth_date);
-    //   let age = today.getFullYear() - birthDate.getFullYear();
-    //   // const monthDiff = today.getMonth() - birthDate.getMonth();
-
-    //   user.age = age;
-    //   await this.userRepository.save(user);
-    // }
-
-    // return user;
-
     return this.userRepository.findOne({
       where: { id },
       select: ["id", "first_name", "last_name", "mobile_no", "email", "status", "userName", "birth_date", "role", "avatar"],
     });
   }
 
-  async updateUser(id: string, updateUserDto: UpdateUserDto, currentUser: string, avatarFile?: Express.Multer.File) {
+  async updateUser(id: string, updateUserDto: UpdateUserDto, avatarFile?: Express.Multer.File) {
     const user = await this.userRepository.findOne({
       where: { id, is_logged_in: true }
     });
@@ -213,7 +202,7 @@ export class UserService {
     }
 
     user.updatedAt = new Date();
-    user.updatedBy = currentUser; // Set the updater's identity, not from DTO
+    user.updatedBy = user.first_name; // Set the updater's identity, not from DTO
     await this.userRepository.save(user);
 
     // Remove sensitive data before returning
@@ -289,5 +278,27 @@ export class UserService {
 
   async findByEmail(email): Promise<User | null> {
     return this.userRepository.findOne({ where: { email } })
+  }
+
+  async removeAvatar(userId: string): Promise<{ message: string }> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (user.avatar) {
+      const filePath = path.join('uploads', user.avatar);
+      try {
+        await unlink(filePath); // Delete file from disk
+      } catch (error) {
+        console.warn(`Could not delete file: ${filePath}`, error.message);
+      }
+    }
+
+    user.avatar = null;
+    await this.userRepository.save(user);
+
+    return { message: 'Avatar removed successfully' };
   }
 }

@@ -1,14 +1,14 @@
 import { Controller, Body, Get, NotFoundException, Param, UseGuards, Response as Res, Req, Query, Patch, ParseUUIDPipe, UsePipes, HttpStatus, Post, UnauthorizedException, Delete, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { UserService } from './user.service';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { JwtPayload } from 'src/auth/interfaces/jwt-payload.interface';
 import { JwtService } from '@nestjs/jwt';
 import { PaginationQueryDto } from './dto/pagination-query.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { CacheInterceptor } from '@nestjs/cache-manager';
 
-@Controller('user')
+@Controller({ path: 'user', version: '1' })
 export class UserController {
   constructor(
     private readonly userService: UserService,
@@ -27,7 +27,7 @@ export class UserController {
     if (req.user.id !== id) {
       throw new UnauthorizedException('You are not authorized to update profile...!');
     }
-    return await this.userService.updateUser(req.user.id, updateUserDto, req.user.id, avatarFile); // pass id, dto, currentUser, avatarFile
+    return await this.userService.updateUser(req.user.id, updateUserDto, avatarFile);
   }
 
   @UseGuards(AuthGuard('jwt'))
@@ -46,6 +46,9 @@ export class UserController {
   }
 
   @Get('/getUserById/:id')
+  @UseInterceptors(CacheInterceptor)
+  // @CacheKey('my-key')
+  // @CacheTTL(10000)
   async getUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string) {
     console.log(typeof id)
     const user = await this.userService.getUserById(id);
@@ -54,9 +57,10 @@ export class UserController {
 
   // @UseGuards(AuthGuard('jwt'))
   @Get('/user')
+  @UseInterceptors(CacheInterceptor)
   async user(@Req() request: Request & { cookies: { [key: string]: string } }) {
     try {
-      const cookie = request.cookies['access_token']; // corrected cookie name
+      const cookie = request.cookies['access_token'];
 
       if (!cookie) {
         throw new UnauthorizedException('No access token found.');
@@ -91,4 +95,10 @@ export class UserController {
   // async getUserByEmail(@Query('email') email: string) {   
   //   return { message : 'true' }
   // }
+
+  @Patch('/remove-avatar/:id')
+  async removeAvatar(@Param('id') id: string) {
+    return this.userService.removeAvatar(id);
+  }
+
 }
