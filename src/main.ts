@@ -10,7 +10,6 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import * as path from 'path';
 import { ClassSerializerInterceptor, ConsoleLogger, VersioningType } from '@nestjs/common';
 
-
 dotenv.config();
 
 async function bootstrap() {
@@ -39,13 +38,13 @@ async function bootstrap() {
     exposedHeaders: ['Set-Cookie'],
   });
 
-  // Add custom security headers
-  app.use((req, res, next) => {
-    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
-    res.setHeader('Cross-Origin-Embedder-Policy', 'credentialless');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    next();
-  });
+  // // Add custom security headers
+  // app.use((req, res, next) => {
+  //   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+  //   res.setHeader('Cross-Origin-Embedder-Policy', 'credentialless');
+  //   res.setHeader('Access-Control-Allow-Credentials', 'true');
+  //   next();
+  // });
 
   app.use(cookieParser());
 

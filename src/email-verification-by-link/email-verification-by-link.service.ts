@@ -1,123 +1,95 @@
-import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+    ConflictException,
+    Injectable,
+    UnauthorizedException,
+    NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { CreateUserDto } from 'src/auth/dto/create-user.dto';
-import { checkIfSuspended } from 'src/common/utils/user-status.util';
-import { User, UserRole, UserStatus } from 'src/user/entities/user.entity';
+import { User, UserStatus } from 'src/user/entities/user.entity';
 import { EmailServiceForVerifyMail } from './services/email.service';
 import { Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
-import * as bcrypt from 'bcrypt';
+import { EmailVerification } from './entity/email-verify.entity';
 
 @Injectable()
 export class EmailVerificationByLinkService {
     constructor(
-        @InjectRepository(User) private readonly userRepository: Repository<User>,
+        @InjectRepository(User)
+        private readonly userRepository: Repository<User>,
+
+        @InjectRepository(EmailVerification)
+        private readonly emailVerifyRepository: Repository<EmailVerification>,
+
         private readonly configService: ConfigService,
-        private readonly emailService: EmailServiceForVerifyMail
+        private readonly emailService: EmailServiceForVerifyMail,
     ) { }
 
-    // After Register sent a Verification Mail 
-    async save(createUserDto: CreateUserDto) {
-        const normalizedEmail = createUserDto.email.toLowerCase();
-        const normalizedUserName = createUserDto.userName.toLowerCase();
-
-        // Check for existing user (including soft-deleted) by normalized email
-        let user = await this.userRepository.findOne({
-            where: { email: normalizedEmail },
-            withDeleted: true,
+    // Find verification record and return associated user
+    async findByVerificationToken(token: string): Promise<User> {
+        const verification = await this.emailVerifyRepository.findOne({
+            where: { verificationToken: token },
+            relations: ['user'],
         });
 
-        if (user) {
-            checkIfSuspended(user);
+        if (!verification) {
+            throw new NotFoundException('Invalid or expired verification token.');
         }
 
-        // Always check for username conflict (including soft-deleted) by normalized username
-        const usernameConflict = await this.userRepository.findOne({
-            where: { userName: normalizedUserName },
-            withDeleted: true,
-        });
-
-        if (usernameConflict && (!user || usernameConflict.id !== user.id)) {
-            throw new ConflictException('This username is already taken. Please choose another username or contact support to restore your account.');
+        if (!verification.tokenExpiration || new Date() > verification.tokenExpiration) {
+            await this.emailVerifyRepository.delete(verification.id);
+            throw new UnauthorizedException('Token has expired. Please request a new verification link.');
         }
 
-        if (user) {
-            if (user.status === 'ACTIVE') {
-                throw new ConflictException('Email already registered...!');
-            }
-        } else {
-            const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
-            const verificationToken = uuidv4(); // Generate UUID token for email verification
-            user = this.userRepository.create({
-                ...createUserDto,
-                email: normalizedEmail,
-                userName: normalizedUserName,
-                password: hashedPassword,
-                status: UserStatus.INACTIVE,
-                verificationToken, // Store the verification token
-                tokenExpiration: new Date(Date.now() + 24 * 60 * 60 * 1000), // Token expires in 24 hours
-                role: UserRole.USER,
-                birth_date: createUserDto.birth_date || undefined,
-                createdAt: new Date(),
-                createdBy: createUserDto.userName,
-            });
-        }
-
-        // if (user.birth_date) {
-        //     const today = new Date();
-        //     const birthDate = new Date(user.birth_date);
-        //     let age = today.getFullYear() - birthDate.getFullYear();
-        //     user.age = age;
-        //     await this.userRepository.save(user);
-        // }
-
+        // Activate the user account
+        const user = verification.user;
+        user.status = UserStatus.ACTIVE;
         await this.userRepository.save(user);
 
-        // Send verification email with link
-        const FRONTEND_BASE_URL = this.configService.get<string>('FRONTEND_BASE_URL');
-        if (!FRONTEND_BASE_URL) {
-            throw new Error('FRONTEND_BASE_URL is not defined in environment variables');
-        }
-        const verificationLink = `${FRONTEND_BASE_URL}/verify-email?token=${user.verificationToken}`;
-        await this.emailService.sendVerificationEmail(user.email, verificationLink, user.first_name);
+        // Delete token after successful verification
+        await this.emailVerifyRepository.delete(verification.id);
 
-        return { message: `${user.role} registered successfully. Verification link sent to email.` };
+        return user;
     }
 
-    async findByVerificationToken(token: string): Promise<User | null> {
-        return this.userRepository.findOne({
-            where: { verificationToken: token },
-        });
-    }
-
-    async generateEmailVerificationToken(): Promise<string> {
+    // Generate and save token (you can use this in registration flow too)
+    async generateEmailVerificationToken(user: User): Promise<string> {
         const token = uuidv4();
+        const tokenExpiration = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+        const verification = this.emailVerifyRepository.create({
+            user: user,
+            verificationToken: token,
+            tokenExpiration: tokenExpiration,
+        });
+
+        await this.emailVerifyRepository.save(verification);
         return token;
     }
 
-    async resendVerificationEmail(email: string): Promise<User | null> {
+    // Resend verification link
+    async resendVerificationEmail(email: string): Promise<void> {
         const user = await this.userRepository.findOne({
             where: { email },
+            relations: ['emailVerifications'],
         });
 
-        if (!user || user.status == UserStatus.ACTIVE) {
-            throw new UnauthorizedException('User Already Verified..!'); // User not found or already verified
+        if (!user || user.status === UserStatus.ACTIVE) {
+            throw new UnauthorizedException('User already verified or not found.');
         }
 
-        // Generate new verification token and expiration
-        user.verificationToken = uuidv4();
-        user.tokenExpiration = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours expiration
-        await this.userRepository.save(user);
+        // Optionally delete old verification tokens
+        await this.emailVerifyRepository.delete({ user: { id: user.id } });
 
-        // Send verification email
+        // Create new verification token
+        const token = await this.generateEmailVerificationToken(user);
+
         const FRONTEND_BASE_URL = this.configService.get<string>('FRONTEND_BASE_URL');
         if (!FRONTEND_BASE_URL) {
             throw new Error('FRONTEND_BASE_URL is not defined in environment variables');
         }
-        const verificationLink = `${FRONTEND_BASE_URL}/verify-email?token=${user.verificationToken}`;
-        await this.emailService.sendVerificationEmail(user.email, verificationLink, user.first_name);
 
-        return user;
+        const verificationLink = `${FRONTEND_BASE_URL}/verify-email?token=${token}`;
+        await this.emailService.sendVerificationEmail(user.email, verificationLink, user.first_name);
     }
 }

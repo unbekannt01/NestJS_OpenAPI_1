@@ -7,9 +7,9 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Not, ILike } from 'typeorm';
+import { Repository, Not } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { OtpType, User, UserRole, UserStatus } from './entities/user.entity';
+import { User, UserStatus } from './entities/user.entity';
 // import { EmailService } from './services/email.service';
 // import { SmsService } from 'src/user/services/sms.service';
 import { AuthService } from 'src/auth/auth.service';
@@ -18,13 +18,15 @@ import { checkIfSuspended } from 'src/common/utils/user-status.util';
 import { OtpService } from 'src/otp/otp.service';
 import { PaginationQueryDto } from './dto/pagination-query.dto';
 import * as path from 'path';
-import { uuid } from 'uuidv4';
 import { unlink } from 'fs/promises';
+import { Otp } from 'src/otp/entities/otp.entity';
+import { OtpType } from 'src/otp/entities/otp.entity';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectRepository(User) private readonly userRepository: Repository<User>,
+    @InjectRepository(Otp) private readonly otpRepository: Repository<Otp>,
     @Inject(forwardRef(() => AuthService)) private readonly authService: AuthService,
     @Inject(forwardRef(() => OtpService)) private readonly otpService: OtpService,
   ) { }
@@ -40,7 +42,7 @@ export class UserService {
 
   async forgotPassword(email: string) {
 
-    const user = await this.userRepository.findOne({ where: { email } });
+    const user = await this.userRepository.findOne({ where: { email }, relations: ['otps'] });
     if (!user) {
       throw new NotFoundException('User Not Found..!');
     }
@@ -50,9 +52,12 @@ export class UserService {
     }
 
     if (user.is_logged_in === false) {
-      user.otp = this.otpService.generateOtp();
-      user.otpExpiration = this.otpService.getOtpExpiration();
-      user.otp_type = OtpType.FORGOT_PASSWORD;
+
+      const otp = this.otpService.generateOtp();
+      const otpExpiration = this.otpService.getOtpExpiration();
+
+      const otpRecord = new Otp();
+      otpRecord.otp_type = OtpType.FORGOT_PASSWORD;
       user.is_Verified = false;
 
       await this.userRepository.save(user);
@@ -110,11 +115,13 @@ export class UserService {
       );
     }
 
+    const otpRecord = new Otp();
+
     user.password = await bcrypt.hash(newpwd, 10);
     user.is_Verified = false;
-    user.otp = null;
-    user.otpExpiration = null;
-    user.otp_type = null;
+    otpRecord.otp = null;
+    otpRecord.otpExpiration = null;
+    otpRecord.otp_type = null;
 
     await this.userRepository.save(user);
 
@@ -208,7 +215,7 @@ export class UserService {
     // Remove sensitive data before returning
     const {
       role, status, is_logged_in, age, updatedAt, createdAt,
-      password, otp, otpExpiration, otp_type, is_Verified,
+      password, is_Verified,
       refresh_token, expiryDate_token, loginAttempts, isBlocked, ...data
     } = user;
 

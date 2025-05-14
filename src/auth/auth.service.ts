@@ -10,7 +10,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { MoreThanOrEqual, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { OtpType, User, UserRole, UserStatus } from 'src/user/entities/user.entity';
+import { User, UserRole, UserStatus } from 'src/user/entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
 import { v4 as uuidv4 } from 'uuid';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -22,18 +22,21 @@ import { OtpService } from 'src/otp/otp.service';
 import { EmailServiceForVerifyMail } from 'src/email-verification-by-link/services/email.service';
 import { EmailServiceForOTP } from 'src/otp/services/email.service';
 import { EmailServiceForSupension } from './services/suspend-mail.service';
+import { EmailVerification } from 'src/email-verification-by-link/entity/email-verify.entity';
+import { Otp, OtpType } from 'src/otp/entities/otp.entity';
 
 @Injectable()
 export class AuthService {
 
   constructor(
     @InjectRepository(User) private readonly userRepository: Repository<User>,
+    @InjectRepository(EmailVerification) private readonly emailverifyRepository: Repository<EmailVerification>,
     private readonly jwtService: JwtService,
     @Inject(forwardRef(() => UserService)) private readonly userService: UserService,
     @Inject(forwardRef(() => OtpService)) private readonly otpService: OtpService,
     private readonly emailServiceForVerification: EmailServiceForVerifyMail,
-    private readonly emailServiceForOTP: EmailServiceForOTP,
     private readonly emailServiceForSuspend: EmailServiceForSupension,
+    private readonly emailServiceForOTP: EmailServiceForOTP,
     private readonly configService: ConfigService,
   ) { }
 
@@ -90,80 +93,8 @@ export class AuthService {
     );
   }
 
-  // // -- Using OTP Based
-  // async save(createUserDto: CreateUserDto) {
-  //   // Normalize email and username to lowercase
-  //   const normalizedEmail = createUserDto.email.toLowerCase();
-  //   const normalizedUserName = createUserDto.userName.toLowerCase();
-
-  //   // Check for existing user (including soft-deleted) by normalized email
-  //   let user = await this.userRepository.findOne({
-  //     where: { email: normalizedEmail },
-  //     withDeleted: true,
-  //   });
-
-  //   if (user) {
-  //     checkIfSuspended(user);
-  //   }
-
-  //   // Always check for username conflict (including soft-deleted) by normalized username
-  //   const usernameConflict = await this.userRepository.findOne({
-  //     where: { userName: normalizedUserName },
-  //     withDeleted: true,
-  //   });
-
-  //   if (usernameConflict && (!user || usernameConflict.id !== user.id)) {
-  //     throw new ConflictException('This username is already taken. Please choose another username or contact support to restore your account.');
-  //   }
-
-  //   if (user) {
-  //     if (user.status === 'ACTIVE') {
-  //       throw new ConflictException('Email already registered...!');
-  //     }
-
-  //     if (!user.otp) {
-  //       user.otp = this.otpService.generateOtp();
-  //       user.otpExpiration = this.otpService.getOtpExpiration();
-  //       user.otp_type = OtpType.EMAIL_VERIFICATION;
-  //     }
-  //   } else {
-  //     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
-  //     user = this.userRepository.create({
-  //       ...createUserDto,
-  //       email: normalizedEmail, // Store the email in lowercase
-  //       userName: normalizedUserName, // Store the username in lowercase
-  //       password: hashedPassword,
-  //       status: UserStatus.INACTIVE,
-  //       otp: this.otpService.generateOtp(),
-  //       otpExpiration: this.otpService.getOtpExpiration(),
-  //       otp_type: OtpType.EMAIL_VERIFICATION,
-  //       role: UserRole.USER,
-  //       birth_date: createUserDto.birth_date || undefined,
-  //       createdAt: new Date(),
-  //       createdBy: createUserDto.userName, // Set createdBy to user's email
-  //     });
-  //   }
-
-  //   if (user.birth_date) {
-  //     const today = new Date();
-  //     const birthDate = new Date(user.birth_date);
-  //     let age = today.getFullYear() - birthDate.getFullYear();
-  //     // const monthDiff = today.getMonth() - birthDate.getMonth();
-
-  //     user.age = age;
-  //     await this.userRepository.save(user);
-  //   }
-
-  //   await this.userRepository.save(user);
-
-  //   // Send OTP via Email only (no SMS during registration)
-  //   await this.emailServiceForOTP.sendOtpEmail(user.email, user.otp || '', user.first_name);
-  //   return { message: `${user.role} registered successfully. OTP sent to email.` };
-  // }
-
-  // -- After Register sent a Verification Mail 
-  async save(createUserDto: CreateUserDto, file?: Express.Multer.File) {
-
+  // -- Using OTP Based
+  async save(createUserDto: CreateUserDto, file: Express.Multer.File) {
     const normalizedEmail = createUserDto.email.toLowerCase();
     const normalizedUserName = createUserDto.userName.toLowerCase();
 
@@ -185,48 +116,116 @@ export class AuthService {
       throw new ConflictException('This username is already taken. Please choose another username or contact support to restore your account.');
     }
 
+    const otp = new Otp();
+
     if (user) {
       if (user.status === 'ACTIVE') {
         throw new ConflictException('Email already registered...!');
       }
+
+      otp.otp = this.otpService.generateOtp();
+      otp.otpExpiration = this.otpService.getOtpExpiration();
+      otp.otp_type = OtpType.EMAIL_VERIFICATION;
     } else {
       const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
-      const verificationToken = uuidv4(); // Generate UUID token for email verification
       user = this.userRepository.create({
         ...createUserDto,
         email: normalizedEmail,
         userName: normalizedUserName,
         password: hashedPassword,
-        avatar: file ? file.filename.replace(/\\/g, '/') : undefined, // Save just the filename
+        avatar: file ? file.filename.replace(/\\/g, '/') : undefined,
         status: UserStatus.INACTIVE,
-        verificationToken,
-        tokenExpiration: new Date(Date.now() + 24 * 60 * 60 * 1000),
         role: UserRole.USER,
         birth_date: createUserDto.birth_date || undefined,
         createdAt: new Date(),
         createdBy: createUserDto.userName,
       });
-    }
 
-    // if (user.birth_date) {
-    //   const today = new Date();
-    //   const birthDate = new Date(user.birth_date);
-    //   let age = today.getFullYear() - birthDate.getFullYear();
-    //   // user.age = age;
-    // }
+      otp.otp = this.otpService.generateOtp();
+      otp.otpExpiration = this.otpService.getOtpExpiration();
+      otp.otp_type = OtpType.EMAIL_VERIFICATION;
+    }
 
     await this.userRepository.save(user);
 
-    // Send verification email with link
-    const FRONTEND_BASE_URL = this.configService.get<string>('FRONTEND_BASE_URL');
-    if (!FRONTEND_BASE_URL) {
-      throw new Error('FRONTEND_BASE_URL is not defined in environment variables');
-    }
-    const verificationLink = `${FRONTEND_BASE_URL}/verify-email?token=${user.verificationToken}`;
-    await this.emailServiceForVerification.sendVerificationEmail(user.email, verificationLink, user.first_name);
-
-    return { message: `${user.role} registered successfully. Verification link sent to email.` };
+    await this.emailServiceForOTP.sendOtpEmail(user.email, otp.otp || '', user.first_name);
+    return { message: `${user.role} registered successfully. OTP sent to email.` };
   }
+
+  // // -- After Register sent a Verification Mail 
+  // async save(createUserDto: CreateUserDto, file?: Express.Multer.File) {
+  //   const normalizedEmail = createUserDto.email.toLowerCase();
+  //   const normalizedUserName = createUserDto.userName.toLowerCase();
+
+  //   let user = await this.userRepository.findOne({
+  //     where: { email: normalizedEmail },
+  //     withDeleted: true,
+  //   });
+
+  //   if (user) {
+  //     checkIfSuspended(user);
+  //   }
+
+  //   const usernameConflict = await this.userRepository.findOne({
+  //     where: { userName: normalizedUserName },
+  //     withDeleted: true,
+  //   });
+
+  //   if (usernameConflict && (!user || usernameConflict.id !== user.id)) {
+  //     throw new ConflictException('This username is already taken. Please choose another username or contact support to restore your account.');
+  //   }
+
+  //   if (user && user.status === UserStatus.ACTIVE) {
+  //     throw new ConflictException('Email already registered...!');
+  //   }
+
+  //   // Create new user if not already present
+  //   if (!user) {
+  //     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+  //     user = this.userRepository.create({
+  //       ...createUserDto,
+  //       email: normalizedEmail,
+  //       userName: normalizedUserName,
+  //       password: hashedPassword,
+  //       avatar: file ? file.filename.replace(/\\/g, '/') : undefined,
+  //       status: UserStatus.INACTIVE,
+  //       role: UserRole.USER,
+  //       birth_date: createUserDto.birth_date || undefined,
+  //       createdAt: new Date(),
+  //       createdBy: createUserDto.userName,
+  //     });
+
+  //     await this.userRepository.save(user);
+  //   }
+
+  //   // Delete old tokens (optional cleanup)
+  //   await this.emailverifyRepository.delete({ user: { id: user.id } });
+
+  //   // Generate and save new email verification token
+  //   const token = uuidv4();
+  //   const tokenExpiration = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+  //   const verification = this.emailverifyRepository.create({
+  //     user: user,
+  //     verificationToken: token,
+  //     tokenExpiration: tokenExpiration,
+  //   });
+
+  //   await this.emailverifyRepository.save(verification);
+
+  //   // Send verification email with link
+  //   const FRONTEND_BASE_URL = this.configService.get<string>('FRONTEND_BASE_URL');
+  //   if (!FRONTEND_BASE_URL) {
+  //     throw new Error('FRONTEND_BASE_URL is not defined in environment variables');
+  //   }
+
+  //   const verificationLink = `${FRONTEND_BASE_URL}/verify-email?token=${token}`;
+  //   await this.emailServiceForVerification.sendVerificationEmail(user.email, verificationLink, user.first_name);
+
+  //   return {
+  //     message: `${user.role} registered successfully. Verification link sent to email.`,
+  //   };
+  // }
 
   async logout(id: string) {
     const user = await this.userRepository.findOne({ where: { id } });

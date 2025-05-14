@@ -1,5 +1,6 @@
 // src/user/entities/recent-search.entity.ts
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
+import { User } from 'src/user/entities/user.entity';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 
 @Entity()
 export class RecentSearch {
@@ -11,4 +12,8 @@ export class RecentSearch {
 
   @CreateDateColumn()
   createdAt: Date;
+
+  @ManyToOne(() => User, user => user.recentSearch, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'user_id' })
+  user: User;
 }

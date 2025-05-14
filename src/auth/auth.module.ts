@@ -8,11 +8,17 @@ import { OtpModule } from 'src/otp/otp.module';
 import { EmailServiceForSupension } from './services/suspend-mail.service';
 import { MulterModule } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
+import { EmailVerificationByLinkModule } from 'src/email-verification-by-link/email-verification-by-link.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { User } from 'src/user/entities/user.entity';
+import { EmailVerification } from 'src/email-verification-by-link/entity/email-verify.entity';
 
 @Module({
   imports: [
+    TypeOrmModule.forFeature([User, EmailVerification]),
     forwardRef(() => UserModule),
     forwardRef(() => OtpModule),
+    forwardRef(() => EmailVerificationByLinkModule),
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {

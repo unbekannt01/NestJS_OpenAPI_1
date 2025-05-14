@@ -1,101 +1,91 @@
 import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { OtpType, User, UserStatus } from 'src/user/entities/user.entity';
+import { User, UserStatus } from 'src/user/entities/user.entity';
 import { Repository } from 'typeorm';
+import { Otp } from './entities/otp.entity';
+import { OtpType } from './entities/otp.entity';
 
 @Injectable()
 export class OtpService {
     constructor(
         @InjectRepository(User) private readonly userRepository: Repository<User>,
+        @InjectRepository(Otp) private readonly otpRepository: Repository<Otp>
     ) { }
 
     async verifyOtp(otp: string, email: string) {
-        const user = await this.userRepository.findOne({ where: { email } });
+        const user = await this.userRepository.findOne({
+            where: { email },
+            relations: ['otps'],
+        });
+
         if (!user) {
-            throw new NotFoundException("User Not Found..!");
+            throw new NotFoundException('User Not Found..!');
         }
 
-        if (!user.otp || !user.otpExpiration || !user.otp_type) {
-            // console.log("Invalid OTP or OTP Expired or OTP Type Missing");
-            throw new BadRequestException("Invalid OTP or OTP Expired or OTP Type Missing");
+        const newOtp = [...user.otps].pop();
+
+        if (!newOtp || !newOtp.otp || !newOtp.otpExpiration || !newOtp.otp_type) {
+            throw new BadRequestException('Invalid OTP or OTP Expired or OTP Type Missing');
         }
 
-        if (new Date() > user.otpExpiration) {
-            console.log("OTP Expired");
-            user.otp = null;
-            user.otpExpiration = null;
-            user.otp_type = null;
-            await this.userRepository.update(
-                { email },
-                { otp: null, otpExpiration: null, otp_type: null },
-            );
-            throw new UnauthorizedException("OTP Expired. Please request a new one.");
+        if (new Date() > newOtp.otpExpiration) {
+            await this.otpRepository.delete(newOtp.id);
+            throw new UnauthorizedException('OTP Expired. Please request a new one.');
         }
 
-        if (user.otp !== otp) {
-            console.log("Incorrect OTP");
-            throw new BadRequestException("Incorrect OTP");
+        if (newOtp.otp !== otp) {
+            throw new BadRequestException('Incorrect OTP');
         }
 
-        if (user.otp_type === "EMAIL_VERIFICATION") {
+        if (newOtp.otp_type === 'EMAIL_VERIFICATION') {
             user.status = UserStatus.ACTIVE;
-        } else if (user.otp_type === "FORGOT_PASSWORD") {
+        } else if (newOtp.otp_type === 'FORGOT_PASSWORD') {
             user.is_Verified = true;
         }
 
-        user.otp = null;
-        user.otpExpiration = null;
-        user.otp_type = null;
+        newOtp.otp = null;
+        newOtp.otpExpiration = null;
+        newOtp.otp_type = null;
+
+        await this.otpRepository.delete(newOtp.id);
         await this.userRepository.save(user);
 
-        // console.log("OTP Verified Successfully");
-        return { message: "OTP Verified Successfully" };
+        return { message: 'OTP Verified Successfully' };
     }
 
     async resendOtp(email: string) {
-        const user = await this.userRepository.findOne({ where: { email } });
+        const user = await this.userRepository.findOne({ where: { email }, relations: ['otps'] });
 
         if (!user) {
             throw new NotFoundException('User not found');
         }
 
-        if (user.status === 'INACTIVE') {
-            user.otp = this.generateOtp();
-            user.otpExpiration = this.getOtpExpiration();
-            user.otp_type = OtpType.EMAIL_VERIFICATION;
-            await this.userRepository.save(user);
+        let otpType: OtpType;
 
-            // Send OTP via Email only (no SMS)
-            // await this.emailService.sendOtpEmail(
-            //   user.email,
-            //   user.otp || '',
-            //   user.first_name,
-            // );
-
-            return { message: 'New OTP sent to your email for Email Verification!' };
+        if (user.status === UserStatus.INACTIVE) {
+            otpType = OtpType.EMAIL_VERIFICATION;
+        } else if (user.status === UserStatus.ACTIVE && !user.is_logged_in) {
+            otpType = OtpType.FORGOT_PASSWORD;
+        } else {
+            return { message: 'You are already logged in! Use Change Password instead.' };
         }
 
-        if (user.status === 'ACTIVE' && user.is_logged_in === false) {
-            user.otp = this.generateOtp();
-            user.otpExpiration = this.getOtpExpiration();
-            user.otp_type = OtpType.FORGOT_PASSWORD;
-            await this.userRepository.save(user);
+        // Generate and save the new OTP
+        const otp = this.generateOtp();
+        const otpExpiration = this.getOtpExpiration();
 
-            // Send OTP via Email only (no SMS)
-            // await this.emailService.sendOtpEmail(
-            //   user.email,
-            //   user.otp || '',
-            //   user.first_name,
-            // );
+        const newOtp = this.otpRepository.create({
+            otp,
+            otpExpiration,
+            otp_type: otpType,
+            user,
+        });
 
-            return { message: 'New OTP sent to your email for Forgot Password!' };
-        }
+        await this.otpRepository.save(newOtp);
 
-        if (user.status === 'ACTIVE' && user.is_logged_in === true) {
-            return {
-                message: 'You are already logged in! Use Change Password instead.',
-            };
-        }
+        return {
+            message: `New OTP sent to your email for ${otpType === OtpType.EMAIL_VERIFICATION ? 'Email Verification' : 'Forgot Password'}!`,
+        };
     }
 
     generateOtp(): string {

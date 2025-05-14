@@ -2,16 +2,13 @@ import { Exclude, Expose } from 'class-transformer';
 import { BaseEntity } from '../../common/entities/base.entity';
 import { RecentSearch } from 'src/search/entity/recent-search.entity';
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { Otp } from 'src/otp/entities/otp.entity';
+import { EmailVerification } from 'src/email-verification-by-link/entity/email-verify.entity';
 
 export enum UserStatus {
     ACTIVE = 'ACTIVE',
     INACTIVE = 'INACTIVE',
     SUSPENDED = 'SUSPENDED'
-}
-
-export enum OtpType {
-    FORGOT_PASSWORD = 'FORGOT_PASSWORD',
-    EMAIL_VERIFICATION = 'EMAIL_VERIFICATION'
 }
 
 export enum UserRole {
@@ -53,20 +50,8 @@ export class User extends BaseEntity {
     sessionId: string
 
     @Exclude()
-    @Column({ type: 'varchar', nullable: true })
-    otp: string | null;
-
-    @Exclude()
-    @Column({ type: 'timestamp', nullable: true })
-    otpExpiration: Date | null;
-
-    @Exclude()
     @Column({ nullable: true, default: false })
     is_logged_in: boolean;
-
-    @Exclude()
-    @Column({ type: 'enum', enum: OtpType, nullable: true })
-    otp_type: OtpType | null;
 
     @Column({ default: false })
     is_Verified: boolean;
@@ -91,22 +76,11 @@ export class User extends BaseEntity {
     @Column({ type: 'text', nullable: true })
     suspensionReason: string | null;
 
-    @OneToMany(() => RecentSearch, (recentSearch) => recentSearch)
-    recentSearch: RecentSearch[];
-
-    @Exclude()
     @Column({ type: 'varchar', nullable: true })
-    verificationToken: string | null;
-
-    @Exclude()
-    @Column({ type: 'timestamp', nullable: true })
-    tokenExpiration: Date | null;
+    avatar?: string | null;
 
     @Column({ default: false })
     isEmailVerified: boolean;
-
-    @Column({ type: 'varchar', nullable: true })
-    avatar?: string | null;
 
     // Calculated field: age
     @Expose()
@@ -121,4 +95,13 @@ export class User extends BaseEntity {
         }
         return age;
     }
+
+    @OneToMany(() => RecentSearch, (recentSearch) => recentSearch.user)
+    recentSearch: RecentSearch[];
+
+    @OneToMany(() => Otp, (otp) => otp.user)
+    otps: Otp[];
+
+    @OneToMany(() => EmailVerification, verification => verification.user)
+    emailVerifications: EmailVerification[];
 }
