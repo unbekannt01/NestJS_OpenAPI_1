@@ -47,15 +47,12 @@ export class UserController {
 
   @Get('/getUserById/:id')
   @UseInterceptors(CacheInterceptor)
-  // @CacheKey('my-key')
-  // @CacheTTL(10000)
   async getUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string) {
     console.log(typeof id)
     const user = await this.userService.getUserById(id);
     return user;
   }
 
-  // @UseGuards(AuthGuard('jwt'))
   @Get('/user')
   @UseInterceptors(CacheInterceptor)
   async user(@Req() request: Request & { cookies: { [key: string]: string } }) {

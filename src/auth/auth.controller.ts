@@ -156,17 +156,6 @@ export class AuthController {
     return this.authService.hardDelete(id);
   }
 
-  @UseGuards(JwtAuthGuard)
-  @Get('me')
-  getCurrentUser(@Req() req) {
-    const user = req.user; // this comes from the JWT payload
-    return {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-    };
-  }
-
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(UserRole.ADMIN)
   @Get("/getAllUsers")
@@ -185,3 +174,13 @@ export class AuthController {
   }
 }
 
+  // @UseGuards(JwtAuthGuard)
+  // @Get('me')
+  // getCurrentUser(@Req() req) {
+  //   const user = req.user; // this comes from the JWT payload
+  //   return {
+  //     id: user.id,
+  //     email: user.email,
+  //     role: user.role,
+  //   };
+  // }
