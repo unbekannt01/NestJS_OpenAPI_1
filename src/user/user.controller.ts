@@ -16,7 +16,7 @@ export class UserController {
   ) { }
 
   @UseGuards(AuthGuard('jwt'))
-  @Patch('/update/:id')
+  @Patch('update/:id')
   @UseInterceptors(FileInterceptor('avatar'))
   async updateUser(
     @Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string,
@@ -31,7 +31,7 @@ export class UserController {
   }
 
   @UseGuards(AuthGuard('jwt'))
-  @Get('/profile')
+  @Get('profile')
   async getProfile(@Req() req: Request & { user: JwtPayload }) {
     const { role } = req.user;
     const user = await this.userService.getUserById(req.user.id);
@@ -45,7 +45,7 @@ export class UserController {
     };
   }
 
-  @Get('/getUserById/:id')
+  @Get('getUserById/:id')
   @UseInterceptors(CacheInterceptor)
   async getUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string) {
     console.log(typeof id)
@@ -53,7 +53,7 @@ export class UserController {
     return user;
   }
 
-  @Get('/user')
+  @Get('user')
   @UseInterceptors(CacheInterceptor)
   async user(@Req() request: Request & { cookies: { [key: string]: string } }) {
     try {
@@ -82,7 +82,7 @@ export class UserController {
     }
   }
 
-  @Get('/pagination')
+  @Get('pagination')
   async findAll(@Query() paginationDto: PaginationQueryDto) {
     return this.userService.getAllUser(paginationDto);
   }
@@ -93,7 +93,7 @@ export class UserController {
   //   return { message : 'true' }
   // }
 
-  @Patch('/remove-avatar/:id')
+  @Patch('remove-avatar/:id')
   async removeAvatar(@Param('id') id: string) {
     return this.userService.removeAvatar(id);
   }

@@ -13,7 +13,7 @@ interface FileParams {
 export class FileUploadController {
   constructor(private readonly fileUploadService: FileUploadService) { }
 
-  @Post('/upload')
+  @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
   uploadFiles(@UploadedFile() file: Express.Multer.File) {
     return this.fileUploadService.handleFileUpload(file)

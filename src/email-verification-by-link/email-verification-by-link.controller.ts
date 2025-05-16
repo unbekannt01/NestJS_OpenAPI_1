@@ -12,7 +12,7 @@ export class EmailVerificationByLinkController {
     private readonly userRepository: Repository<User>,
     private readonly emailVerificationByLinkService: EmailVerificationByLinkService) { }
 
-  @Post('/verify-email')
+  @Post('verify-email')
   async verifyEmail(@Query('token') token: string) {
     if (!token) {
       throw new BadRequestException('Verification token is required');
@@ -23,7 +23,7 @@ export class EmailVerificationByLinkController {
     return { message: 'Email verified successfully. You can now log in.' };
   }
 
-  @Post('/resend-verification')
+  @Post('resend-verification')
   async resendVerificationEmail(@Body('email') email: string) {
     if (!email) {
       throw new BadRequestException('Email is required');

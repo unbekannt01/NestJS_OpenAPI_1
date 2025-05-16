@@ -31,7 +31,7 @@ export class AuthController {
 
   @Public()
   @HttpCode(HttpStatus.OK)
-  @Post('/login')
+  @Post('login')
   @UsePipes(ValidationPipe)
   async login(@Body() login: LoginUserDto, @Res({ passthrough: true }) res: Response): Promise<{ message: string; refresh_token: string; }> {
     try {
@@ -51,13 +51,13 @@ export class AuthController {
     }
   }
 
-  @Post("/refresh-token")
+  @Post("refresh-token")
   async refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
     return this.authService.refreshToken(refreshTokenDto.refresh_token)
   }
 
   @UseGuards(AuthGuard('jwt'))
-  @Post('/logout')
+  @Post('logout')
   async logout(
     @Req() request: Request & { cookies: { [key: string]: string } },
     @Res({ passthrough: true }) response: Response,
@@ -91,7 +91,7 @@ export class AuthController {
 
   @UseGuards(AuthGuard('jwt'))
   @HttpCode(HttpStatus.OK)
-  @Post('/changepwd/:id')
+  @Post('change-password/:id')
   changepwd(
     @Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string,
     @Body() { password, newpwd }: ChangePwdDto) {
@@ -99,20 +99,20 @@ export class AuthController {
   }
 
   @HttpCode(HttpStatus.OK)
-  @Post('/forgotpwd')
+  @Post('forgot-password')
   forgotpwd(@Body() { email }: ForgotPwdDto) {
     return this.userService.forgotPassword(email);
   }
 
   @HttpCode(HttpStatus.OK)
-  @Post('/resetpwd')
+  @Post('reset-password')
   resetpwd(@Body() { email, newpwd }: ResetPwdDto) {
     return this.userService.resetPassword(email, newpwd);
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(UserRole.ADMIN)
-  @Patch('/suspend/:id')
+  @Patch('suspend/:id')
   async suspendUser(
     @Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string,
     @Body() body: { message: string } // Expecting object with message property
@@ -123,42 +123,42 @@ export class AuthController {
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(UserRole.ADMIN)
-  @Patch('/reActivated/:id')
+  @Patch('reActivated/:id')
   async reActivatedUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string) {
     return this.authService.reActivatedUser(id)
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(UserRole.ADMIN)
-  @Patch('/unblock/:id')
+  @Patch('unblock/:id')
   async unblockUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string) {
     return this.authService.unblockUser(id);
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(UserRole.ADMIN)
-  @Delete('/softDelete/:id')
+  @Delete('softDelete/:id')
   async softDeleteUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string) {
     return this.authService.softDeleteUser(id);
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(UserRole.ADMIN)
-  @Patch('/restore/:id')
+  @Patch('restore/:id')
   async reStoreUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string) {
     return this.authService.reStoreUser(id);
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(UserRole.ADMIN)
-  @Delete('/hardDelete/:id')
+  @Delete('hardDelete/:id')
   async permanantDeleteUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string) {
     return this.authService.hardDelete(id);
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(UserRole.ADMIN)
-  @Get("/getAllUsers")
+  @Get("getAllUsers")
   async getAllUsers() {
     const users = await this.authService.getAllUsers();  // Ensure this returns an array of users
     return { message: 'Users fetched successfully!', users }; // Use `users` in the response object, not `user`
