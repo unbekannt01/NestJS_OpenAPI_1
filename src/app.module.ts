@@ -16,6 +16,7 @@ import { LoginUsingGoogleModule } from './login-using-google/login-using-google.
 import { EmailVerificationByLinkModule } from './email-verification-by-link/email-verification-by-link.module';
 import { FileUploadModule } from './file-upload/file-upload.module';
 import { CacheInterceptor, CacheModule } from '@nestjs/cache-manager';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { CacheInterceptor, CacheModule } from '@nestjs/cache-manager';
     LoginUsingGoogleModule,
     EmailVerificationByLinkModule,
     FileUploadModule,
+    AdminModule,
   ],
   providers: [
     SmsService,

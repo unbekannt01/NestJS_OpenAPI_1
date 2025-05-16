@@ -20,18 +20,15 @@ export class RolesGuard implements CanActivate {
     if (!requiredRoles) return true;
 
     const request = context.switchToHttp().getRequest();
-    const user = request.user; // Assume user is already attached by another guard
-
+    const user = request.user;
     if (!user) {
-      console.error('User not attached to request');
       throw new UnauthorizedException('User not authenticated');
     }
 
     if (!requiredRoles.includes(user.role)) {
-      console.error(`User role mismatch: required=${requiredRoles}, actual=${user.role}`);
       throw new UnauthorizedException('User not authorized');
     }
 
-    return requiredRoles.includes(user.role); // Check if the user's role matches
+    return requiredRoles.includes(user.role);
   }
 }

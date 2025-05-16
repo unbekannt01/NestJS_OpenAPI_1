@@ -5,11 +5,10 @@ import { ResendOTPDto } from './dto/resend-otp-user.dto';
 
 @Controller({ path: 'otp', version: '1' })
 export class OtpController {
-  constructor(private readonly otpService: OtpService) { }
+  constructor(private readonly otpService: OtpService) {}
 
-  @Post("verify-otp")
-  async verifyOtp(@Body() verifyOtpDto: VerifyOTPDto) {
-    // console.log("Received verify OTP request:", verifyOtpDto); // Add log
+  @Post('verify-otp')
+  verifyOtp(@Body() verifyOtpDto: VerifyOTPDto) {
     return this.otpService.verifyOtp(verifyOtpDto.otp, verifyOtpDto.email);
   }
 

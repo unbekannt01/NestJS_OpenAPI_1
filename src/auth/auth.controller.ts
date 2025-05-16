@@ -5,7 +5,6 @@ import { ForgotPwdDto } from './dto/forgot-pwd-user.dto';
 import { ResetPwdDto } from './dto/reset-pwd-user.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { Response } from 'express'
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { AuthService } from './auth.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
@@ -108,52 +107,6 @@ export class AuthController {
   @Post('reset-password')
   resetpwd(@Body() { email, newpwd }: ResetPwdDto) {
     return this.userService.resetPassword(email, newpwd);
-  }
-
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(UserRole.ADMIN)
-  @Patch('suspend/:id')
-  async suspendUser(
-    @Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string,
-    @Body() body: { message: string } // Expecting object with message property
-  ) {
-    const { message } = body;
-    return this.authService.suspendUser(id, message);
-  }
-
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(UserRole.ADMIN)
-  @Patch('reActivated/:id')
-  async reActivatedUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string) {
-    return this.authService.reActivatedUser(id)
-  }
-
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(UserRole.ADMIN)
-  @Patch('unblock/:id')
-  async unblockUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string) {
-    return this.authService.unblockUser(id);
-  }
-
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(UserRole.ADMIN)
-  @Delete('softDelete/:id')
-  async softDeleteUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string) {
-    return this.authService.softDeleteUser(id);
-  }
-
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(UserRole.ADMIN)
-  @Patch('restore/:id')
-  async reStoreUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string) {
-    return this.authService.reStoreUser(id);
-  }
-
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(UserRole.ADMIN)
-  @Delete('hardDelete/:id')
-  async permanantDeleteUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string) {
-    return this.authService.hardDelete(id);
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)

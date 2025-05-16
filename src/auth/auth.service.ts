@@ -15,38 +15,38 @@ import { JwtService } from '@nestjs/jwt';
 import { v4 as uuidv4 } from 'uuid';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UserService } from 'src/user/user.service';
-// import { EmailService } from 'src/user/services/email.service';
 import { checkIfSuspended } from 'src/common/utils/user-status.util';
 import { ConfigService } from '@nestjs/config';
 import { OtpService } from 'src/otp/otp.service';
-import { EmailServiceForVerifyMail } from 'src/email-verification-by-link/services/email.service';
 import { EmailServiceForOTP } from 'src/otp/services/email.service';
-import { EmailServiceForSupension } from './services/suspend-mail.service';
 import { EmailVerification } from 'src/email-verification-by-link/entity/email-verify.entity';
 import { Otp, OtpType } from 'src/otp/entities/otp.entity';
 
 @Injectable()
 export class AuthService {
-
   constructor(
     @InjectRepository(User) private readonly userRepository: Repository<User>,
-    @InjectRepository(EmailVerification) private readonly emailverifyRepository: Repository<EmailVerification>,
+    @InjectRepository(EmailVerification)
     private readonly jwtService: JwtService,
-    @Inject(forwardRef(() => UserService)) private readonly userService: UserService,
-    @Inject(forwardRef(() => OtpService)) private readonly otpService: OtpService,
-    private readonly emailServiceForVerification: EmailServiceForVerifyMail,
-    private readonly emailServiceForSuspend: EmailServiceForSupension,
+    @Inject(forwardRef(() => UserService))
+    @Inject(forwardRef(() => OtpService))
+    private readonly otpService: OtpService,
     private readonly emailServiceForOTP: EmailServiceForOTP,
     private readonly configService: ConfigService,
-  ) { }
+  ) {}
 
-  async loginUser(identifier: string, password: string): Promise<{ message: string; access_token: string; refresh_token: string; role: UserRole }> {
+  async loginUser(
+    identifier: string,
+    password: string,
+  ): Promise<{
+    message: string;
+    access_token: string;
+    refresh_token: string;
+    role: UserRole;
+  }> {
     // Find user by email OR username
     const user = await this.userRepository.findOne({
-      where: [
-        { email: identifier },
-        { userName: identifier },
-      ],
+      where: [{ email: identifier }, { userName: identifier }],
     });
 
     if (!user) {
@@ -56,7 +56,9 @@ export class AuthService {
     checkIfSuspended(user);
 
     if (user.loginAttempts >= 10) {
-      throw new UnauthorizedException('Account blocked due to too many failed login attempts. Please contact support.');
+      throw new UnauthorizedException(
+        'Account blocked due to too many failed login attempts. Please contact support.',
+      );
     }
 
     if (user.status === 'INACTIVE') {
@@ -79,18 +81,19 @@ export class AuthService {
 
       if (user.loginAttempts >= 10) {
         await this.userRepository.update(user.id, { isBlocked: true });
-        throw new UnauthorizedException('Account blocked due to too many failed login attempts. Please contact support.');
+        throw new UnauthorizedException(
+          'Account blocked due to too many failed login attempts. Please contact support.',
+        );
       }
 
-      throw new UnauthorizedException(`Wrong Credentials. ${10 - user.loginAttempts} attempts remaining.`);
+      throw new UnauthorizedException(
+        `Wrong Credentials. ${10 - user.loginAttempts} attempts remaining.`,
+      );
     }
   }
 
   async resetLoginAttempts(email: string): Promise<void> {
-    await this.userRepository.update(
-      { email },
-      { loginAttempts: 0 }
-    );
+    await this.userRepository.update({ email }, { loginAttempts: 0 });
   }
 
   // -- Using OTP Based
@@ -113,7 +116,9 @@ export class AuthService {
     });
 
     if (usernameConflict && (!user || usernameConflict.id !== user.id)) {
-      throw new ConflictException('This username is already taken. Please choose another username or contact support to restore your account.');
+      throw new ConflictException(
+        'This username is already taken. Please choose another username or contact support to restore your account.',
+      );
     }
 
     const otp = new Otp();
@@ -148,11 +153,17 @@ export class AuthService {
 
     await this.userRepository.save(user);
 
-    await this.emailServiceForOTP.sendOtpEmail(user.email, otp.otp || '', user.first_name);
-    return { message: `${user.role} registered successfully. OTP sent to email.` };
+    await this.emailServiceForOTP.sendOtpEmail(
+      user.email,
+      otp.otp || '',
+      user.first_name,
+    );
+    return {
+      message: `${user.role} registered successfully. OTP sent to email.`,
+    };
   }
 
-  // // -- After Register sent a Verification Mail 
+  // // -- After Register sent a Verification Mail
   // async save(createUserDto: CreateUserDto, file?: Express.Multer.File) {
   //   const normalizedEmail = createUserDto.email.toLowerCase();
   //   const normalizedUserName = createUserDto.userName.toLowerCase();
@@ -274,7 +285,9 @@ export class AuthService {
 
     const isSame = await bcrypt.compare(newpwd, user.password);
     if (isSame) {
-      throw new UnauthorizedException('New password cannot be the same as the old password!');
+      throw new UnauthorizedException(
+        'New password cannot be the same as the old password!',
+      );
     }
 
     user.password = await bcrypt.hash(newpwd, 10);
@@ -307,119 +320,38 @@ export class AuthService {
 
   async verifyToken(token: string) {
     const decoded = this.jwtService.verify(token, {
-      secret: this.configService.get<string>('JWT_SECRET')
+      secret: this.configService.get<string>('JWT_SECRET'),
     });
     return decoded;
-  }
-
-  // When a user is caught engaging in illegal activities, suspend their account and display a message.
-  async suspendUser(id: string, message: string) {
-    const user = await this.userRepository.findOne({ where: { id } })
-    if (user) {
-      user.status = UserStatus.SUSPENDED;
-      user.suspensionReason = message;
-      user.is_logged_in = false;
-      user.refresh_token = null;
-      user.expiryDate_token = null;
-    } else {
-      throw new NotFoundException('User not found.');
-    }
-    await this.userRepository.save(user);
-    await this.emailServiceForSuspend.sendSuspensionEmail(user.email, user.first_name, message);
-
-    return user;
-  }
-
-  // when user suspend it then re-activate their account.
-  async reActivatedUser(id: string) {
-    const user = await this.userRepository.findOne({ where: { id } })
-    if (!user) {
-      throw new NotFoundException('User Not Found...!')
-    }
-    if (user.status !== UserStatus.SUSPENDED) {
-      throw new BadRequestException('User is Not Suspended...!')
-    }
-
-    user.status = UserStatus.ACTIVE;
-    user.suspensionReason = null;
-    await this.userRepository.save(user);
-
-    return { message: `${user.first_name} Account Re-Activated Successfully...!` }
-  }
-
-  // when user softDeleted ( temporary deleted ) then restore user.
-  async reStoreUser(id: string) {
-    const user = await this.userRepository.findOne({ where: { id }, withDeleted: true });
-
-    if (!user) {
-      throw new NotFoundException('User not found!');
-    }
-
-    if (!user.deletedAt) {
-      throw new BadRequestException('User is not soft-deleted and cannot be restored.');
-    }
-
-    await this.userRepository.restore({ id });
-    return { message: 'User Restored Successfully!' };
-  }
-
-  // Temporary remove user ( user have in database but don't do anything )
-  async softDeleteUser(id: string) {
-    const user = await this.userRepository.findOne({ where: { id } });
-    if (!user) {
-      throw new NotFoundException('User not found!');
-    }
-
-    user.is_logged_in === false;
-    await this.userRepository.softDelete({ id });
-    return { message: 'User Temporary Deleted Successfully!' };
-  }
-
-  // permanantly remove user from database also.
-  async hardDelete(id: string) {
-    const user = await this.userRepository.findOne({ where: { id } });
-    if (!user) {
-      throw new NotFoundException('User not found!');
-    }
-
-    await this.userRepository.delete({ id });
-    return { message: 'User Permanently Deleted Successfully!' };
-  }
-
-  // when user is blocked ( like if login attempts more than 10, then user is blocked. )
-  async unblockUser(id: string) {
-    const user = await this.userRepository.findOne({ where: { id } });
-
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-
-    if (!user.isBlocked) {
-      throw new BadRequestException('User is not blocked');
-    }
-
-    // Reset login attempts and blocked status
-    await this.userRepository.update(
-      { id: user.id },
-      {
-        loginAttempts: 0,
-        isBlocked: false
-      }
-    );
-
-    return {
-      message: 'User has been unblocked successfully',
-      email: user.email,
-      userName: user.userName
-    };
   }
 
   async getAllUsers(): Promise<User[]> {
     const users = await this.userRepository.find({
       withDeleted: true,
-      select: ["id", "role", "userName", "first_name", "last_name", "birth_date", "mobile_no", "email", "status", "refresh_token", "expiryDate_token", "is_logged_in", "is_Verified", "loginAttempts", "createdAt", "updatedAt", "createdAt", "isBlocked", "suspensionReason", "deletedAt"],
+      select: [
+        'id',
+        'role',
+        'userName',
+        'first_name',
+        'last_name',
+        'birth_date',
+        'mobile_no',
+        'email',
+        'status',
+        'refresh_token',
+        'expiryDate_token',
+        'is_logged_in',
+        'is_Verified',
+        'loginAttempts',
+        'createdAt',
+        'updatedAt',
+        'createdAt',
+        'isBlocked',
+        'suspensionReason',
+        'deletedAt',
+      ],
     });
-    return users.filter(user => user.role !== "ADMIN");
+    return users.filter((user) => user.role !== 'ADMIN');
   }
 
   async generateUserToken(userId: string, role: UserRole) {
@@ -450,18 +382,23 @@ export class AuthService {
       {
         refresh_token,
         expiryDate_token: expiryDate,
-        is_logged_in: true
-      }
+        is_logged_in: true,
+      },
     );
 
     return {
       access_token,
       refresh_token,
-      expires_in: expiresIn
+      expires_in: expiresIn,
     };
   }
 
-  async storeRefreshToken(refresh_token: string, userId: string, role: UserRole, email: string) {
+  async storeRefreshToken(
+    refresh_token: string,
+    userId: string,
+    role: UserRole,
+    email: string,
+  ) {
     const expiryDate = new Date();
     expiryDate.setDate(expiryDate.getDate() + 7);
 
@@ -477,14 +414,14 @@ export class AuthService {
     // Find user by refresh_token in the database
     const user = await this.userRepository.findOne({
       where: { refresh_token }, // Match the refresh_token in the DB
-    })
+    });
 
     // If the user is found, refresh_token is valid
     if (user) {
-      return true
+      return true;
     }
 
     // If no matching refresh_token, it's invalid
-    return false
+    return false;
   }
 }

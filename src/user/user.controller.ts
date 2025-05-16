@@ -1,4 +1,20 @@
-import { Controller, Body, Get, NotFoundException, Param, UseGuards, Response as Res, Req, Query, Patch, ParseUUIDPipe, UsePipes, HttpStatus, Post, UnauthorizedException, Delete, UseInterceptors, UploadedFile } from '@nestjs/common';
+import {
+  Controller,
+  Body,
+  Get,
+  NotFoundException,
+  Param,
+  UseGuards,
+  Response as Res,
+  Req,
+  Query,
+  Patch,
+  ParseUUIDPipe,
+  HttpStatus,
+  UnauthorizedException,
+  UseInterceptors,
+  UploadedFile,
+} from '@nestjs/common';
 import { UserService } from './user.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtPayload } from 'src/auth/interfaces/jwt-payload.interface';
@@ -12,22 +28,35 @@ import { CacheInterceptor } from '@nestjs/cache-manager';
 export class UserController {
   constructor(
     private readonly userService: UserService,
-    private readonly jwtService: JwtService
-  ) { }
+    private readonly jwtService: JwtService,
+  ) {}
 
   @UseGuards(AuthGuard('jwt'))
   @Patch('update/:id')
   @UseInterceptors(FileInterceptor('avatar'))
   async updateUser(
-    @Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string,
+    @Param(
+      'id',
+      new ParseUUIDPipe({
+        version: '4',
+        errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE,
+      }),
+    )
+    id: string,
     @Body() updateUserDto: UpdateUserDto,
     @UploadedFile() avatarFile: Express.Multer.File,
-    @Req() req: Request & { user: JwtPayload }
+    @Req() req: Request & { user: JwtPayload },
   ) {
     if (req.user.id !== id) {
-      throw new UnauthorizedException('You are not authorized to update profile...!');
+      throw new UnauthorizedException(
+        'You are not authorized to update profile...!',
+      );
     }
-    return await this.userService.updateUser(req.user.id, updateUserDto, avatarFile);
+    return await this.userService.updateUser(
+      req.user.id,
+      updateUserDto,
+      avatarFile,
+    );
   }
 
   @UseGuards(AuthGuard('jwt'))
@@ -37,7 +66,7 @@ export class UserController {
     const user = await this.userService.getUserById(req.user.id);
 
     if (!user) {
-      throw new NotFoundException("User profile not found");
+      throw new NotFoundException('User profile not found');
     }
     return {
       message: `${role} profile fetched successfully!`,
@@ -47,8 +76,17 @@ export class UserController {
 
   @Get('getUserById/:id')
   @UseInterceptors(CacheInterceptor)
-  async getUser(@Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string) {
-    console.log(typeof id)
+  async getUser(
+    @Param(
+      'id',
+      new ParseUUIDPipe({
+        version: '4',
+        errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE,
+      }),
+    )
+    id: string,
+  ) {
+    // console.log(typeof id);
     const user = await this.userService.getUserById(id);
     return user;
   }
@@ -63,7 +101,9 @@ export class UserController {
         throw new UnauthorizedException('No access token found.');
       }
 
-      const data = await this.jwtService.verifyAsync<JwtPayload>(cookie, { secret: process.env.JWT_SECRET });
+      const data = await this.jwtService.verifyAsync<JwtPayload>(cookie, {
+        secret: process.env.JWT_SECRET,
+      });
 
       if (!data || !data.id) {
         throw new UnauthorizedException('Invalid token data.');
@@ -89,7 +129,7 @@ export class UserController {
 
   // // Example : Why need middlewares
   // @Get('/getUser')
-  // async getUserByEmail(@Query('email') email: string) {   
+  // async getUserByEmail(@Query('email') email: string) {
   //   return { message : 'true' }
   // }
 
@@ -97,5 +137,4 @@ export class UserController {
   async removeAvatar(@Param('id') id: string) {
     return this.userService.removeAvatar(id);
   }
-
 }
