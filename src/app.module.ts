@@ -17,6 +17,7 @@ import { EmailVerificationByLinkModule } from './email-verification-by-link/emai
 import { FileUploadModule } from './file-upload/file-upload.module';
 import { CacheInterceptor, CacheModule } from '@nestjs/cache-manager';
 import { AdminModule } from './admin/admin.module';
+import { PasswordModule } from './password/password.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { AdminModule } from './admin/admin.module';
     EmailVerificationByLinkModule,
     FileUploadModule,
     AdminModule,
+    PasswordModule,
   ],
   providers: [
     SmsService,

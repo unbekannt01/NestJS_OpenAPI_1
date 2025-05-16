@@ -1,8 +1,5 @@
 import { Controller, Post, Body, Get, NotFoundException, Put, Param, HttpStatus, HttpCode, Patch, BadRequestException, Query, UseGuards, Request, Response as Res, ValidationPipe, UnauthorizedException, Req, ParseUUIDPipe, UsePipes, Delete, UseInterceptors, UploadedFile, ParseFilePipeBuilder } from '@nestjs/common';
 import { UserService } from 'src/user/user.service';
-import { ChangePwdDto } from 'src/user/dto/change-pwd-user.dto';
-import { ForgotPwdDto } from './dto/forgot-pwd-user.dto';
-import { ResetPwdDto } from './dto/reset-pwd-user.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { Response } from 'express'
 import { AuthService } from './auth.service';
@@ -18,7 +15,6 @@ import { UserRole } from 'src/user/entities/user.entity';
 @Controller({ path: 'auth', version: '1' })
 export class AuthController {
   constructor(
-    private readonly userService: UserService,
     private readonly authService: AuthService,
   ) { }
 
@@ -86,27 +82,6 @@ export class AuthController {
       console.error('Error during logout:', error);
       throw new UnauthorizedException('Logout failed.');
     }
-  }
-
-  @UseGuards(AuthGuard('jwt'))
-  @HttpCode(HttpStatus.OK)
-  @Post('change-password/:id')
-  changepwd(
-    @Param('id', new ParseUUIDPipe({ version: "4", errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) id: string,
-    @Body() { password, newpwd }: ChangePwdDto) {
-    return this.authService.changepwd(id, password, newpwd);
-  }
-
-  @HttpCode(HttpStatus.OK)
-  @Post('forgot-password')
-  forgotpwd(@Body() { email }: ForgotPwdDto) {
-    return this.userService.forgotPassword(email);
-  }
-
-  @HttpCode(HttpStatus.OK)
-  @Post('reset-password')
-  resetpwd(@Body() { email, newpwd }: ResetPwdDto) {
-    return this.userService.resetPassword(email, newpwd);
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)

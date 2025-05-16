@@ -86,7 +86,6 @@ export class UserController {
     )
     id: string,
   ) {
-    // console.log(typeof id);
     const user = await this.userService.getUserById(id);
     return user;
   }

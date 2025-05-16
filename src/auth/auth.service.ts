@@ -5,7 +5,6 @@ import {
   ConflictException,
   Inject,
   forwardRef,
-  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MoreThanOrEqual, Repository } from 'typeorm';
@@ -265,35 +264,6 @@ export class AuthService {
     } catch (error) {
       throw new UnauthorizedException('Invalid access token.');
     }
-  }
-
-  async changepwd(id: string, password: string, newpwd: string) {
-    const user = await this.userRepository.findOne({ where: { id } });
-
-    if (!user) {
-      throw new NotFoundException('User Not Found...!');
-    }
-
-    if (!user.is_logged_in) {
-      throw new UnauthorizedException('Please Login First!');
-    }
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      throw new UnauthorizedException('Invalid old password!');
-    }
-
-    const isSame = await bcrypt.compare(newpwd, user.password);
-    if (isSame) {
-      throw new UnauthorizedException(
-        'New password cannot be the same as the old password!',
-      );
-    }
-
-    user.password = await bcrypt.hash(newpwd, 10);
-    await this.userRepository.save(user);
-
-    return { message: 'User Successfully Changed their Password!' };
   }
 
   async refreshToken(refresh_token: string) {
