@@ -25,10 +25,10 @@ import { OtpType } from 'src/otp/entities/otp.entity';
 @Injectable()
 export class UserService {
   constructor(
-    @InjectRepository(User) private readonly userRepository: Repository<User>,
-    @InjectRepository(Otp) private readonly otpRepository: Repository<Otp>,
-    @Inject(forwardRef(() => AuthService)) private readonly authService: AuthService,
-    @Inject(forwardRef(() => OtpService)) private readonly otpService: OtpService,
+    @InjectRepository(User) 
+    private readonly userRepository: Repository<User>,
+    @Inject(forwardRef(() => OtpService)) 
+    private readonly otpService: OtpService,
   ) { }
 
   // @Cron('* * * * * *') // Runs every second (adjust for production)

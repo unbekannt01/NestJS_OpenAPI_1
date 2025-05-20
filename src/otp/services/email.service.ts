@@ -4,27 +4,25 @@ import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class EmailServiceForOTP {
-    constructor(
-        private readonly configService: ConfigService
-    ) { }
+  constructor(private readonly configService: ConfigService) {}
 
-    async sendOtpEmail(email: string, otp: string, first_name: string) {
-        const transporter = nodemailer.createTransport({
-            host: this.configService.get<string>('SMTP.HOST'),
-            port: parseInt(this.configService.get<string>('SMTP.PORT') || '587'),
-            secure: this.configService.get<string>('SMTP.SECURE') === 'true',
-            auth: {
-                user: this.configService.get<string>('SMTP.USER'),
-                pass: this.configService.get<string>('SMTP.PASSWORD'),
-            },
-        });
+  async sendOtpEmail(email: string, otp: string, first_name: string) {
+    const transporter = nodemailer.createTransport({
+      host: this.configService.get<string>('SMTP.HOST'),
+      port: parseInt(this.configService.get<string>('SMTP.PORT') || '587'),
+      secure: this.configService.get<string>('SMTP.SECURE') === 'true',
+      auth: {
+        user: this.configService.get<string>('SMTP.USER'),
+        pass: this.configService.get<string>('SMTP.PASSWORD'),
+      },
+    });
 
-        const mailOptions = {
-            from: `"Testing_Purpose" <${this.configService.get<string>('SMTP.USER')}>`,
-            to: email,
-            subject: '🔐 Your OTP for Secure Login',
-            text: `Your OTP for verification is ${otp}.`,
-            html: `
+    const mailOptions = {
+      from: `"Testing_Purpose" <${this.configService.get<string>('SMTP.USER')}>`,
+      to: email,
+      subject: '🔐 Your OTP for Secure Login',
+      text: `Your OTP for verification is ${otp}.`,
+      html: `
         <div style="background-color:#f4f4f4; padding:20px; font-family: Arial, sans-serif;">
           <table align="center" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px; background-color:#ffffff; border-radius:10px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);">
             <tr>
@@ -41,8 +39,8 @@ export class EmailServiceForOTP {
           </table>
         </div>
       `,
-        };
+    };
 
-        await transporter.sendMail(mailOptions);
-    }
+    await transporter.sendMail(mailOptions);
+  }
 }

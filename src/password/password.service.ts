@@ -5,9 +5,8 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User, UserStatus } from 'src/user/entities/user.entity';
-import { MoreThanOrEqual, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { AuthService } from 'src/auth/auth.service';
 import { Otp, OtpType } from 'src/otp/entities/otp.entity';
 import { OtpService } from 'src/otp/otp.service';
 import { EmailServiceForOTP } from 'src/otp/services/email.service';
@@ -16,11 +15,11 @@ import { EmailServiceForOTP } from 'src/otp/services/email.service';
 export class PasswordService {
   constructor(
     @InjectRepository(User) private readonly userRepository: Repository<User>,
-    private readonly authService: AuthService,
+    @InjectRepository(Otp) private readonly otpRepository: Repository<Otp>,
     private readonly otpService: OtpService,
     private readonly emailService: EmailServiceForOTP,
   ) {}
-  
+
   async changepwd(id: string, password: string, newpwd: string) {
     const user = await this.userRepository.findOne({ where: { id } });
 
@@ -70,15 +69,17 @@ export class PasswordService {
       const otpExpiration = this.otpService.getOtpExpiration();
 
       const otpRecord = new Otp();
+      otpRecord.otp = otp;
+      otpRecord.otpExpiration = otpExpiration;
       otpRecord.otp_type = OtpType.FORGOT_PASSWORD;
-      user.is_Verified = false;
+      otpRecord.user = user; // associate OTP with the user
 
-      await this.userRepository.save(user);
+      await this.otpRepository.save(otpRecord);
 
       // Send OTP via Email
       await this.emailService.sendOtpEmail(
         user.email,
-        user.otps[otp],
+        otpRecord.otp,
         user.first_name,
       );
 

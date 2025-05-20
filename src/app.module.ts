@@ -1,4 +1,10 @@
-import { Module, MiddlewareConsumer, NestModule, ClassSerializerInterceptor } from '@nestjs/common';
+import {
+  Module,
+  MiddlewareConsumer,
+  NestModule,
+  ClassSerializerInterceptor,
+  RequestMethod,
+} from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserModule } from './user/user.module';
@@ -15,26 +21,21 @@ import { GOOGLE_OAUTH } from './config/google-oauth.config';
 import { LoginUsingGoogleModule } from './login-using-google/login-using-google.module';
 import { EmailVerificationByLinkModule } from './email-verification-by-link/email-verification-by-link.module';
 import { FileUploadModule } from './file-upload/file-upload.module';
-import { CacheInterceptor, CacheModule } from '@nestjs/cache-manager';
 import { AdminModule } from './admin/admin.module';
 import { PasswordModule } from './password/password.module';
+import { AuthMiddleware } from './common/middleware/auth.middleware';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [typeOrmConfig, SMTP_CONFIG, JWT_CONFIG, GOOGLE_OAUTH], // load custom config
+      load: [typeOrmConfig, SMTP_CONFIG, JWT_CONFIG, GOOGLE_OAUTH],
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) =>
         configService.get('typeorm') as any,
-    }),
-    CacheModule.register({
-      ttl: 60 * 5,
-      max: 10,
-      isGlobal: true
     }),
     EmailVerificationByLinkModule,
     LoginUsingGoogleModule,
@@ -58,17 +59,21 @@ import { PasswordModule } from './password/password.module';
     },
     {
       provide: APP_INTERCEPTOR,
-      useClass: CacheInterceptor,
-    },
-    {
-      provide: APP_INTERCEPTOR,
       useClass: ClassSerializerInterceptor,
     },
   ],
-}) export class AppModule implements NestModule {
+})
+export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
       .apply(LoggerMiddleware)
+      // .exclude(
+      //   { path: 'v1/auth/register', method: RequestMethod.POST },
+      //   { path: 'v1/auth/login', method: RequestMethod.POST },
+      //   { path: 'v1/password/forgot-password', method: RequestMethod.POST },
+      //   { path: 'v1/password/reset-password', method: RequestMethod.POST },
+      //   { path: 'v1/password/reset-password', method: RequestMethod.POST },
+      // )
       .forRoutes('*');
   }
 }

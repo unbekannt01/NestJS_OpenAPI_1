@@ -3,8 +3,6 @@ import {
   UnauthorizedException,
   NotFoundException,
   ConflictException,
-  Inject,
-  forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MoreThanOrEqual, Repository } from 'typeorm';
@@ -13,25 +11,24 @@ import { User, UserRole, UserStatus } from 'src/user/entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
 import { v4 as uuidv4 } from 'uuid';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UserService } from 'src/user/user.service';
 import { checkIfSuspended } from 'src/common/utils/user-status.util';
 import { ConfigService } from '@nestjs/config';
 import { OtpService } from 'src/otp/otp.service';
 import { EmailServiceForOTP } from 'src/otp/services/email.service';
-import { EmailVerification } from 'src/email-verification-by-link/entity/email-verify.entity';
 import { Otp, OtpType } from 'src/otp/entities/otp.entity';
 
 @Injectable()
 export class AuthService {
   constructor(
-    @InjectRepository(User) private readonly userRepository: Repository<User>,
-    @InjectRepository(EmailVerification)
+    @InjectRepository(User) 
+    private readonly userRepository: Repository<User>,
+    @InjectRepository(Otp) 
+    private readonly otpRepository: Repository<Otp>,
     private readonly jwtService: JwtService,
-    @Inject(forwardRef(() => UserService))
-    @Inject(forwardRef(() => OtpService))
     private readonly otpService: OtpService,
     private readonly emailServiceForOTP: EmailServiceForOTP,
     private readonly configService: ConfigService,
+    // @Optional() private readonly logger: LoggerService,
   ) {}
 
   async loginUser(
@@ -130,8 +127,10 @@ export class AuthService {
       otp.otp = this.otpService.generateOtp();
       otp.otpExpiration = this.otpService.getOtpExpiration();
       otp.otp_type = OtpType.EMAIL_VERIFICATION;
+      otp.user = user;
     } else {
       const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+      console.log('Hashed Password to Save:', hashedPassword);
       user = this.userRepository.create({
         ...createUserDto,
         email: normalizedEmail,
@@ -151,6 +150,7 @@ export class AuthService {
     }
 
     await this.userRepository.save(user);
+    await this.otpRepository.save(otp);
 
     await this.emailServiceForOTP.sendOtpEmail(
       user.email,
@@ -281,7 +281,10 @@ export class AuthService {
     return this.generateUserToken(token.id, token.role);
   }
 
-  async verifyPassword(password: string, hashedPassword: string) {
+  async verifyPassword(
+    password: string,
+    hashedPassword: string,
+  ): Promise<void> {
     const isValidPassword = await bcrypt.compare(password, hashedPassword);
     if (!isValidPassword) {
       throw new UnauthorizedException('Wrong Credentials.');
@@ -394,4 +397,10 @@ export class AuthService {
     // If no matching refresh_token, it's invalid
     return false;
   }
+
+  // trackEvent(event: string) {
+  //   if (this.logger) {
+  //     this.logger.log(`Event Tracked: ${event}`);
+  //   }
+  // }
 }

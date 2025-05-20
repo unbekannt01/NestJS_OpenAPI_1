@@ -32,7 +32,7 @@ export class AdminController {
       }),
     )
     id: string,
-    @Body() body: { message: string }, // Expecting object with message property
+    @Body() body: { message: string },
   ) {
     const { message } = body;
     return this.adminService.suspendUser(id, message);
@@ -40,7 +40,7 @@ export class AdminController {
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(UserRole.ADMIN)
-  @Patch('reActivated/:id')
+  @Patch('reActivated{/:id}')
   async reActivatedUser(
     @Param(
       'id',

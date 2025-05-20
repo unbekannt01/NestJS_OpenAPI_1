@@ -3,7 +3,7 @@ import { UserService } from './user.service';
 import { UserController } from './user.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
-import { EmailServiceForVerifyMail } from 'src/email-verification-by-link/services/email.service';
+import { EmailServiceForVerifyMail } from 'src/email-verification-by-link/services/email-verify.service';
 import { SmsService } from 'src/otp/services/sms.service';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { AuthModule } from 'src/auth/auth.module';
@@ -12,10 +12,13 @@ import { EmailServiceForOTP } from 'src/otp/services/email.service';
 import { MulterModule } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { Otp } from 'src/otp/entities/otp.entity';
+import { JwtService } from '@nestjs/jwt';
+import { CacheModule } from '@nestjs/cache-manager';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Otp]), // Import the User entity
+    CacheModule.register(),
+    TypeOrmModule.forFeature([User, Otp]),
     forwardRef(() => AuthModule),
     forwardRef(() => OtpModule),
     MulterModule.register({
@@ -34,6 +37,7 @@ import { Otp } from 'src/otp/entities/otp.entity';
     EmailServiceForVerifyMail,
     SmsService,
     RolesGuard,
+    JwtService
   ],
   controllers: [UserController],
   exports: [
@@ -41,6 +45,7 @@ import { Otp } from 'src/otp/entities/otp.entity';
     EmailServiceForVerifyMail,
     EmailServiceForOTP,
     TypeOrmModule,
+    JwtService
   ],
 })
 export class UserModule { }

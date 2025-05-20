@@ -23,7 +23,6 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       request.user = {
         id: decoded.id,
         role: decoded.UserRole,
-        email: decoded.email
       };
       return true;
     } catch (error) {

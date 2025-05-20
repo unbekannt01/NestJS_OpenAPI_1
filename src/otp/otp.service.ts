@@ -13,8 +13,10 @@ import { OtpType } from './entities/otp.entity';
 @Injectable()
 export class OtpService {
   constructor(
-    @InjectRepository(User) private readonly userRepository: Repository<User>,
-    @InjectRepository(Otp) private readonly otpRepository: Repository<Otp>,
+    @InjectRepository(User) 
+    private readonly userRepository: Repository<User>,
+    @InjectRepository(Otp) 
+    private readonly otpRepository: Repository<Otp>,
   ) {}
 
   async verifyOtp(otp: string, email: string) {

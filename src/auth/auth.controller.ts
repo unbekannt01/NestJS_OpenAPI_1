@@ -1,7 +1,32 @@
-import { Controller, Post, Body, Get, NotFoundException, Put, Param, HttpStatus, HttpCode, Patch, BadRequestException, Query, UseGuards, Request, Response as Res, ValidationPipe, UnauthorizedException, Req, ParseUUIDPipe, UsePipes, Delete, UseInterceptors, UploadedFile, ParseFilePipeBuilder } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  NotFoundException,
+  Put,
+  Param,
+  HttpStatus,
+  HttpCode,
+  Patch,
+  BadRequestException,
+  Query,
+  UseGuards,
+  Request,
+  Response as Res,
+  ValidationPipe,
+  UnauthorizedException,
+  Req,
+  ParseUUIDPipe,
+  UsePipes,
+  Delete,
+  UseInterceptors,
+  UploadedFile,
+  ParseFilePipeBuilder,
+} from '@nestjs/common';
 import { UserService } from 'src/user/user.service';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
-import { Response } from 'express'
+import { Response } from 'express';
 import { AuthService } from './auth.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
@@ -14,13 +39,14 @@ import { UserRole } from 'src/user/entities/user.entity';
 
 @Controller({ path: 'auth', version: '1' })
 export class AuthController {
-  constructor(
-    private readonly authService: AuthService,
-  ) { }
+  constructor(private readonly authService: AuthService) {}
 
   @Post('register')
   @UseInterceptors(FileInterceptor('avatar'))
-  async register(@UploadedFile() file: Express.Multer.File, @Body() registerDto: CreateUserDto) {
+  async register(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() registerDto: CreateUserDto
+  ) {
     return await this.authService.save(registerDto, file);
   }
 
@@ -28,16 +54,20 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Post('login')
   @UsePipes(ValidationPipe)
-  async login(@Body() login: LoginUserDto, @Res({ passthrough: true }) res: Response): Promise<{ message: string; refresh_token: string; }> {
+  async login(
+    @Body() login: LoginUserDto,
+    @Res({ passthrough: true }) res: Response
+  ): Promise<{ message: string; refresh_token: string }> {
     try {
-      const { role, access_token, refresh_token } = await this.authService.loginUser(login.identifier, login.password);
+      const { role, access_token, refresh_token } =
+        await this.authService.loginUser(login.identifier, login.password);
 
       res.cookie('access_token', access_token, {
         httpOnly: true,
         sameSite: 'lax',
         secure: false,
         maxAge: 60 * 60 * 1000,
-        path: '/'
+        path: '/',
       });
 
       return { message: `${role} Login Successfully!`, refresh_token };
@@ -46,16 +76,16 @@ export class AuthController {
     }
   }
 
-  @Post("refresh-token")
+  @Post('refresh-token')
   async refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
-    return this.authService.refreshToken(refreshTokenDto.refresh_token)
+    return this.authService.refreshToken(refreshTokenDto.refresh_token);
   }
 
   @UseGuards(AuthGuard('jwt'))
   @Post('logout')
   async logout(
     @Req() request: Request & { cookies: { [key: string]: string } },
-    @Res({ passthrough: true }) response: Response,
+    @Res({ passthrough: true }) response: Response
   ) {
     try {
       const accessToken = request.cookies['access_token'];
@@ -64,7 +94,7 @@ export class AuthController {
         throw new UnauthorizedException('No access token found.');
       }
 
-      const payload = this.authService.verifyAccessToken(accessToken); // You'll create this method
+      const payload = this.authService.verifyAccessToken(accessToken);
       const id = payload.id;
 
       await this.authService.logout(id);
@@ -86,29 +116,36 @@ export class AuthController {
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(UserRole.ADMIN)
-  @Get("getAllUsers")
+  @Get('getAllUsers')
   async getAllUsers() {
-    const users = await this.authService.getAllUsers();  // Ensure this returns an array of users
-    return { message: 'Users fetched successfully!', users }; // Use `users` in the response object, not `user`
+    const users = await this.authService.getAllUsers();
+    return { message: 'Users fetched successfully!', users };
   }
 
   @Post('validate-refresh-token')
   async validateRefreshToken(@Body() body: { refresh_token: string }) {
-    const isValid = await this.authService.validateRefreshToken(body.refresh_token);
+    const isValid = await this.authService.validateRefreshToken(
+      body.refresh_token
+    );
     if (!isValid) {
       throw new UnauthorizedException('Invalid refresh token');
     }
     return { valid: true };
   }
+
+  // @Post('event-tracker')
+  // async trackevent(@Body() { event }) {
+  //   return this.authService.trackEvent(event);
+  // }
 }
 
-  // @UseGuards(JwtAuthGuard)
-  // @Get('me')
-  // getCurrentUser(@Req() req) {
-  //   const user = req.user; // this comes from the JWT payload
-  //   return {
-  //     id: user.id,
-  //     email: user.email,
-  //     role: user.role,
-  //   };
-  // }
+// @UseGuards(JwtAuthGuard)
+// @Get('me')
+// getCurrentUser(@Req() req) {
+//   const user = req.user; // this comes from the JWT payload
+//   return {
+//     id: user.id,
+//     email: user.email,
+//     role: user.role,
+//   };
+// }

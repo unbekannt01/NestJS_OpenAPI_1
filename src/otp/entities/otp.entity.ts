@@ -25,6 +25,6 @@ export class Otp {
     otp_type: OtpType | null;
 
     @ManyToOne(()=> User,(user)=>user.otps, { onDelete : 'CASCADE'})
-    @JoinColumn({ name :'user_id'})
+    @JoinColumn({ name :'user_1'})
     user: User;
 }

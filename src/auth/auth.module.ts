@@ -12,6 +12,7 @@ import { EmailVerificationByLinkModule } from 'src/email-verification-by-link/em
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from 'src/user/entities/user.entity';
 import { EmailVerification } from 'src/email-verification-by-link/entity/email-verify.entity';
+import { JwtStrategy } from './strategies/jwt.strategy';
 
 @Module({
   imports: [
@@ -42,7 +43,7 @@ import { EmailVerification } from 'src/email-verification-by-link/entity/email-v
     })
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtService, EmailServiceForSupension],
-  exports: [AuthService, JwtService, EmailServiceForSupension],
+  providers: [AuthService, JwtStrategy, EmailServiceForSupension],
+  exports: [AuthService, EmailServiceForSupension],
 })
 export class AuthModule { }
