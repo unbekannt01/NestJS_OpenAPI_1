@@ -8,7 +8,8 @@ import { ConfigService } from '@nestjs/config';
 import * as cookieParser from 'cookie-parser';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import * as path from 'path';
-import { ClassSerializerInterceptor, ValidationPipe, VersioningType } from '@nestjs/common';
+import { ClassSerializerInterceptor, VersioningType } from '@nestjs/common';
+import { AuthExceptionFilter } from './common/filters/http-exception.filter';
 
 dotenv.config();
 
@@ -19,13 +20,15 @@ async function bootstrap() {
 
   const reflector = app.get(Reflector);
 
+  app.useGlobalFilters(new AuthExceptionFilter())
+
   app.enableVersioning({
     type: VersioningType.URI
   })
 
-  app.useGlobalInterceptors(
-    new ClassSerializerInterceptor(reflector),
-  );
+  // app.useGlobalInterceptors(
+  //   new ClassSerializerInterceptor(reflector),
+  // );
 
   app.useStaticAssets(path.resolve('uploads'), { prefix: '/uploads' });
 

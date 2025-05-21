@@ -4,11 +4,12 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
 import * as path from 'path';
 import * as fs from 'fs';
+import { Public } from 'src/user/decorators/public.decorator';
 
 interface FileParams {
   fileName: string;
 }
-
+@Public()
 @Controller({path: 'file-upload', version: '1'})
 export class FileUploadController {
   constructor(private readonly fileUploadService: FileUploadService) { }

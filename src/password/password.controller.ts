@@ -4,6 +4,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { ChangePwdDto } from 'src/user/dto/change-pwd-user.dto';
 import { ForgotPwdDto } from 'src/auth/dto/forgot-pwd-user.dto';
 import { ResetPwdDto } from 'src/auth/dto/reset-pwd-user.dto';
+import { Public } from 'src/user/decorators/public.decorator';
 
 @Controller({ path: 'password', version: '1'})
 export class PasswordController {
@@ -26,12 +27,14 @@ export class PasswordController {
     return this.passwordService.changepwd(id, password, newpwd);
   }
 
+  @Public()
   @HttpCode(HttpStatus.OK)
   @Post('forgot-password')
   forgotpwd(@Body() { email }: ForgotPwdDto) {
     return this.passwordService.forgotPassword(email);
   }
 
+  @Public()
   @HttpCode(HttpStatus.OK)
   @Post('reset-password')
   resetpwd(@Body() { email, newpwd }: ResetPwdDto) {

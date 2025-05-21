@@ -1,11 +1,9 @@
-import {
-  Controller,
-  Get,
-  Query,
-} from '@nestjs/common';
+import { Controller, Get, Logger, Query } from '@nestjs/common';
 import { SearchService } from './search.service';
 import { PaginationQueryDto } from 'src/user/dto/pagination-query.dto';
+import { Public } from 'src/user/decorators/public.decorator';
 
+@Public()
 @Controller({ path: 'search', version: '1' })
 export class SearchController {
   constructor(private readonly searchService: SearchService) {}

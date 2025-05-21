@@ -12,7 +12,7 @@ import { SearchModule } from './search/search.module';
 import { SmsService } from './otp/services/sms.service';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
-import { IsNotSuspendedGuard } from './auth/guards/isNotSuspended.guard';
+import { IsSuspendedGuard } from './auth/guards/isNotSuspended.guard';
 import { LoggerInterceptor } from './common/interceptors/logger.interceptor';
 import { typeOrmConfig } from './config/typeorm.config';
 import { SMTP_CONFIG } from './config/gmail.config';
@@ -23,7 +23,9 @@ import { EmailVerificationByLinkModule } from './email-verification-by-link/emai
 import { FileUploadModule } from './file-upload/file-upload.module';
 import { AdminModule } from './admin/admin.module';
 import { PasswordModule } from './password/password.module';
-import { AuthMiddleware } from './common/middleware/auth.middleware';
+import * as cors from 'cors';
+import helmet from 'helmet';
+import { IsLoggedInGuard } from './auth/guards/isLoggedin.guard';
 
 @Module({
   imports: [
@@ -51,7 +53,11 @@ import { AuthMiddleware } from './common/middleware/auth.middleware';
     SmsService,
     {
       provide: APP_GUARD,
-      useClass: IsNotSuspendedGuard,
+      useClass: IsSuspendedGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: IsLoggedInGuard,
     },
     {
       provide: APP_INTERCEPTOR,
@@ -66,7 +72,7 @@ import { AuthMiddleware } from './common/middleware/auth.middleware';
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
-      .apply(LoggerMiddleware)
+      .apply(cors(), helmet(), LoggerMiddleware)
       // .exclude(
       //   { path: 'v1/auth/register', method: RequestMethod.POST },
       //   { path: 'v1/auth/login', method: RequestMethod.POST },

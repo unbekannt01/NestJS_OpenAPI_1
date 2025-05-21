@@ -23,6 +23,7 @@ import {
   UseInterceptors,
   UploadedFile,
   ParseFilePipeBuilder,
+  UseFilters,
 } from '@nestjs/common';
 import { UserService } from 'src/user/user.service';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
@@ -36,11 +37,14 @@ import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from './guards/roles.guard';
 import { Roles } from 'src/user/decorators/roles.decorator';
 import { UserRole } from 'src/user/entities/user.entity';
+import { LoggingExceptionFilter } from 'src/common/filters/login-exception.filter';
+import { IsLoggedInGuard } from './guards/isLoggedin.guard';
 
 @Controller({ path: 'auth', version: '1' })
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @Public()
   @Post('register')
   @UseInterceptors(FileInterceptor('avatar'))
   async register(
@@ -50,8 +54,8 @@ export class AuthController {
     return await this.authService.save(registerDto, file);
   }
 
+  // @UseFilters(LoggingExceptionFilter)
   @Public()
-  @HttpCode(HttpStatus.OK)
   @Post('login')
   @UsePipes(ValidationPipe)
   async login(
@@ -76,6 +80,7 @@ export class AuthController {
     }
   }
 
+  @Public()
   @Post('refresh-token')
   async refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
     return this.authService.refreshToken(refreshTokenDto.refresh_token);
@@ -122,6 +127,7 @@ export class AuthController {
     return { message: 'Users fetched successfully!', users };
   }
 
+  @Public()
   @Post('validate-refresh-token')
   async validateRefreshToken(@Body() body: { refresh_token: string }) {
     const isValid = await this.authService.validateRefreshToken(

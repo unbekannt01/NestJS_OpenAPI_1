@@ -16,13 +16,17 @@ import { ConfigService } from '@nestjs/config';
 import { OtpService } from 'src/otp/otp.service';
 import { EmailServiceForOTP } from 'src/otp/services/email.service';
 import { Otp, OtpType } from 'src/otp/entities/otp.entity';
+import {
+  EmailNotVerifiedException,
+  UserBlockedException,
+} from 'src/common/filters/custom-exceptio.filter';
 
 @Injectable()
 export class AuthService {
   constructor(
-    @InjectRepository(User) 
+    @InjectRepository(User)
     private readonly userRepository: Repository<User>,
-    @InjectRepository(Otp) 
+    @InjectRepository(Otp)
     private readonly otpRepository: Repository<Otp>,
     private readonly jwtService: JwtService,
     private readonly otpService: OtpService,
@@ -46,19 +50,17 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new NotFoundException('User not registered.');
+      throw new NotFoundException();
     }
 
     checkIfSuspended(user);
 
     if (user.loginAttempts >= 10) {
-      throw new UnauthorizedException(
-        'Account blocked due to too many failed login attempts. Please contact support.',
-      );
+      throw new UserBlockedException(user.loginAttempts);
     }
 
-    if (user.status === 'INACTIVE') {
-      throw new UnauthorizedException('User needs to verify their email!');
+    if (user.status === UserStatus.INACTIVE) {
+      throw new EmailNotVerifiedException(user.status);
     }
 
     try {

@@ -16,12 +16,12 @@ import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { UserRole } from 'src/user/entities/user.entity';
 
+@UseGuards(AuthGuard('jwt'), RolesGuard)
+@Roles(UserRole.ADMIN)
 @Controller({ path: 'admin', version: '1' })
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(UserRole.ADMIN)
   @Patch('suspend/:id')
   async suspendUser(
     @Param(
@@ -38,8 +38,6 @@ export class AdminController {
     return this.adminService.suspendUser(id, message);
   }
 
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(UserRole.ADMIN)
   @Patch('reActivated{/:id}')
   async reActivatedUser(
     @Param(
@@ -54,8 +52,6 @@ export class AdminController {
     return this.adminService.reActivatedUser(id);
   }
 
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(UserRole.ADMIN)
   @Patch('unblock/:id')
   async unblockUser(
     @Param(
@@ -70,8 +66,6 @@ export class AdminController {
     return this.adminService.unblockUser(id);
   }
 
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(UserRole.ADMIN)
   @Delete('softDelete/:id')
   async softDeleteUser(
     @Param(
@@ -86,8 +80,6 @@ export class AdminController {
     return this.adminService.softDeleteUser(id);
   }
 
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(UserRole.ADMIN)
   @Patch('restore/:id')
   async reStoreUser(
     @Param(
@@ -102,8 +94,6 @@ export class AdminController {
     return this.adminService.reStoreUser(id);
   }
 
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(UserRole.ADMIN)
   @Delete('hardDelete/:id')
   async permanantDeleteUser(
     @Param(
@@ -116,5 +106,19 @@ export class AdminController {
     id: string,
   ) {
     return this.adminService.hardDelete(id);
+  }
+
+  @Patch('update-status/:id')
+  async updateStatus(
+    @Param(
+      'id',
+      new ParseUUIDPipe({
+        version: '4',
+        errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE,
+      }),
+    )
+    id: string,
+  ){
+    return this.adminService.updateStatus(id)
   }
 }

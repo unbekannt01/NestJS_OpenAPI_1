@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -125,5 +126,22 @@ export class AdminService {
       email: user.email,
       userName: user.userName,
     };
+  }
+
+  async updateStatus(id: string) {
+    const user = await this.userRepository.findOne({ where: { id } });
+
+    if(!user){
+      throw new NotFoundException()
+    }
+
+    if(user.status === UserStatus.ACTIVE){
+      throw new ConflictException('User Already Active...!')
+    }
+
+    user.status = UserStatus.ACTIVE;
+    await this.userRepository.save(user);
+
+    return { message : 'User Activated Successfully...'}
   }
 }

@@ -1,6 +1,6 @@
-import { Transform } from "@nestjs/class-transformer";
 import { ApiProperty } from "@nestjs/swagger";
-import { IsEmail, IsNotEmpty, IsNumber, IsOptional, IsString, Matches, MinLength } from "class-validator";
+import { Transform } from "@nestjs/class-transformer";
+import { IsEmail, IsNotEmpty, IsOptional, IsString, Matches } from "class-validator";
 
 export class CreateUserDto {
 

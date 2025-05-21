@@ -23,6 +23,7 @@ import { PaginationQueryDto } from './dto/pagination-query.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CacheInterceptor } from '@nestjs/cache-manager';
+import { Public } from './decorators/public.decorator';
 
 @Controller({ path: 'user', version: '1' })
 export class UserController {
@@ -74,6 +75,7 @@ export class UserController {
     };
   }
 
+  @Public()
   @Get('getUserById/:id')
   @UseInterceptors(CacheInterceptor)
   async getUser(
@@ -90,6 +92,7 @@ export class UserController {
     return user;
   }
 
+  @Public()
   @Get('user')
   @UseInterceptors(CacheInterceptor)
   async user(@Req() request: Request & { cookies: { [key: string]: string } }) {
@@ -121,6 +124,7 @@ export class UserController {
     }
   }
 
+  @Public()
   @Get('pagination')
   async findAll(@Query() paginationDto: PaginationQueryDto) {
     return this.userService.getAllUser(paginationDto);
@@ -132,6 +136,7 @@ export class UserController {
   //   return { message : 'true' }
   // }
 
+  @Public()
   @Patch('remove-avatar/:id')
   async removeAvatar(@Param('id') id: string) {
     return this.userService.removeAvatar(id);
