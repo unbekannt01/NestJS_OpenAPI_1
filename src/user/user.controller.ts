@@ -23,7 +23,9 @@ import { PaginationQueryDto } from './dto/pagination-query.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CacheInterceptor } from '@nestjs/cache-manager';
-import { Public } from './decorators/public.decorator';
+import { Public } from 'src/common/decorators/public.decorator';
+import { CurrentUser } from 'src/common/decorators/user.decorator';
+import { User } from './entities/user.entity';
 
 @Controller({ path: 'user', version: '1' })
 export class UserController {
@@ -140,5 +142,10 @@ export class UserController {
   @Patch('remove-avatar/:id')
   async removeAvatar(@Param('id') id: string) {
     return this.userService.removeAvatar(id);
+  }
+
+  @Get('get-user')
+  async getUser1(@CurrentUser() user: User) {
+    return { message: `${user} profile fetched successfully!`, user };
   }
 }

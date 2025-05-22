@@ -2,7 +2,7 @@ import { Body, Controller, Post } from '@nestjs/common';
 import { OtpService } from './otp.service';
 import { VerifyOTPDto } from './dto/verify-otp-user.dto';
 import { ResendOTPDto } from './dto/resend-otp-user.dto';
-import { Public } from 'src/user/decorators/public.decorator';
+import { Public } from 'src/common/decorators/public.decorator';
 
 @Public()
 @Controller({ path: 'otp', version: '1' })

@@ -21,6 +21,10 @@ import {
   UserBlockedException,
 } from 'src/common/filters/custom-exceptio.filter';
 
+/**
+ * AuthService handles user authentication, registration, and token management.
+ */
+
 @Injectable()
 export class AuthService {
   constructor(

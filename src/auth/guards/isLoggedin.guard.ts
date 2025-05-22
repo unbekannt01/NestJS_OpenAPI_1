@@ -6,7 +6,7 @@ import * as jwt from 'jsonwebtoken';
 import { ConfigService } from '@nestjs/config';
 import { JwtPayload } from '../interfaces/jwt-payload.interface';
 import { Reflector } from '@nestjs/core';
-import { IS_PUBLIC_KEY } from 'src/user/decorators/public.decorator';
+import { IS_PUBLIC_KEY } from 'src/common/decorators/public.decorator';
 
 @Injectable()
 export class IsLoggedInGuard implements CanActivate {

@@ -4,7 +4,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
 import * as path from 'path';
 import * as fs from 'fs';
-import { Public } from 'src/user/decorators/public.decorator';
+import { Public } from 'src/common/decorators/public.decorator';
 
 interface FileParams {
   fileName: string;

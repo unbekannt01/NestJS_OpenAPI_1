@@ -8,7 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import * as cookieParser from 'cookie-parser';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import * as path from 'path';
-import { ClassSerializerInterceptor, VersioningType } from '@nestjs/common';
+import { VersioningType } from '@nestjs/common';
 import { AuthExceptionFilter } from './common/filters/http-exception.filter';
 
 dotenv.config();
@@ -25,10 +25,6 @@ async function bootstrap() {
   app.enableVersioning({
     type: VersioningType.URI
   })
-
-  // app.useGlobalInterceptors(
-  //   new ClassSerializerInterceptor(reflector),
-  // );
 
   app.useStaticAssets(path.resolve('uploads'), { prefix: '/uploads' });
 
@@ -51,15 +47,15 @@ async function bootstrap() {
 
   app.use(cookieParser());
 
-  // // Uncomment this if you want Swagger API documentation
-  // const config = new DocumentBuilder()
-  //   .setTitle('Open API')
-  //   .setDescription('The Open API description')
-  //   .setVersion('1.0')
-  //   .addBearerAuth()
-  //   .build();
-  // const document = SwaggerModule.createDocument(app, config);
-  // SwaggerModule.setup('api', app, document);
+  // Uncomment this if you want Swagger API documentation
+  const config = new DocumentBuilder()
+    .setTitle('Open API')
+    .setDescription('The Open API description')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api', app, document);
 
   await app.listen(PORT, '0.0.0.0');
   console.log(`🚀 Server is running on PORT ${PORT}`);

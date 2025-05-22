@@ -6,7 +6,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { EmailVerificationByLinkService } from './email-verification-by-link.service';
-import { Public } from 'src/user/decorators/public.decorator';
+import { Public } from 'src/common/decorators/public.decorator';
 
 @Public()
 @Controller({ path: 'email-verification-by-link', version: '1' })

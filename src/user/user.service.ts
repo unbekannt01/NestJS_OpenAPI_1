@@ -22,6 +22,10 @@ import { unlink } from 'fs/promises';
 import { Otp } from 'src/otp/entities/otp.entity';
 import { OtpType } from 'src/otp/entities/otp.entity';
 
+/**
+ * UserService handles user-related operations such as
+ */
+
 @Injectable()
 export class UserService {
   constructor(

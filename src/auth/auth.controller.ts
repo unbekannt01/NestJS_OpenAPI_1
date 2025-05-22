@@ -31,14 +31,15 @@ import { Response } from 'express';
 import { AuthService } from './auth.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
-import { Public } from 'src/user/decorators/public.decorator';
+import { Public } from 'src/common/decorators/public.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from './guards/roles.guard';
-import { Roles } from 'src/user/decorators/roles.decorator';
+import { Roles } from 'src/common/decorators/roles.decorator';
 import { UserRole } from 'src/user/entities/user.entity';
 import { LoggingExceptionFilter } from 'src/common/filters/login-exception.filter';
 import { IsLoggedInGuard } from './guards/isLoggedin.guard';
+import { Admin } from 'src/common/decorators/admin.decorator';
 
 @Controller({ path: 'auth', version: '1' })
 export class AuthController {
@@ -69,7 +70,7 @@ export class AuthController {
       res.cookie('access_token', access_token, {
         httpOnly: true,
         sameSite: 'lax',
-        secure: false,
+        secure: process.env.NODE_ENV === 'production',
         maxAge: 60 * 60 * 1000,
         path: '/',
       });
@@ -119,8 +120,7 @@ export class AuthController {
     }
   }
 
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(UserRole.ADMIN)
+  @Admin()
   @Get('getAllUsers')
   async getAllUsers() {
     const users = await this.authService.getAllUsers();

@@ -23,9 +23,8 @@ import { EmailVerificationByLinkModule } from './email-verification-by-link/emai
 import { FileUploadModule } from './file-upload/file-upload.module';
 import { AdminModule } from './admin/admin.module';
 import { PasswordModule } from './password/password.module';
-import * as cors from 'cors';
-import helmet from 'helmet';
 import { IsLoggedInGuard } from './auth/guards/isLoggedin.guard';
+import { ResponseTransformInterceptor } from './common/interceptors/response-transform.interceptor';
 
 @Module({
   imports: [
@@ -65,6 +64,10 @@ import { IsLoggedInGuard } from './auth/guards/isLoggedin.guard';
     },
     {
       provide: APP_INTERCEPTOR,
+      useClass: ResponseTransformInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
       useClass: ClassSerializerInterceptor,
     },
   ],
@@ -72,7 +75,7 @@ import { IsLoggedInGuard } from './auth/guards/isLoggedin.guard';
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
-      .apply(cors(), helmet(), LoggerMiddleware)
+      .apply(LoggerMiddleware)
       // .exclude(
       //   { path: 'v1/auth/register', method: RequestMethod.POST },
       //   { path: 'v1/auth/login', method: RequestMethod.POST },

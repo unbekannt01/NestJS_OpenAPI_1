@@ -84,7 +84,11 @@ export class AdminService {
       throw new NotFoundException('User not found!');
     }
 
-    user.is_logged_in === false;
+    user.is_logged_in = false;
+    user.refresh_token = null;
+    user.expiryDate_token = null; 
+
+    await this.userRepository.save(user);
     await this.userRepository.softDelete({ id });
     return { message: 'User Temporary Deleted Successfully!' };
   }
@@ -131,17 +135,17 @@ export class AdminService {
   async updateStatus(id: string) {
     const user = await this.userRepository.findOne({ where: { id } });
 
-    if(!user){
-      throw new NotFoundException()
+    if (!user) {
+      throw new NotFoundException();
     }
 
-    if(user.status === UserStatus.ACTIVE){
-      throw new ConflictException('User Already Active...!')
+    if (user.status === UserStatus.ACTIVE) {
+      throw new ConflictException('User Already Active...!');
     }
 
     user.status = UserStatus.ACTIVE;
     await this.userRepository.save(user);
 
-    return { message : 'User Activated Successfully...'}
+    return { message: 'User Activated Successfully...' };
   }
 }

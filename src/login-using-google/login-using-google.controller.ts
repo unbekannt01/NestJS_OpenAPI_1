@@ -7,7 +7,7 @@ import {
   Response as Res,
 } from '@nestjs/common';
 import { LoginUsingGoogleService } from './login-using-google.service';
-import { Public } from 'src/user/decorators/public.decorator';
+import { Public } from 'src/common/decorators/public.decorator';
 import { GoogleLoginDto } from './dto/google-login.dto';
 import { Response } from 'express';
 
