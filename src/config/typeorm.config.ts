@@ -12,7 +12,7 @@ export const dataSourceOptions: DataSourceOptions = {
   database: process.env.DB_NAME || 'postgres',
   entities: [join(__dirname, '..', '**', '*.entity.{ts,js}')],
   migrations: [join(__dirname, '..', 'db', 'migrations', '*.{ts,js}')],
-  synchronize: false,
+  synchronize: true,
 };
 
 // Config for NestJS module
