@@ -99,7 +99,6 @@ export class AuthService {
     }
   }
 
-
   async resetLoginAttempts(email: string): Promise<void> {
     await this.userRepository.update({ email }, { loginAttempts: 0 });
   }
