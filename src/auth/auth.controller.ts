@@ -12,6 +12,7 @@ import {
   UsePipes,
   UseInterceptors,
   UploadedFile,
+  HttpCode,
 } from '@nestjs/common';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { Response } from 'express';
@@ -84,6 +85,7 @@ export class AuthController {
   /**
    * Logs out a user by invalidating their access token.
    */
+  @HttpCode(200)
   @UseGuards(AuthGuard('jwt'))
   @Post('logout')
   async logout(
