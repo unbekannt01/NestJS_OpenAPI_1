@@ -11,6 +11,10 @@ import { Otp, OtpType } from 'src/otp/entities/otp.entity';
 import { OtpService } from 'src/otp/otp.service';
 import { EmailServiceForOTP } from 'src/otp/services/email.service';
 
+/**
+ * PasswordService
+ * This service is responsible for handling password-related functionalities.
+ */
 @Injectable()
 export class PasswordService {
   constructor(
@@ -20,6 +24,10 @@ export class PasswordService {
     private readonly emailService: EmailServiceForOTP,
   ) {}
 
+  /**
+   * changePassword
+   * This method changes the password for a given user.
+   */
   async changepwd(id: string, password: string, newpwd: string) {
     const user = await this.userRepository.findOne({ where: { id } });
 
@@ -49,6 +57,10 @@ export class PasswordService {
     return { message: 'User Successfully Changed their Password!' };
   }
 
+  /**
+   * forgotPassword
+   * This method handles the forgot password functionality.
+   */
   async forgotPassword(email: string) {
     const user = await this.userRepository.findOne({
       where: { email },
@@ -102,6 +114,10 @@ export class PasswordService {
     }
   }
 
+  /**
+   * resetPassword
+   * This method resets the password for a given user.
+   */
   async resetPassword(email: string, newpwd: string) {
     const user = await this.userRepository.findOne({ where: { email } });
 

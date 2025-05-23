@@ -24,17 +24,23 @@ import { OtpType } from 'src/otp/entities/otp.entity';
 
 /**
  * UserService handles user-related operations such as
+ * forgot password, reset password, and user profile management.
+ * It also includes methods for fetching user details and updating user profiles.
  */
 
 @Injectable()
 export class UserService {
   constructor(
-    @InjectRepository(User) 
+    @InjectRepository(User)
     private readonly userRepository: Repository<User>,
-    @Inject(forwardRef(() => OtpService)) 
+    @Inject(forwardRef(() => OtpService))
     private readonly otpService: OtpService,
-  ) { }
+  ) {}
 
+  // /**
+  //  * clearExpiredOtps
+  //  * This method clears expired OTPs from the database.
+  //  */
   // @Cron('* * * * * *') // Runs every second (adjust for production)
   // async clearExpiredOtps() {
   //   const now = new Date();
@@ -44,19 +50,27 @@ export class UserService {
   //   );
   // }
 
+  /**
+   * forgotPassword
+   * This method handles the forgot password functionality.
+   * It generates an OTP and sends it to the user's email.
+   */
   async forgotPassword(email: string) {
-
-    const user = await this.userRepository.findOne({ where: { email }, relations: ['otps'] });
+    const user = await this.userRepository.findOne({
+      where: { email },
+      relations: ['otps'],
+    });
     if (!user) {
       throw new NotFoundException('User Not Found..!');
     }
 
     if (user.status === UserStatus.SUSPENDED) {
-      throw new UnauthorizedException('You are Supsended. Please Contact Support Team...!')
+      throw new UnauthorizedException(
+        'You are Supsended. Please Contact Support Team...!',
+      );
     }
 
     if (user.is_logged_in === false) {
-
       const otp = this.otpService.generateOtp();
       const otpExpiration = this.otpService.getOtpExpiration();
 
@@ -92,6 +106,10 @@ export class UserService {
     }
   }
 
+  /**
+   * verifyOtp
+   * This method verifies the OTP sent to the user's email.
+   */
   async resetPassword(email: string, newpwd: string) {
     const user = await this.userRepository.findOne({ where: { email } });
 
@@ -132,30 +150,10 @@ export class UserService {
     return { message: 'Password Reset Successfully. Now You Can Login' };
   }
 
-  // async getUserById(id: string): Promise<User | null> {
-  //   const user = await this.userRepository.findOne({ where: { id } });
-  //   if (!user) {
-  //     throw new NotFoundException('User not found!');
-  //   }
-
-  //   checkIfSuspended(user);
-
-  //   if (user.birth_date) {
-  //     const today = new Date();
-  //     const birthDate = new Date(user.birth_date);
-  //     let age = today.getFullYear() - birthDate.getFullYear();
-  //     // const monthDiff = today.getMonth() - birthDate.getMonth();
-
-  //     user.age = age;
-  //     await this.userRepository.save(user);
-  //   }
-
-  //   return this.userRepository.findOne({
-  //     where: { id },
-  //     select: ["id", "first_name", "last_name", "mobile_no", "email", "status", "userName", "birth_date", "age", "role", "avatar"],
-  //   });
-  // }
-
+  /**
+   * getUserById
+   * This method fetches a user by their ID.
+   */
   async getUserById(id: string): Promise<User | null> {
     const user = await this.userRepository.findOne({ where: { id } });
     if (!user) {
@@ -166,13 +164,32 @@ export class UserService {
 
     return this.userRepository.findOne({
       where: { id },
-      select: ["id", "first_name", "last_name", "mobile_no", "email", "status", "userName", "birth_date", "role", "avatar"],
+      select: [
+        'id',
+        'first_name',
+        'last_name',
+        'mobile_no',
+        'email',
+        'status',
+        'userName',
+        'birth_date',
+        'role',
+        'avatar',
+      ],
     });
   }
 
-  async updateUser(id: string, updateUserDto: UpdateUserDto, avatarFile?: Express.Multer.File) {
+  /**
+   * updateUser
+   * This method updates user details.
+   */
+  async updateUser(
+    id: string,
+    updateUserDto: UpdateUserDto,
+    avatarFile?: Express.Multer.File,
+  ) {
     const user = await this.userRepository.findOne({
-      where: { id, is_logged_in: true }
+      where: { id, is_logged_in: true },
     });
 
     if (!user) {
@@ -199,7 +216,9 @@ export class UserService {
         where: { userName: updateUserDto.userName, id: Not(user.id) },
       });
       if (existingUser) {
-        throw new ConflictException('Please use a different username, it is already taken!');
+        throw new ConflictException(
+          'Please use a different username, it is already taken!',
+        );
       }
       user.userName = updateUserDto.userName;
     }
@@ -218,9 +237,19 @@ export class UserService {
 
     // Remove sensitive data before returning
     const {
-      role, status, is_logged_in, age, updatedAt, createdAt,
-      password, is_Verified,
-      refresh_token, expiryDate_token, loginAttempts, isBlocked, ...data
+      role,
+      status,
+      is_logged_in,
+      age,
+      updatedAt,
+      createdAt,
+      password,
+      is_Verified,
+      refresh_token,
+      expiryDate_token,
+      loginAttempts,
+      isBlocked,
+      ...data
     } = user;
 
     return {
@@ -230,13 +259,20 @@ export class UserService {
     };
   }
 
-  // Helper function to handle file storage
+  /**
+   * saveAvatarToStorage
+   * This method saves the avatar file to the server.
+   */
   saveAvatarToStorage(avatarFile: Express.Multer.File) {
     const filename = `${avatarFile.originalname}`;
     const filePath = path.join(__dirname, '..', 'uploads', filename);
     return filename;
   }
 
+  /**
+   * getUserByEmail
+   * This method fetches a user by their email.
+   */
   async getUserByEmail(email: string) {
     const user = await this.userRepository.findOne({ where: { email } });
     if (!user) {
@@ -245,13 +281,28 @@ export class UserService {
     return user;
   }
 
+  /**
+   * getAllUser
+   * This method fetches all users with pagination.
+   */
   async getAllUser(paginationDto: PaginationQueryDto) {
     const { limit = 10, offset = 0 } = paginationDto;
 
     const [data, total] = await this.userRepository.findAndCount({
       take: limit,
       skip: offset,
-      select: ["id", "first_name", "last_name", "mobile_no", "email", "status", "userName", "birth_date", "age", "role"],
+      select: [
+        'id',
+        'first_name',
+        'last_name',
+        'mobile_no',
+        'email',
+        'status',
+        'userName',
+        'birth_date',
+        'age',
+        'role',
+      ],
     });
 
     return {
@@ -263,10 +314,18 @@ export class UserService {
     };
   }
 
+  /**
+   * findByEmail
+   * This method fetches a user by their email.
+   */
   async findByEmail(email): Promise<User | null> {
-    return this.userRepository.findOne({ where: { email } })
+    return this.userRepository.findOne({ where: { email } });
   }
 
+  /**
+   * findById
+   * This method fetches a user by their ID.
+   */
   async removeAvatar(userId: string): Promise<{ message: string }> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
 

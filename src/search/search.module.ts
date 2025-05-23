@@ -3,9 +3,13 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { SearchService } from './search.service';
 import { SearchController } from './search.controller';
 import { RecentSearch } from './entity/recent-search.entity';
-import { User } from '../user/entities/user.entity'
+import { User } from '../user/entities/user.entity';
 import { Car } from './entity/car.entity';
 
+/**
+ * SearchModule
+ * This module is responsible for handling search-related functionalities.
+ */
 @Module({
   imports: [TypeOrmModule.forFeature([RecentSearch, User, Car])],
   controllers: [SearchController],

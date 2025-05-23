@@ -2,6 +2,10 @@ import * as nodemailer from 'nodemailer';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+/**
+ * EmailServiceForVerifyMail
+ * This service is responsible for sending verification emails to users.
+ */
 @Injectable()
 export class EmailServiceForOTP {
   constructor(private readonly configService: ConfigService) {}

@@ -8,6 +8,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User, UserStatus } from 'src/user/entities/user.entity';
 
+/**
+ * IsSuspendedGuard
+ * This guard checks if the user is suspended.
+ */
 @Injectable()
 export class IsSuspendedGuard implements CanActivate {
   constructor(

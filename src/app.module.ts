@@ -26,6 +26,10 @@ import { PasswordModule } from './password/password.module';
 import { IsLoggedInGuard } from './auth/guards/isLoggedin.guard';
 import { ResponseTransformInterceptor } from './common/interceptors/response-transform.interceptor';
 
+/**
+ * AppModule
+ * This is the root module of the application.
+ */
 @Module({
   imports: [
     ConfigModule.forRoot({

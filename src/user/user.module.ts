@@ -15,6 +15,10 @@ import { Otp } from 'src/otp/entities/otp.entity';
 import { JwtService } from '@nestjs/jwt';
 import { CacheModule } from '@nestjs/cache-manager';
 
+/**
+ * UserModule
+ * This module is responsible for managing user-related functionalities.
+ */
 @Module({
   imports: [
     CacheModule.register(),
@@ -27,9 +31,9 @@ import { CacheModule } from '@nestjs/cache-manager';
         filename: (req, file, cb) => {
           const filename = `${file.originalname}`;
           cb(null, filename);
-        }
-      })
-    })
+        },
+      }),
+    }),
   ],
   providers: [
     UserService,
@@ -37,7 +41,7 @@ import { CacheModule } from '@nestjs/cache-manager';
     EmailServiceForVerifyMail,
     SmsService,
     RolesGuard,
-    JwtService
+    JwtService,
   ],
   controllers: [UserController],
   exports: [
@@ -45,7 +49,7 @@ import { CacheModule } from '@nestjs/cache-manager';
     EmailServiceForVerifyMail,
     EmailServiceForOTP,
     TypeOrmModule,
-    JwtService
+    JwtService,
   ],
 })
-export class UserModule { }
+export class UserModule {}

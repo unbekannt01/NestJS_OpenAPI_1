@@ -1,10 +1,13 @@
-// src/types/express.d.ts
-import { User } from "src/user/entities/user.entity"; // Import your User entity here
+import { User } from 'src/user/entities/user.entity';
 
+/**
+ * This file is used to extend the Express Request interface
+ * to include a user property.
+ */
 declare global {
   namespace Express {
     interface Request {
-      user?: User;  // This will add the 'user' property to the Request type
+      user?: User;
     }
   }
 }

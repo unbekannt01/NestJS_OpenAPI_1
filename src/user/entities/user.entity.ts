@@ -5,17 +5,29 @@ import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { Otp } from 'src/otp/entities/otp.entity';
 import { EmailVerification } from 'src/email-verification-by-link/entity/email-verify.entity';
 
+/**
+ * UserStatus
+ * Enum representing the status of a user.
+ */
 export enum UserStatus {
   ACTIVE = 'ACTIVE',
   INACTIVE = 'INACTIVE',
   SUSPENDED = 'SUSPENDED',
 }
 
+/**
+ * UserRole
+ * Enum representing the role of a user.
+ */
 export enum UserRole {
   ADMIN = 'ADMIN',
   USER = 'USER',
 }
 
+/**
+ * User
+ * Entity representing a user in the system.
+ */
 @Entity({ name: 'user_1' })
 export class User extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
@@ -82,7 +94,10 @@ export class User extends BaseEntity {
   @Column({ default: false })
   isEmailVerified: boolean;
 
-  // Calculated field: age
+  /**
+   * convert the birth date to age
+   * The age of the user or null if birth date is not provided.
+   */
   @Expose()
   get age(): number | null {
     if (!this.birth_date) return null;

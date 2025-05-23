@@ -27,6 +27,10 @@ import { Public } from 'src/common/decorators/public.decorator';
 import { CurrentUser } from 'src/common/decorators/user.decorator';
 import { User } from './entities/user.entity';
 
+/**
+ * UserController handles user-related operations such as updating user
+ * profiles, fetching user details, and pagination.
+ */
 @Controller({ path: 'user', version: '1' })
 export class UserController {
   constructor(
@@ -34,6 +38,10 @@ export class UserController {
     private readonly jwtService: JwtService,
   ) {}
 
+  /**
+   * updateUser
+   * This method updates the user profile.
+   */
   @UseGuards(AuthGuard('jwt'))
   @Patch('update/:id')
   @UseInterceptors(FileInterceptor('avatar'))
@@ -62,6 +70,10 @@ export class UserController {
     );
   }
 
+  /**
+   * getProfile
+   * This method fetches the user profile.
+   */
   @UseGuards(AuthGuard('jwt'))
   @Get('profile')
   async getProfile(@Req() req: Request & { user: JwtPayload }) {
@@ -77,6 +89,10 @@ export class UserController {
     };
   }
 
+  /**
+   * getUser
+   * This method fetches a user by their ID.
+   */
   @Public()
   @Get('getUserById/:id')
   @UseInterceptors(CacheInterceptor)
@@ -94,6 +110,10 @@ export class UserController {
     return user;
   }
 
+  /**
+   * getUserByEmail
+   * This method fetches a user by their email.
+   */
   @Public()
   @Get('user')
   @UseInterceptors(CacheInterceptor)
@@ -126,6 +146,10 @@ export class UserController {
     }
   }
 
+  /**
+   * getAllUser
+   * This method fetches all users with pagination.
+   */
   @Public()
   @Get('pagination')
   async findAll(@Query() paginationDto: PaginationQueryDto) {
@@ -138,12 +162,20 @@ export class UserController {
   //   return { message : 'true' }
   // }
 
+  /**
+   * getUserByEmail
+   * This method fetches a user by their email.
+   */
   @Public()
   @Patch('remove-avatar/:id')
   async removeAvatar(@Param('id') id: string) {
     return this.userService.removeAvatar(id);
   }
 
+  /**
+   * getUser1
+   * This method fetches the current user profile.
+   */
   @Get('get-user')
   async getUser1(@CurrentUser() user: User) {
     return { message: `${user} profile fetched successfully!`, user };

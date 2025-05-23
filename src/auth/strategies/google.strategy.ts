@@ -1,8 +1,11 @@
-// auth/strategies/google.strategy.ts
 import { PassportStrategy } from '@nestjs/passport';
 import { Injectable } from '@nestjs/common';
 import { Strategy, VerifyCallback } from 'passport-google-oauth20';
 
+/**
+ * GoogleStrategy
+ * This strategy is used for Google OAuth authentication.
+ */
 @Injectable()
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   constructor() {

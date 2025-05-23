@@ -12,6 +12,10 @@ import { Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { EmailVerification } from './entity/email-verify.entity';
 
+/**
+ * EmailVerificationByLinkService
+ * This service is responsible for handling email verification by link.
+ */
 @Injectable()
 export class EmailVerificationByLinkService {
   constructor(
@@ -23,7 +27,10 @@ export class EmailVerificationByLinkService {
     private readonly emailService: EmailServiceForVerifyMail,
   ) {}
 
-  // Find verification record and return associated user
+  /**
+   * findByVerificationToken
+   * This method verifies the email address of the user.
+   */
   async findByVerificationToken(token: string): Promise<User> {
     const verification = await this.emailVerifyRepository.findOne({
       where: { verificationToken: token },
@@ -55,7 +62,10 @@ export class EmailVerificationByLinkService {
     return user;
   }
 
-  // Generate and save token (you can use this in registration flow too)
+  /**
+   * generateEmailVerificationToken
+   * This method generates a new email verification token for the user.
+   */
   async generateEmailVerificationToken(user: User): Promise<string> {
     const token = uuidv4();
     const tokenExpiration = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
@@ -70,7 +80,10 @@ export class EmailVerificationByLinkService {
     return token;
   }
 
-  // Resend verification link
+  /**
+   * resendVerificationEmail
+   * This method resends the verification email to the user.
+   */
   async resendVerificationEmail(email: string): Promise<void> {
     const user = await this.userRepository.findOne({
       where: { email },

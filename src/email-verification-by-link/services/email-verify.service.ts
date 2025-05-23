@@ -2,13 +2,19 @@ import * as nodemailer from 'nodemailer';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+/**
+ * EmailServiceForVerifyMail
+ * This service is responsible for sending verification emails to users.
+ */
 @Injectable()
 export class EmailServiceForVerifyMail {
-  constructor(
-    private readonly configService: ConfigService
-  ) { }
+  constructor(private readonly configService: ConfigService) {}
 
-  async sendVerificationEmail(email: string, verificationLink: string, first_name: string) {
+  async sendVerificationEmail(
+    email: string,
+    verificationLink: string,
+    first_name: string,
+  ) {
     const transporter = nodemailer.createTransport({
       host: this.configService.get<string>('SMTP.HOST'),
       port: parseInt(this.configService.get<string>('SMTP.PORT') || '587'),

@@ -8,14 +8,25 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User, UserStatus } from 'src/user/entities/user.entity';
 import { Repository } from 'typeorm';
 import { EmailServiceForSupension } from 'src/auth/services/suspend-mail.service';
+import { LazyModuleLoader } from '@nestjs/core';
+
+/**
+ * AdminService
+ * This service handles admin-related operations such as suspending,
+ * reactivating, blocking, and deleting users.
+ */
 
 @Injectable()
 export class AdminService {
   constructor(
     @InjectRepository(User) private readonly userRepository: Repository<User>,
     private readonly emailServiceForSuspend: EmailServiceForSupension,
+    private readonly lazymodule: LazyModuleLoader,
   ) {}
 
+  /**
+   * Suspends a user by their ID.
+   */
   async suspendUser(id: string, message: string) {
     const user = await this.userRepository.findOne({ where: { id } });
     if (user) {
@@ -37,7 +48,9 @@ export class AdminService {
     return user;
   }
 
-  // when user suspend it then re-activate their account.
+  /**
+   * Reactivates a suspended user by their ID.
+   */
   async reActivatedUser(id: string) {
     const user = await this.userRepository.findOne({ where: { id } });
     if (!user) {
@@ -56,7 +69,9 @@ export class AdminService {
     };
   }
 
-  // when user softDeleted ( temporary deleted ) then restore user.
+  /**
+   * Restores a soft-deleted user by their ID.
+   */
   async reStoreUser(id: string) {
     const user = await this.userRepository.findOne({
       where: { id },
@@ -77,7 +92,9 @@ export class AdminService {
     return { message: 'User Restored Successfully!' };
   }
 
-  // Temporary remove user ( user have in database but don't do anything )
+  /**
+   * soft deletes a user by their ID.
+   */
   async softDeleteUser(id: string) {
     const user = await this.userRepository.findOne({ where: { id } });
     if (!user) {
@@ -86,14 +103,16 @@ export class AdminService {
 
     user.is_logged_in = false;
     user.refresh_token = null;
-    user.expiryDate_token = null; 
+    user.expiryDate_token = null;
 
     await this.userRepository.save(user);
     await this.userRepository.softDelete({ id });
     return { message: 'User Temporary Deleted Successfully!' };
   }
 
-  // permanantly remove user from database also.
+  /**
+   * Permanently deletes a user by their ID.
+   */
   async hardDelete(id: string) {
     const user = await this.userRepository.findOne({ where: { id } });
     if (!user) {
@@ -104,7 +123,9 @@ export class AdminService {
     return { message: 'User Permanently Deleted Successfully!' };
   }
 
-  // when user is blocked ( like if login attempts more than 10, then user is blocked. )
+  /**
+   * Unblocks a user by their ID.
+   */
   async unblockUser(id: string) {
     const user = await this.userRepository.findOne({ where: { id } });
 
@@ -132,6 +153,9 @@ export class AdminService {
     };
   }
 
+  /**
+   * Updates the status of a user to ACTIVE by their ID.
+   */
   async updateStatus(id: string) {
     const user = await this.userRepository.findOne({ where: { id } });
 
@@ -147,5 +171,16 @@ export class AdminService {
     await this.userRepository.save(user);
 
     return { message: 'User Activated Successfully...' };
+  }
+
+  /**
+   * Loads the AdminModule lazily.
+   */
+  async loadAdminFeatures() {
+    const { AdminModule } = await import('./admin.module');
+    const moduleRef = await this.lazymodule.load(() => AdminModule);
+
+    const { AdminService } = await import('./admin.service');
+    return moduleRef.get(AdminService);
   }
 }

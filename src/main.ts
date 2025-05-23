@@ -13,6 +13,10 @@ import { AuthExceptionFilter } from './common/filters/http-exception.filter';
 
 dotenv.config();
 
+/**
+ * bootstrap
+ * This function initializes the NestJS application.
+ */
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const configService = app.get(ConfigService);
@@ -20,20 +24,29 @@ async function bootstrap() {
 
   const reflector = app.get(Reflector);
 
-  app.useGlobalFilters(new AuthExceptionFilter())
+  app.useGlobalFilters(new AuthExceptionFilter());
 
   app.enableVersioning({
-    type: VersioningType.URI
-  })
+    type: VersioningType.URI,
+  });
 
   app.useStaticAssets(path.resolve('uploads'), { prefix: '/uploads' });
 
   // Configure CORS
   app.enableCors({
-    origin: ['http://localhost:5173', 'http://localhost:3001', 'http://192.168.1.33:5173'],
+    origin: [
+      'http://localhost:5173',
+      'http://localhost:3001',
+      'http://192.168.1.33:5173',
+    ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Requested-With',
+      'Accept',
+    ],
     exposedHeaders: ['Set-Cookie'],
   });
 

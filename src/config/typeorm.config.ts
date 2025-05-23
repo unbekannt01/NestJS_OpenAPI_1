@@ -2,6 +2,11 @@ import { registerAs } from '@nestjs/config';
 import { DataSourceOptions } from 'typeorm';
 import { join } from 'path';
 
+/**
+ * PostgreSQL Configuration
+ * This configuration is used to set up the PostgreSQL database connection.
+ * It uses environment variables to configure the database connection settings.
+ */
 export const dataSourceOptions: DataSourceOptions = {
   type: 'postgres',
   host: process.env.DB_HOST || 'localhost',
@@ -14,7 +19,11 @@ export const dataSourceOptions: DataSourceOptions = {
   synchronize: false,
 };
 
-// Config for NestJS module
+/**
+ * TypeORM Configuration
+ * This configuration is used to set up the TypeORM database connection.
+ * It uses environment variables to configure the database connection settings.
+ */
 export const typeOrmConfig = registerAs('typeorm', () => ({
   ...dataSourceOptions,
   synchronize: false,

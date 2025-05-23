@@ -8,6 +8,10 @@ import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from 'src/common/decorators/roles.decorator';
 import { UserRole } from 'src/user/entities/user.entity';
 
+/**
+ * RolesGuard
+ * This guard checks if the user has the required roles to access a route.
+ */
 @Injectable()
 export class RolesGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}

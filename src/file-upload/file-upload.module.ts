@@ -4,17 +4,21 @@ import { FileUploadController } from './file-upload.controller';
 import { MulterModule } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 
+/**
+ * FileUploadModule
+ * This module is responsible for handling file uploads.
+ */
 @Module({
-  imports:[
+  imports: [
     MulterModule.register({
       storage: diskStorage({
         destination: './uploads',
-        filename: (req, file, cb) =>{
+        filename: (req, file, cb) => {
           const filename = `${file.originalname}`;
           cb(null, filename);
-        }
-      })
-    })
+        },
+      }),
+    }),
   ],
   controllers: [FileUploadController],
   providers: [FileUploadService],

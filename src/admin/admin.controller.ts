@@ -13,11 +13,19 @@ import {
 import { AdminService } from './admin.service';
 import { Admin } from 'src/common/decorators/admin.decorator';
 
+/**
+ * AdminController handles admin-related operations such as suspending,
+ * reactivating, blocking, and deleting users.
+ */
+
 @Admin()
 @Controller({ path: 'admin', version: '1' })
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
+  /**
+   * Suspends a user by their ID.
+   */
   @Patch('suspend/:id')
   async suspendUser(
     @Param(
@@ -34,6 +42,9 @@ export class AdminController {
     return this.adminService.suspendUser(id, message);
   }
 
+  /**
+   * Reactivates a suspended user by their ID.
+   */
   @Patch('reActivated{/:id}')
   async reActivatedUser(
     @Param(
@@ -48,6 +59,9 @@ export class AdminController {
     return this.adminService.reActivatedUser(id);
   }
 
+  /**
+   * Unblocks a user by their ID.
+   */
   @Patch('unblock/:id')
   async unblockUser(
     @Param(
@@ -62,6 +76,9 @@ export class AdminController {
     return this.adminService.unblockUser(id);
   }
 
+  /**
+   * Soft deletes a user by their ID.
+   */
   @Delete('softDelete/:id')
   async softDeleteUser(
     @Param(
@@ -76,6 +93,9 @@ export class AdminController {
     return this.adminService.softDeleteUser(id);
   }
 
+  /**
+   * Restores a soft-deleted user by their ID.
+   */
   @Patch('restore/:id')
   async reStoreUser(
     @Param(
@@ -90,6 +110,9 @@ export class AdminController {
     return this.adminService.reStoreUser(id);
   }
 
+  /**
+   * Permanently deletes a user by their ID.
+   */
   @Delete('hardDelete/:id')
   async permanantDeleteUser(
     @Param(
@@ -104,6 +127,9 @@ export class AdminController {
     return this.adminService.hardDelete(id);
   }
 
+  /**
+   * Updates the status of a user by their ID.
+   */
   @Patch('update-status/:id')
   async updateStatus(
     @Param(

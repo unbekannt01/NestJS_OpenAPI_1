@@ -5,11 +5,12 @@ import { UserModule } from 'src/user/user.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from 'src/user/entities/user.entity';
 
+/**
+ * OtpModule
+ * This module is responsible for handling OTP-related functionalities.
+ */
 @Module({
-  imports: [
-    forwardRef(() => UserModule),
-    TypeOrmModule.forFeature([User])
-  ],
+  imports: [forwardRef(() => UserModule), TypeOrmModule.forFeature([User])],
   controllers: [OtpController],
   providers: [OtpService],
   exports: [OtpService],

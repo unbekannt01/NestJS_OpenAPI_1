@@ -11,6 +11,10 @@ import { Public } from 'src/common/decorators/public.decorator';
 import { GoogleLoginDto } from './dto/google-login.dto';
 import { Response } from 'express';
 
+/**
+ * LoginUsingGoogleController handles Google login operations.
+ * It provides an endpoint for users to log in using their Google accounts.
+ */
 @Public()
 @Controller({ path: 'google', version: '1' })
 export class LoginUsingGoogleController {
@@ -18,6 +22,11 @@ export class LoginUsingGoogleController {
     private readonly loginUsingGoogleService: LoginUsingGoogleService,
   ) {}
 
+  /**
+   * googleLogin
+   * This method handles Google login.
+   * It sets the access token in an HTTP-only cookie and returns user details.
+   */
   @Post('google-login')
   @HttpCode(HttpStatus.OK)
   async googleLogin(

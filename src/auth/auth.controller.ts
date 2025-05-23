@@ -3,29 +3,16 @@ import {
   Post,
   Body,
   Get,
-  NotFoundException,
-  Put,
-  Param,
-  HttpStatus,
-  HttpCode,
-  Patch,
   BadRequestException,
-  Query,
   UseGuards,
-  Request,
   Response as Res,
   ValidationPipe,
   UnauthorizedException,
   Req,
-  ParseUUIDPipe,
   UsePipes,
-  Delete,
   UseInterceptors,
   UploadedFile,
-  ParseFilePipeBuilder,
-  UseFilters,
 } from '@nestjs/common';
-import { UserService } from 'src/user/user.service';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { Response } from 'express';
 import { AuthService } from './auth.service';
@@ -34,17 +21,19 @@ import { LoginUserDto } from './dto/login-user.dto';
 import { Public } from 'src/common/decorators/public.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '@nestjs/passport';
-import { RolesGuard } from './guards/roles.guard';
-import { Roles } from 'src/common/decorators/roles.decorator';
-import { UserRole } from 'src/user/entities/user.entity';
-import { LoggingExceptionFilter } from 'src/common/filters/login-exception.filter';
-import { IsLoggedInGuard } from './guards/isLoggedin.guard';
 import { Admin } from 'src/common/decorators/admin.decorator';
 
+/**
+ * AuthController handles authentication-related operations such as
+ * user registration, login, logout, and token management.
+ */
 @Controller({ path: 'auth', version: '1' })
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  /**
+   * Registers a new user.
+   */
   @Public()
   @Post('register')
   @UseInterceptors(FileInterceptor('avatar'))
@@ -55,7 +44,9 @@ export class AuthController {
     return await this.authService.save(registerDto, file);
   }
 
-  // @UseFilters(LoggingExceptionFilter)
+  /**
+   * Logs in a user and returns an access token and refresh token.
+   */
   @Public()
   @Post('login')
   @UsePipes(ValidationPipe)
@@ -81,12 +72,18 @@ export class AuthController {
     }
   }
 
+  /**
+   * Refreshes the access token using a valid refresh token.
+   */
   @Public()
   @Post('refresh-token')
   async refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
     return this.authService.refreshToken(refreshTokenDto.refresh_token);
   }
 
+  /**
+   * Logs out a user by invalidating their access token.
+   */
   @UseGuards(AuthGuard('jwt'))
   @Post('logout')
   async logout(
@@ -120,6 +117,9 @@ export class AuthController {
     }
   }
 
+  /**
+   * Fetches all users.
+   */
   @Admin()
   @Get('getAllUsers')
   async getAllUsers() {
@@ -127,6 +127,9 @@ export class AuthController {
     return { message: 'Users fetched successfully!', users };
   }
 
+  /**
+   * Validates a refresh token.
+   */
   @Public()
   @Post('validate-refresh-token')
   async validateRefreshToken(@Body() body: { refresh_token: string }) {
@@ -138,20 +141,4 @@ export class AuthController {
     }
     return { valid: true };
   }
-
-  // @Post('event-tracker')
-  // async trackevent(@Body() { event }) {
-  //   return this.authService.trackEvent(event);
-  // }
 }
-
-// @UseGuards(JwtAuthGuard)
-// @Get('me')
-// getCurrentUser(@Req() req) {
-//   const user = req.user; // this comes from the JWT payload
-//   return {
-//     id: user.id,
-//     email: user.email,
-//     role: user.role,
-//   };
-// }

@@ -14,6 +14,10 @@ import { User } from 'src/user/entities/user.entity';
 import { EmailVerification } from 'src/email-verification-by-link/entity/email-verify.entity';
 import { JwtStrategy } from './strategies/jwt.strategy';
 
+/**
+ * AuthModule
+ * This module is responsible for authentication-related functionalities.
+ */
 @Module({
   imports: [
     TypeOrmModule.forFeature([User, EmailVerification]),

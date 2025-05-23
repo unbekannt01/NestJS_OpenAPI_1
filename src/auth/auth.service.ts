@@ -23,6 +23,8 @@ import {
 
 /**
  * AuthService handles user authentication, registration, and token management.
+ * It provides methods for logging in, registering users, generating JWT tokens,
+ * and managing user sessions.
  */
 
 @Injectable()
@@ -36,9 +38,11 @@ export class AuthService {
     private readonly otpService: OtpService,
     private readonly emailServiceForOTP: EmailServiceForOTP,
     private readonly configService: ConfigService,
-    // @Optional() private readonly logger: LoggerService,
   ) {}
 
+  /**
+   * Login a user using email or username and password.
+   */
   async loginUser(
     identifier: string,
     password: string,
@@ -57,6 +61,7 @@ export class AuthService {
       throw new NotFoundException();
     }
 
+    // Check if user is suspended
     checkIfSuspended(user);
 
     if (user.loginAttempts >= 10) {
@@ -94,11 +99,14 @@ export class AuthService {
     }
   }
 
+
   async resetLoginAttempts(email: string): Promise<void> {
     await this.userRepository.update({ email }, { loginAttempts: 0 });
   }
 
-  // -- Using OTP Based
+  /**
+   * Register a new user and send an OTP for email verification.
+   */
   async save(createUserDto: CreateUserDto, file: Express.Multer.File) {
     const normalizedEmail = createUserDto.email.toLowerCase();
     const normalizedUserName = createUserDto.userName.toLowerCase();
@@ -168,7 +176,9 @@ export class AuthService {
     };
   }
 
-  // // -- After Register sent a Verification Mail
+  // /**
+  //  * Register a new user and send an email verification link.
+  //  */
   // async save(createUserDto: CreateUserDto, file?: Express.Multer.File) {
   //   const normalizedEmail = createUserDto.email.toLowerCase();
   //   const normalizedUserName = createUserDto.userName.toLowerCase();
@@ -243,6 +253,9 @@ export class AuthService {
   //   };
   // }
 
+  /**
+   * Logout a user by updating their session and token status.
+   */
   async logout(id: string) {
     const user = await this.userRepository.findOne({ where: { id } });
 
@@ -262,7 +275,9 @@ export class AuthService {
     return { message: 'User logout successful.' };
   }
 
-  // Helper method to verify access token (JWT)
+  /**
+   * Verify the access token and return the decoded payload.
+   */
   verifyAccessToken(token: string): any {
     const jwt = require('jsonwebtoken');
     try {
@@ -272,6 +287,9 @@ export class AuthService {
     }
   }
 
+  /**
+   * Refresh the access token using a valid refresh token.
+   */
   async refreshToken(refresh_token: string) {
     const token = await this.userRepository.findOne({
       where: {
@@ -287,6 +305,9 @@ export class AuthService {
     return this.generateUserToken(token.id, token.role);
   }
 
+  /**
+   * Verify the password against the hashed password.
+   */
   async verifyPassword(
     password: string,
     hashedPassword: string,
@@ -297,6 +318,9 @@ export class AuthService {
     }
   }
 
+  /**
+   * Verify the JWT token and return the decoded payload.
+   */
   async verifyToken(token: string) {
     const decoded = this.jwtService.verify(token, {
       secret: this.configService.get<string>('JWT_SECRET'),
@@ -304,6 +328,9 @@ export class AuthService {
     return decoded;
   }
 
+  /**
+   * Get all users excluding admin users.
+   */
   async getAllUsers(): Promise<User[]> {
     const users = await this.userRepository.find({
       withDeleted: true,
@@ -333,6 +360,9 @@ export class AuthService {
     return users.filter((user) => user.role !== 'ADMIN');
   }
 
+  /**
+   * Generate a JWT token for the user.
+   */
   async generateUserToken(userId: string, role: UserRole) {
     const expiresIn = 3600; // 1 hour in seconds
     const secret = this.configService.get<string>('JWT_SECRET');
@@ -372,6 +402,9 @@ export class AuthService {
     };
   }
 
+  /**
+   * Store the refresh token in the database.
+   */
   async storeRefreshToken(
     refresh_token: string,
     userId: string,
@@ -389,6 +422,9 @@ export class AuthService {
     console.log('Now:', new Date());
   }
 
+  /**
+   * Validate the refresh token.
+   */
   async validateRefreshToken(refresh_token: string): Promise<boolean> {
     // Find user by refresh_token in the database
     const user = await this.userRepository.findOne({
@@ -403,10 +439,4 @@ export class AuthService {
     // If no matching refresh_token, it's invalid
     return false;
   }
-
-  // trackEvent(event: string) {
-  //   if (this.logger) {
-  //     this.logger.log(`Event Tracked: ${event}`);
-  //   }
-  // }
 }

@@ -9,6 +9,11 @@ import { EmailVerificationByLinkModule } from 'src/email-verification-by-link/em
 import { OtpModule } from 'src/otp/otp.module';
 import { EmailServiceForSupension } from 'src/auth/services/suspend-mail.service';
 
+/**
+ * AdminModule
+ * This module is responsible for managing admin-related functionalities.
+ */
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([User, EmailVerification]),

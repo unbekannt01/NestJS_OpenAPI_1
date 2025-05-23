@@ -2,26 +2,41 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as Twilio from 'twilio';
 
+/**
+ * SmsService
+ * This service is responsible for sending OTPs via SMS using Twilio.
+ */
 @Injectable()
 export class SmsService {
   private client: Twilio.Twilio;
 
-  constructor( private config : ConfigService ) {
+  constructor(private config: ConfigService) {
     const accountSid = this.config.get<string>('TWILIO_ACCOUNT_SID');
     const authToken = this.config.get<string>('TWILIO_AUTH_TOKEN');
 
     if (!accountSid || !authToken) {
-      throw new Error('TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN must be set in environment variables');
+      throw new Error(
+        'TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN must be set in environment variables',
+      );
     }
 
     this.client = Twilio(accountSid, authToken);
   }
 
-  async sendOtpSms(to: string, otp: string): Promise<{ message: string; phoneNumber: string }> {
+  /**
+   * sendOtpSms
+   * Sends an OTP to the specified phone number using Twilio.
+   */
+  async sendOtpSms(
+    to: string,
+    otp: string,
+  ): Promise<{ message: string; phoneNumber: string }> {
     const twilioPhoneNumber = this.config.get('TWILIO_PHONE_NUMBER');
 
     if (!twilioPhoneNumber) {
-      throw new Error('TWILIO_PHONE_NUMBER must be set in environment variables');
+      throw new Error(
+        'TWILIO_PHONE_NUMBER must be set in environment variables',
+      );
     }
 
     // Log the phone number being used
@@ -29,7 +44,9 @@ export class SmsService {
 
     // Validate phone number (E.164 format: e.g., +919328448222)
     if (!to || !/^\+\d{10,15}$/.test(to)) {
-      throw new BadRequestException('Invalid phone number format. Use E.164 format (e.g., +919328448222)');
+      throw new BadRequestException(
+        'Invalid phone number format. Use E.164 format (e.g., +919328448222)',
+      );
     }
 
     if (!otp || otp.length < 4) {

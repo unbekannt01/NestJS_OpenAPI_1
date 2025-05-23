@@ -8,6 +8,10 @@ import { JwtPayload } from '../interfaces/jwt-payload.interface';
 import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from 'src/common/decorators/public.decorator';
 
+/**
+ * IsLoggedInGuard
+ * This guard checks if the user is logged in by verifying the JWT token
+ */
 @Injectable()
 export class IsLoggedInGuard implements CanActivate {
   constructor(
