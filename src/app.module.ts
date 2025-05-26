@@ -25,6 +25,8 @@ import { AdminModule } from './admin/admin.module';
 import { PasswordModule } from './password/password.module';
 import { IsLoggedInGuard } from './auth/guards/isLoggedin.guard';
 import { ResponseTransformInterceptor } from './common/interceptors/response-transform.interceptor';
+import { ProductsModule } from './products/products.module';
+import { JwtAuthGuard } from './auth/guards/jwt.guard';
 
 /**
  * AppModule
@@ -46,14 +48,17 @@ import { ResponseTransformInterceptor } from './common/interceptors/response-tra
     LoginUsingGoogleModule,
     UserModule,
     SearchModule,
-    LoginUsingGoogleModule,
-    EmailVerificationByLinkModule,
     FileUploadModule,
     AdminModule,
     PasswordModule,
+    ProductsModule,
   ],
   providers: [
     SmsService,
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
     {
       provide: APP_GUARD,
       useClass: IsSuspendedGuard,

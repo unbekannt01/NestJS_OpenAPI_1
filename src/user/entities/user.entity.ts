@@ -1,9 +1,11 @@
 import { Exclude, Expose } from 'class-transformer';
 import { BaseEntity } from '../../common/entities/base.entity';
 import { RecentSearch } from 'src/search/entity/recent-search.entity';
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, OneToMany, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { Otp } from 'src/otp/entities/otp.entity';
 import { EmailVerification } from 'src/email-verification-by-link/entity/email-verify.entity';
+import { RequestLog } from 'src/admin/entity/log.entity';
+import { Product } from 'src/products/entities/product.entity';
 
 /**
  * UserStatus
@@ -119,4 +121,10 @@ export class User extends BaseEntity {
 
   @OneToMany(() => EmailVerification, (verification) => verification.user)
   emailVerifications: EmailVerification[];
+
+  @OneToMany(() => RequestLog, (reqLog) => reqLog.user)
+  reqLog: RequestLog[];
+
+  @OneToMany(() => Product, (product)=> product.user)
+  products: Product[];
 }

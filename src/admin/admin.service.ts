@@ -9,6 +9,7 @@ import { User, UserStatus } from 'src/user/entities/user.entity';
 import { Repository } from 'typeorm';
 import { EmailServiceForSupension } from 'src/auth/services/suspend-mail.service';
 import { LazyModuleLoader } from '@nestjs/core';
+import { RequestLog } from './entity/log.entity';
 
 /**
  * AdminService
@@ -20,6 +21,8 @@ import { LazyModuleLoader } from '@nestjs/core';
 export class AdminService {
   constructor(
     @InjectRepository(User) private readonly userRepository: Repository<User>,
+    @InjectRepository(RequestLog)
+    private readonly logRepository: Repository<RequestLog>,
     private readonly emailServiceForSuspend: EmailServiceForSupension,
     private readonly lazymodule: LazyModuleLoader,
   ) {}
@@ -182,5 +185,17 @@ export class AdminService {
 
     const { AdminService } = await import('./admin.service');
     return moduleRef.get(AdminService);
+  }
+
+  /**
+   * Logs a request to the database.
+   */
+  async logRequest(data: Partial<RequestLog>): Promise<void> {
+    const log = this.logRepository.create(data);
+    await this.logRepository.save(log);
+  }
+
+  async deleteAllLogs(): Promise<void> {
+    return this.logRepository.clear();
   }
 }

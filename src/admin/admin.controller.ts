@@ -140,7 +140,15 @@ export class AdminController {
       }),
     )
     id: string,
-  ){
-    return this.adminService.updateStatus(id)
+  ) {
+    return this.adminService.updateStatus(id);
+  }
+
+  /**
+   * Deletes all request logs.
+   */
+  @Delete('logs')
+  deleteAllLogs() {
+    return this.adminService.deleteAllLogs();
   }
 }

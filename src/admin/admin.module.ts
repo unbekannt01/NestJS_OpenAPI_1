@@ -8,6 +8,7 @@ import { UserModule } from 'src/user/user.module';
 import { EmailVerificationByLinkModule } from 'src/email-verification-by-link/email-verification-by-link.module';
 import { OtpModule } from 'src/otp/otp.module';
 import { EmailServiceForSupension } from 'src/auth/services/suspend-mail.service';
+import { RequestLog } from './entity/log.entity';
 
 /**
  * AdminModule
@@ -16,7 +17,7 @@ import { EmailServiceForSupension } from 'src/auth/services/suspend-mail.service
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, EmailVerification]),
+    TypeOrmModule.forFeature([User, EmailVerification,RequestLog]),
     forwardRef(() => UserModule),
     forwardRef(() => OtpModule),
     forwardRef(() => EmailVerificationByLinkModule),

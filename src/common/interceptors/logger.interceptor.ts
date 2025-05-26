@@ -6,6 +6,7 @@ import {
   NestInterceptor,
 } from '@nestjs/common';
 import { Observable, tap } from 'rxjs';
+import { AdminService } from 'src/admin/admin.service';
 
 /**
  * LoggerInterceptor
@@ -14,7 +15,9 @@ import { Observable, tap } from 'rxjs';
  */
 @Injectable()
 export class LoggerInterceptor implements NestInterceptor {
-  private logger = new Logger('HTTP');
+  // private logger = new Logger('HTTP');
+
+  constructor(private readonly adminService: AdminService) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const req = context.switchToHttp().getRequest();
@@ -22,17 +25,30 @@ export class LoggerInterceptor implements NestInterceptor {
     const url = req.originalUrl;
     const userAgent = req.get('user-agent') || '';
     const ip = req.ip;
-
-    this.logger.log(`${method} ${url} - ${userAgent} ${ip}`);
-
     const startTime = Date.now();
+
+    // this.logger.log(`${method} ${url} - ${userAgent} ${ip}`);
+
     return next.handle().pipe(
-      tap((data) => {
+      tap(async () => {
         const response = context.switchToHttp().getResponse();
         const statusCode = response.statusCode;
-        const endTime = Date.now();
-        const resTime = endTime - startTime;
-        this.logger.log(`${method} ${url} ${statusCode} - ${resTime}ms`);
+        const resTime = Date.now() - startTime;
+        // Safely get user id if available
+        const user = req.user;
+
+        // this.logger.log(`${method} ${url} ${statusCode} - ${resTime}ms`);
+
+        // Save to DB (non-blocking recommended)
+        await this.adminService.logRequest({
+          method,
+          url,
+          userAgent,
+          ip,
+          statusCode,
+          responseTime: resTime,
+          user: user?.id ?? null,
+        });
       }),
     );
   }

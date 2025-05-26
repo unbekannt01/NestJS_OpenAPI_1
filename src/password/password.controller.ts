@@ -27,7 +27,6 @@ export class PasswordController {
    * changepwd
    * This method changes the password of a user.
    */
-  @UseGuards(AuthGuard('jwt'))
   @HttpCode(HttpStatus.OK)
   @Post('change-password/:id')
   changepwd(

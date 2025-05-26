@@ -40,7 +40,7 @@ export class AuthController {
   @UseInterceptors(FileInterceptor('avatar'))
   async register(
     @UploadedFile() file: Express.Multer.File,
-    @Body() registerDto: CreateUserDto
+    @Body() registerDto: CreateUserDto,
   ) {
     return await this.authService.save(registerDto, file);
   }
@@ -53,7 +53,7 @@ export class AuthController {
   @UsePipes(ValidationPipe)
   async login(
     @Body() login: LoginUserDto,
-    @Res({ passthrough: true }) res: Response
+    @Res({ passthrough: true }) res: Response,
   ): Promise<{ message: string; refresh_token: string }> {
     try {
       const { role, access_token, refresh_token } =
@@ -89,11 +89,12 @@ export class AuthController {
   @UseGuards(AuthGuard('jwt'))
   @Post('logout')
   async logout(
-    @Req() request: Request & { cookies: { [key: string]: string } },
-    @Res({ passthrough: true }) response: Response
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
   ) {
     try {
-      const accessToken = request.cookies['access_token'];
+      const authHeader = request.headers['authorization'];
+      const accessToken = authHeader?.split(' ')[1];
 
       if (!accessToken) {
         throw new UnauthorizedException('No access token found.');
@@ -104,7 +105,6 @@ export class AuthController {
 
       await this.authService.logout(id);
 
-      // Clear the access token cookie
       response.clearCookie('access_token', {
         path: '/',
         httpOnly: true,
@@ -136,7 +136,7 @@ export class AuthController {
   @Post('validate-refresh-token')
   async validateRefreshToken(@Body() body: { refresh_token: string }) {
     const isValid = await this.authService.validateRefreshToken(
-      body.refresh_token
+      body.refresh_token,
     );
     if (!isValid) {
       throw new UnauthorizedException('Invalid refresh token');

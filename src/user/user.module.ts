@@ -14,6 +14,7 @@ import { diskStorage } from 'multer';
 import { Otp } from 'src/otp/entities/otp.entity';
 import { JwtService } from '@nestjs/jwt';
 import { CacheModule } from '@nestjs/cache-manager';
+import { Product } from 'src/products/entities/product.entity';
 
 /**
  * UserModule
@@ -25,6 +26,7 @@ import { CacheModule } from '@nestjs/cache-manager';
     TypeOrmModule.forFeature([User, Otp]),
     forwardRef(() => AuthModule),
     forwardRef(() => OtpModule),
+    forwardRef(() => Product),
     MulterModule.register({
       storage: diskStorage({
         destination: './uploads',

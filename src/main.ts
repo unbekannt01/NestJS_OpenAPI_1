@@ -10,6 +10,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import * as path from 'path';
 import { VersioningType } from '@nestjs/common';
 import { AuthExceptionFilter } from './common/filters/http-exception.filter';
+import { JwtAuthGuard } from './auth/guards/jwt.guard';
 
 dotenv.config();
 
