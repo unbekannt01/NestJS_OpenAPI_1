@@ -9,7 +9,7 @@ import * as cookieParser from 'cookie-parser';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import * as path from 'path';
 import { VersioningType } from '@nestjs/common';
-import { AuthExceptionFilter } from './common/filters/http-exception.filter';
+import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 import { JwtAuthGuard } from './auth/guards/jwt.guard';
 
 dotenv.config();
@@ -25,7 +25,7 @@ async function bootstrap() {
 
   const reflector = app.get(Reflector);
 
-  app.useGlobalFilters(new AuthExceptionFilter());
+  app.useGlobalFilters(new AllExceptionsFilter());
 
   app.enableVersioning({
     type: VersioningType.URI,

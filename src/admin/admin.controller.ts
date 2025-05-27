@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { Admin } from 'src/common/decorators/admin.decorator';
+import { Public } from 'src/common/decorators/public.decorator';
 
 /**
  * AdminController handles admin-related operations such as suspending,
@@ -147,6 +148,7 @@ export class AdminController {
   /**
    * Deletes all request logs.
    */
+  @Public()
   @Delete('logs')
   deleteAllLogs() {
     return this.adminService.deleteAllLogs();

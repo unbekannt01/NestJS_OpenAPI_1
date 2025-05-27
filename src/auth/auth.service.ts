@@ -20,6 +20,8 @@ import {
   EmailNotVerifiedException,
   UserBlockedException,
 } from 'src/common/filters/custom-exceptio.filter';
+import { EmailVerification } from 'src/email-verification-by-link/entity/email-verify.entity';
+import { EmailServiceForVerifyMail } from 'src/email-verification-by-link/services/email-verify.service';
 
 /**
  * AuthService handles user authentication, registration, and token management.
@@ -34,10 +36,13 @@ export class AuthService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(Otp)
     private readonly otpRepository: Repository<Otp>,
+    @InjectRepository(EmailVerification)
+    private readonly emailverifyRepository: Repository<EmailVerification>,
     private readonly jwtService: JwtService,
     private readonly otpService: OtpService,
     private readonly emailServiceForOTP: EmailServiceForOTP,
     private readonly configService: ConfigService,
+    private readonly emailServiceForVerification: EmailServiceForVerifyMail,
   ) {}
 
   /**
@@ -104,9 +109,70 @@ export class AuthService {
   }
 
   /**
+   * Register a new user with simple method.
+   * This method does not send an OTP or email verification.
+   */
+  async simpleRegister(
+    createUserDto: CreateUserDto,
+    file: Express.Multer.File,
+  ) {
+    const normalizedEmail = createUserDto.email.toLowerCase();
+    const normalizedUserName = createUserDto.userName.toLowerCase();
+
+    let user = await this.userRepository.findOne({
+      where: { email: normalizedEmail },
+      withDeleted: true,
+    });
+
+    if (user) {
+      checkIfSuspended(user);
+    }
+
+    const usernameConflict = await this.userRepository.findOne({
+      where: { userName: normalizedUserName },
+      withDeleted: true,
+    });
+
+    if (usernameConflict && (!user || usernameConflict.id !== user.id)) {
+      throw new ConflictException(
+        'This username is already taken. Please choose another username or contact support to restore your account.',
+      );
+    }
+
+    if (user) {
+      if (user.status === 'ACTIVE') {
+        throw new ConflictException('Email already registered...!');
+      }
+    } else {
+      const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+      console.log('Hashed Password to Save:', hashedPassword);
+      user = this.userRepository.create({
+        ...createUserDto,
+        email: normalizedEmail,
+        userName: normalizedUserName,
+        password: hashedPassword,
+        avatar: file ? file.filename.replace(/\\/g, '/') : undefined,
+        status: UserStatus.ACTIVE,
+        role: UserRole.USER,
+        birth_date: createUserDto.birth_date || undefined,
+        createdAt: new Date(),
+        createdBy: createUserDto.userName,
+      });
+    }
+
+    await this.userRepository.save(user);
+    return {
+      message: `${user.role} registered successfully`,
+    };
+  }
+
+  /**
    * Register a new user and send an OTP for email verification.
    */
-  async save(createUserDto: CreateUserDto, file: Express.Multer.File) {
+  async registerUsingOTP(
+    createUserDto: CreateUserDto,
+    file: Express.Multer.File,
+  ) {
     const normalizedEmail = createUserDto.email.toLowerCase();
     const normalizedUserName = createUserDto.userName.toLowerCase();
 
@@ -175,82 +241,94 @@ export class AuthService {
     };
   }
 
-  // /**
-  //  * Register a new user and send an email verification link.
-  //  */
-  // async save(createUserDto: CreateUserDto, file?: Express.Multer.File) {
-  //   const normalizedEmail = createUserDto.email.toLowerCase();
-  //   const normalizedUserName = createUserDto.userName.toLowerCase();
+  /**
+   * Register a new user and send an email verification link.
+   */
+  async registerUsingEmailToken(
+    createUserDto: CreateUserDto,
+    file?: Express.Multer.File,
+  ) {
+    const normalizedEmail = createUserDto.email.toLowerCase();
+    const normalizedUserName = createUserDto.userName.toLowerCase();
 
-  //   let user = await this.userRepository.findOne({
-  //     where: { email: normalizedEmail },
-  //     withDeleted: true,
-  //   });
+    let user = await this.userRepository.findOne({
+      where: { email: normalizedEmail },
+      withDeleted: true,
+    });
 
-  //   if (user) {
-  //     checkIfSuspended(user);
-  //   }
+    if (user) {
+      checkIfSuspended(user);
+    }
 
-  //   const usernameConflict = await this.userRepository.findOne({
-  //     where: { userName: normalizedUserName },
-  //     withDeleted: true,
-  //   });
+    const usernameConflict = await this.userRepository.findOne({
+      where: { userName: normalizedUserName },
+      withDeleted: true,
+    });
 
-  //   if (usernameConflict && (!user || usernameConflict.id !== user.id)) {
-  //     throw new ConflictException('This username is already taken. Please choose another username or contact support to restore your account.');
-  //   }
+    if (usernameConflict && (!user || usernameConflict.id !== user.id)) {
+      throw new ConflictException(
+        'This username is already taken. Please choose another username or contact support to restore your account.',
+      );
+    }
 
-  //   if (user && user.status === UserStatus.ACTIVE) {
-  //     throw new ConflictException('Email already registered...!');
-  //   }
+    if (user && user.status === UserStatus.ACTIVE) {
+      throw new ConflictException('Email already registered...!');
+    }
 
-  //   // Create new user if not already present
-  //   if (!user) {
-  //     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
-  //     user = this.userRepository.create({
-  //       ...createUserDto,
-  //       email: normalizedEmail,
-  //       userName: normalizedUserName,
-  //       password: hashedPassword,
-  //       avatar: file ? file.filename.replace(/\\/g, '/') : undefined,
-  //       status: UserStatus.INACTIVE,
-  //       role: UserRole.USER,
-  //       birth_date: createUserDto.birth_date || undefined,
-  //       createdAt: new Date(),
-  //       createdBy: createUserDto.userName,
-  //     });
+    // Create new user if not already present
+    if (!user) {
+      const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+      user = this.userRepository.create({
+        ...createUserDto,
+        email: normalizedEmail,
+        userName: normalizedUserName,
+        password: hashedPassword,
+        avatar: file ? file.filename.replace(/\\/g, '/') : undefined,
+        status: UserStatus.INACTIVE,
+        role: UserRole.USER,
+        birth_date: createUserDto.birth_date || undefined,
+        createdAt: new Date(),
+        createdBy: createUserDto.userName,
+      });
 
-  //     await this.userRepository.save(user);
-  //   }
+      await this.userRepository.save(user);
+    }
 
-  //   // Delete old tokens (optional cleanup)
-  //   await this.emailverifyRepository.delete({ user: { id: user.id } });
+    // Delete old tokens (optional cleanup)
+    await this.emailverifyRepository.delete({ user: { id: user.id } });
 
-  //   // Generate and save new email verification token
-  //   const token = uuidv4();
-  //   const tokenExpiration = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    // Generate and save new email verification token
+    const token = uuidv4();
+    const tokenExpiration = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-  //   const verification = this.emailverifyRepository.create({
-  //     user: user,
-  //     verificationToken: token,
-  //     tokenExpiration: tokenExpiration,
-  //   });
+    const verification = this.emailverifyRepository.create({
+      user: user,
+      verificationToken: token,
+      tokenExpiration: tokenExpiration,
+    });
 
-  //   await this.emailverifyRepository.save(verification);
+    await this.emailverifyRepository.save(verification);
 
-  //   // Send verification email with link
-  //   const FRONTEND_BASE_URL = this.configService.get<string>('FRONTEND_BASE_URL');
-  //   if (!FRONTEND_BASE_URL) {
-  //     throw new Error('FRONTEND_BASE_URL is not defined in environment variables');
-  //   }
+    // Send verification email with link
+    const FRONTEND_BASE_URL =
+      this.configService.get<string>('FRONTEND_BASE_URL');
+    if (!FRONTEND_BASE_URL) {
+      throw new Error(
+        'FRONTEND_BASE_URL is not defined in environment variables',
+      );
+    }
 
-  //   const verificationLink = `${FRONTEND_BASE_URL}/verify-email?token=${token}`;
-  //   await this.emailServiceForVerification.sendVerificationEmail(user.email, verificationLink, user.first_name);
+    const verificationLink = `${FRONTEND_BASE_URL}/verify-email?token=${token}`;
+    await this.emailServiceForVerification.sendVerificationEmail(
+      user.email,
+      verificationLink,
+      user.first_name,
+    );
 
-  //   return {
-  //     message: `${user.role} registered successfully. Verification link sent to email.`,
-  //   };
-  // }
+    return {
+      message: `${user.role} registered successfully. Verification link sent to email.`,
+    };
+  }
 
   /**
    * Logout a user by updating their session and token status.

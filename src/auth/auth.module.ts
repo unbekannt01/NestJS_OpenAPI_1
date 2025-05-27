@@ -13,6 +13,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from 'src/user/entities/user.entity';
 import { EmailVerification } from 'src/email-verification-by-link/entity/email-verify.entity';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { Auth2Controller } from './auth-v2.controller';
+import { Auth3Controller } from './auth-v3.controller';
 
 /**
  * AuthModule
@@ -46,7 +48,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
       })
     })
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, Auth2Controller, Auth3Controller],
   providers: [AuthService, JwtStrategy, EmailServiceForSupension],
   exports: [AuthService, EmailServiceForSupension],
 })

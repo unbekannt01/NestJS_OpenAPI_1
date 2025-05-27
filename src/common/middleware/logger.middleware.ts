@@ -12,12 +12,12 @@ export class LoggerMiddleware implements NestMiddleware {
     const start = Date.now();
     res.on('finish', () => {
       const duration = Date.now() - start;
-      console.log(
-        `[${new Date().toISOString()}] ${req.method} ${req.originalUrl} ` +
-          `Status: ${res.statusCode} - ${duration}ms ` +
-          `Query: ${JSON.stringify(req.query)} ` +
-          `Body: ${JSON.stringify(req.body)}`,
-      );
+      // console.log(
+      //   `[${new Date().toISOString()}] ${req.method} ${req.originalUrl} ` +
+      //     `Status: ${res.statusCode} - ${duration}ms ` +
+      //     `Query: ${JSON.stringify(req.query)} ` +
+      //     `Body: ${JSON.stringify(req.body)}`,
+      // );
     });
     next();
   }

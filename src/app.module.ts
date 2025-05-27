@@ -27,6 +27,7 @@ import { IsLoggedInGuard } from './auth/guards/isLoggedin.guard';
 import { ResponseTransformInterceptor } from './common/interceptors/response-transform.interceptor';
 import { ProductsModule } from './products/products.module';
 import { JwtAuthGuard } from './auth/guards/jwt.guard';
+import { Languagelnterceptor } from './common/interceptors/language.interceptor';
 
 /**
  * AppModule
@@ -66,6 +67,10 @@ import { JwtAuthGuard } from './auth/guards/jwt.guard';
     {
       provide: APP_GUARD,
       useClass: IsLoggedInGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: Languagelnterceptor,
     },
     {
       provide: APP_INTERCEPTOR,

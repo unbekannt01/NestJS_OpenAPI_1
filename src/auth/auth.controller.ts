@@ -42,7 +42,7 @@ export class AuthController {
     @UploadedFile() file: Express.Multer.File,
     @Body() registerDto: CreateUserDto,
   ) {
-    return await this.authService.save(registerDto, file);
+    return await this.authService.registerUsingOTP(registerDto, file);
   }
 
   /**
