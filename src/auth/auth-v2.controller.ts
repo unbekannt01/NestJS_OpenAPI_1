@@ -11,7 +11,6 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { Public } from 'src/common/decorators/public.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
 
-
 @Controller({ path: 'auth', version: '2' })
 export class Auth2Controller {
   constructor(private readonly authService: AuthService) {}
