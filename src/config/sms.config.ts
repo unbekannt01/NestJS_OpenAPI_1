@@ -1,15 +1,9 @@
-import { registerAs } from '@nestjs/config';
+// sms.config.ts
+import { configService } from "src/common/services/config.service";
 
-/**
- * SMTP Configuration
- * This configuration is used to set up the SMTP server for sending emails.
- * It uses environment variables to configure the SMTP server.
- */
-export const SMS = registerAs('SMS', () => {
-  return {
-    ACCOUNT_SID: process.env['TWILIO_ACCOUNT_SID'],
-    AUTH_TOKEN: process.env['TWILIO_AUTH_TOKEN'],
-    PHONE_NUMBER: process.env['TWILIO_PHONE_NUMBER'],
-    VERIFY_SERVICE_SID: process.env['TWILIO_VERIFY_SERVICE_SID'],
-  };
-});
+export const smsConfig = {
+  accountSid: configService.getValue('TWILIO_ACCOUNT_SID'),
+  authToken: configService.getValue('TWILIO_AUTH_TOKEN'),
+  phoneNumber: configService.getValue('TWILIO_PHONE_NUMBER'),
+  verifyServiceSid: configService.getValue('TWILIO_VERIFY_SERVICE_SID'),
+};

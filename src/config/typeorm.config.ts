@@ -1,31 +1,46 @@
-import { registerAs } from '@nestjs/config';
 import { DataSourceOptions } from 'typeorm';
 import { join } from 'path';
+import { registerAs } from '@nestjs/config';
+import { configService } from 'src/common/services/config.service'; // adjust path as needed
 
-/**
- * PostgreSQL Configuration
- * This configuration is used to set up the PostgreSQL database connection.
- * It uses environment variables to configure the database connection settings.
- */
-export const dataSourceOptions: DataSourceOptions = {
-  type: 'postgres',
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '5432', 10),
-  username: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASS || 'buddy',
-  database: process.env.DB_NAME || 'postgres',
-  entities: [join(__dirname, '..', '**', '*.entity.{ts,js}')],
-  migrations: [join(__dirname, '..', 'db', 'migrations', '*.{ts,js}')],
-  synchronize: false,
-  logger: 'advanced-console',
+export const dataSourceOptions = (): DataSourceOptions => {
+  const useDatabaseUrl = configService.getValue('DATABASE_URL', false);
+  console.log('Connecting URL :', useDatabaseUrl);
+
+  if (useDatabaseUrl) {
+    return {
+      type: (configService.getValue('DB_TYPE', false) as any) || 'postgres',
+      url: useDatabaseUrl,
+      entities: [join(__dirname, '..', '**', '*.entity.{ts,js}')],
+      migrations: [join(__dirname, '..', 'db', 'migrations', '*.{ts,js}')],
+      synchronize: false,
+      ssl:
+        configService.getValue('DB_SSL', false) === 'true'
+          ? { rejectUnauthorized: false }
+          : false,
+      logging: configService.getValue('TYPEORM_LOGGING', false) === 'true',
+    };
+  }
+
+  return {
+    type: (configService.getValue('DB_TYPE', false) as any) || 'postgres',
+    host: configService.getValue('DB_HOST'),
+    port: Number(configService.getValue('DB_PORT')),
+    username: configService.getValue('DB_USER'),
+    password: configService.getValue('DB_PASS'),
+    database: configService.getValue('DB_NAME'),
+    entities: [join(__dirname, '..', '**', '*.entity.{ts,js}')],
+    migrations: [join(__dirname, '..', 'db', 'migrations', '*.{ts,js}')],
+    synchronize: false,
+    ssl:
+      configService.getValue('DB_SSL', false) === 'true'
+        ? { rejectUnauthorized: false }
+        : false,
+    logging: configService.getValue('TYPEORM_LOGGING', false) === 'true',
+  };
 };
 
-/**
- * TypeORM Configuration
- * This configuration is used to set up the TypeORM database connection.
- * It uses environment variables to configure the database connection settings.
- */
 export const typeOrmConfig = registerAs('typeorm', () => ({
-  ...dataSourceOptions,
+  ...dataSourceOptions(),
   synchronize: false,
 }));

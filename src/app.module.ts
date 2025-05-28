@@ -15,9 +15,6 @@ import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { IsSuspendedGuard } from './auth/guards/isNotSuspended.guard';
 import { LoggerInterceptor } from './common/interceptors/logger.interceptor';
 import { typeOrmConfig } from './config/typeorm.config';
-import { SMTP_CONFIG } from './config/gmail.config';
-import { JWT_CONFIG } from './config/jwt.config';
-import { GOOGLE_OAUTH } from './config/google-oauth.config';
 import { LoginUsingGoogleModule } from './login-using-google/login-using-google.module';
 import { EmailVerificationByLinkModule } from './email-verification-by-link/email-verification-by-link.module';
 import { FileUploadModule } from './file-upload/file-upload.module';
@@ -28,6 +25,7 @@ import { ResponseTransformInterceptor } from './common/interceptors/response-tra
 import { ProductsModule } from './products/products.module';
 import { JwtAuthGuard } from './auth/guards/jwt.guard';
 import { Languagelnterceptor } from './common/interceptors/language.interceptor';
+import { validationSchema } from './config/env.validation';
 
 /**
  * AppModule
@@ -37,14 +35,10 @@ import { Languagelnterceptor } from './common/interceptors/language.interceptor'
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [typeOrmConfig, SMTP_CONFIG, JWT_CONFIG, GOOGLE_OAUTH],
+      validationSchema,
+      envFilePath: [`.env.${process.env.NODE_ENV || 'local'}`],
     }),
-    TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) =>
-        configService.get('typeorm') as any,
-    }),
+    TypeOrmModule.forRoot(typeOrmConfig()),
     EmailVerificationByLinkModule,
     LoginUsingGoogleModule,
     UserModule,

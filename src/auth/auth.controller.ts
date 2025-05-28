@@ -13,6 +13,7 @@ import {
   UseInterceptors,
   UploadedFile,
   HttpCode,
+  Version,
 } from '@nestjs/common';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { Response } from 'express';
@@ -43,6 +44,36 @@ export class AuthController {
     @Body() registerDto: CreateUserDto,
   ) {
     return await this.authService.registerUsingOTP(registerDto, file);
+  }
+
+  /**
+   * Registers a new user.
+   * This endpoint allows users to register using an email token.
+   */
+  @Version('2')
+  @Public()
+  @Post('register')
+  @UseInterceptors(FileInterceptor('avatar'))
+  async registerUsingEmailToken(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() registerDto: CreateUserDto,
+  ) {
+    return await this.authService.registerUsingEmailToken(registerDto, file);
+  }
+
+  /**
+   * Registers a new user.
+   * This endpoint allows users to register with their details.
+   */
+  @Version('3')
+  @Public()
+  @Post('register')
+  @UseInterceptors(FileInterceptor('avatar'))
+  async simpleRegister(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() registerDto: CreateUserDto,
+  ) {
+    return await this.authService.simpleRegister(registerDto, file);
   }
 
   /**

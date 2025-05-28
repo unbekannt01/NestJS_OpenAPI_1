@@ -1,15 +1,9 @@
-import { registerAs } from '@nestjs/config';
+// google-oauth.config.ts
+import { configService } from "src/common/services/config.service";
 
-/**
- * SMTP Configuration
- * This configuration is used to set up the SMTP server for sending emails.
- * It uses environment variables to configure the SMTP server.
- */
-export const GOOGLE_OAUTH = registerAs('GOOGLE', () => {
-  return {
-    CLIENT_ID: process.env['GOOGLE_CLIENT_ID'],
-    PROJECT_ID: process.env['GOOGLE_PROJECT_ID'],
-    CLIENT_SECRET: process.env['GOOGLE_CLIENT_SECRET'],
-    CALLBACK_URL: process.env['GOOGLE_CALLBACK_URL'],
-  };
-});
+export const googleOAuthConfig = {
+  clientId: configService.getValue('GOOGLE_CLIENT_ID'),
+  projectId: configService.getValue('GOOGLE_PROJECT_ID'),
+  clientSecret: configService.getValue('GOOGLE_CLIENT_SECRET'),
+  callbackUrl: configService.getValue('GOOGLE_CALLBACK_URL'),
+};

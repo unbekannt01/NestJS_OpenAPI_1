@@ -3,16 +3,15 @@
 import { NestFactory, Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import * as dotenv from 'dotenv';
+import { config } from 'dotenv';
 import { ConfigService } from '@nestjs/config';
 import * as cookieParser from 'cookie-parser';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import * as path from 'path';
 import { VersioningType } from '@nestjs/common';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
-import { JwtAuthGuard } from './auth/guards/jwt.guard';
 
-dotenv.config();
+config();
 
 /**
  * bootstrap
@@ -72,6 +71,16 @@ async function bootstrap() {
   SwaggerModule.setup('api', app, document);
 
   await app.listen(PORT, '0.0.0.0');
-  console.log(`🚀 Server is running on PORT ${PORT}`);
+  const env = process.env.NODE_ENV || 'local';
+
+  if (env === 'local') {
+    console.log(`Server is running on PORT ${PORT} and Local Environment`);
+  } else if (env === 'development') {
+    console.log(
+      `Server is running on PORT ${PORT} and Development Environment`,
+    );
+  } else {
+    console.log(`Running in ${env.toUpperCase()} environment`);
+  }
 }
 bootstrap();

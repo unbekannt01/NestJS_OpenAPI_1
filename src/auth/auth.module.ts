@@ -13,8 +13,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from 'src/user/entities/user.entity';
 import { EmailVerification } from 'src/email-verification-by-link/entity/email-verify.entity';
 import { JwtStrategy } from './strategies/jwt.strategy';
-import { Auth2Controller } from './auth-v2.controller';
-import { Auth3Controller } from './auth-v3.controller';
+import { jwtConfig } from 'src/config/jwt.config';
 
 /**
  * AuthModule
@@ -26,18 +25,7 @@ import { Auth3Controller } from './auth-v3.controller';
     forwardRef(() => UserModule),
     forwardRef(() => OtpModule),
     forwardRef(() => EmailVerificationByLinkModule),
-    JwtModule.registerAsync({
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => {
-        const jwtConfig = configService.get('JWT');
-        return {
-          secret: jwtConfig.SECRET,
-          signOptions: {
-            expiresIn: jwtConfig.EXPIRES_IN,
-          },
-        };
-      },
-    }),
+    JwtModule.register(jwtConfig),
     MulterModule.register({
       storage: diskStorage({
         destination: './uploads',
@@ -48,7 +36,7 @@ import { Auth3Controller } from './auth-v3.controller';
       })
     })
   ],
-  controllers: [AuthController, Auth2Controller, Auth3Controller],
+  controllers: [AuthController],
   providers: [AuthService, JwtStrategy, EmailServiceForSupension],
   exports: [AuthService, EmailServiceForSupension],
 })
