@@ -93,7 +93,7 @@ export class AuthController {
   ): Promise<{ message: string; access_token: string; refresh_token: string }> {
     try {
       const { role, access_token, refresh_token } =
-        await this.authService.loginUser(login.email, login.password);
+        await this.authService.loginUser(login.identifier, login.password);
 
       res.cookie('access_token', access_token, {
         httpOnly: true,

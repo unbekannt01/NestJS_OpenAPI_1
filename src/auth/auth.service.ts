@@ -50,7 +50,7 @@ export class AuthService {
    * Login a user using email or username and password.
    */
   async loginUser(
-    email: string,
+    identifier: string,
     password: string,
   ): Promise<{
     message: string;
@@ -60,7 +60,10 @@ export class AuthService {
   }> {
     // Find user by email OR username
     const user = await this.userRepository.findOne({
-      where: { email: email.toLowerCase() },
+      where: [  
+        { email: identifier.toLowerCase() },
+        { userName: identifier.toLowerCase() },
+      ],
     });
 
     if (!user) {
@@ -226,8 +229,8 @@ export class AuthService {
       otp.otp_type = OtpType.EMAIL_VERIFICATION;
     }
 
-    await this.userRepository.save(user);
     await this.otpRepository.save(otp);
+    await this.userRepository.save(user);
 
     await this.emailServiceForOTP.sendOtpEmail(
       user.email,

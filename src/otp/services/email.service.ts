@@ -1,32 +1,29 @@
-import * as nodemailer from 'nodemailer';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import * as nodemailer from 'nodemailer';
 
-/**
- * EmailServiceForVerifyMail
- * This service is responsible for sending verification emails to users.
- */
 @Injectable()
 export class EmailServiceForOTP {
   constructor(private readonly configService: ConfigService) {}
 
   async sendOtpEmail(email: string, otp: string, first_name: string) {
-    const transporter = nodemailer.createTransport({
-      host: this.configService.get<string>('SMTP.HOST'),
-      port: parseInt(this.configService.get<string>('SMTP.PORT') || '587'),
-      secure: this.configService.get<string>('SMTP.SECURE') === 'true',
-      auth: {
-        user: this.configService.get<string>('SMTP.USER'),
-        pass: this.configService.get<string>('SMTP.PASSWORD'),
-      },
-    });
+    try {
+      const transporter = nodemailer.createTransport({
+        host: this.configService.get<string>('SMTP_HOST'), // Remove .SMTP
+        port: parseInt(this.configService.get<string>('SMTP_PORT') || '587'),
+        secure: this.configService.get<string>('SMTP_SECURE') === 'true',
+        auth: {
+          user: this.configService.get<string>('SMTP_USER'),
+          pass: this.configService.get<string>('SMTP_PASS'), // Use SMTP_PASS instead of SMTP_PASSWORD
+        },
+      });
 
-    const mailOptions = {
-      from: `"Testing_Purpose" <${this.configService.get<string>('SMTP.USER')}>`,
-      to: email,
-      subject: '🔐 Your OTP for Secure Login',
-      text: `Your OTP for verification is ${otp}.`,
-      html: `
+      const mailOptions = {
+        from: `"Testing_Purpose" <${this.configService.get<string>('SMTP_USER')}>`,
+        to: email,
+        subject: '🔐 Your OTP for Secure Login',
+        text: `Your OTP for verification is ${otp}.`,
+        html: `
         <div style="background-color:#f4f4f4; padding:20px; font-family: Arial, sans-serif;">
           <table align="center" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px; background-color:#ffffff; border-radius:10px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);">
             <tr>
@@ -43,8 +40,12 @@ export class EmailServiceForOTP {
           </table>
         </div>
       `,
-    };
+      };
 
-    await transporter.sendMail(mailOptions);
+      await transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error('Failed to send OTP email:', error);
+      // Don't throw the error to avoid breaking the registration process
+    }
   }
 }

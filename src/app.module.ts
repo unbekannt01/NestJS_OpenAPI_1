@@ -66,10 +66,10 @@ import { validationSchema } from './config/env.validation';
       provide: APP_INTERCEPTOR,
       useClass: Languagelnterceptor,
     },
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: LoggerInterceptor,
-    },
+    // {
+    //   provide: APP_INTERCEPTOR,
+    //   useClass: LoggerInterceptor,
+    // },
     {
       provide: APP_INTERCEPTOR,
       useClass: ResponseTransformInterceptor,
