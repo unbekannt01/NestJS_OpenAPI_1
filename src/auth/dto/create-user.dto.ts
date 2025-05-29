@@ -14,6 +14,7 @@ import {
  * It includes validation rules for each property.
  */
 export class CreateUserDto {
+  @IsOptional()
   @IsNotEmpty()
   @IsString()
   @ApiProperty()
@@ -21,18 +22,15 @@ export class CreateUserDto {
   userName: string;
 
   @IsOptional()
-  @IsNotEmpty()
   @IsString()
   @ApiProperty()
   first_name: string;
 
   @IsOptional()
-  @IsNotEmpty()
   @IsString()
   @ApiProperty()
   last_name: string;
 
-  @IsOptional()
   @IsEmail()
   @ApiProperty()
   @Transform(({ value }) => value.toLowerCase())
@@ -44,14 +42,12 @@ export class CreateUserDto {
   password: string;
 
   @IsOptional()
-  @IsNotEmpty()
   @Matches(/^\+\d{10,15}$/)
   @ApiProperty()
   mobile_no: string;
 
   @IsOptional()
   @ApiProperty({ type: 'string', default: 'yyyy-mm-dd' })
-  @IsNotEmpty()
   birth_date: Date | null;
 
   @ApiProperty()
