@@ -35,6 +35,7 @@ export class AuthController {
 
   /**
    * Registers a new user.
+   * This endpoint allows users to register using an OTP (One-Time Password).
    */
   @Public()
   @Post('register')
@@ -63,7 +64,7 @@ export class AuthController {
 
   /**
    * Registers a new user.
-   * This endpoint allows users to register with their details.
+   * This endpoint allows users to register with simple method.
    */
   @Version('3')
   @Public()
