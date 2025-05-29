@@ -9,10 +9,8 @@ import { IsEmail, IsNotEmpty } from "class-validator";
 export class LoginUserDto {
 
     @IsNotEmpty()
-    @ApiProperty()
-    identifier : string;
+    email : string;
 
     @IsNotEmpty()
-    @ApiProperty()
     password : string;
 }

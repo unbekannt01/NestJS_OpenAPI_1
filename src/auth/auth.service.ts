@@ -50,7 +50,7 @@ export class AuthService {
    * Login a user using email or username and password.
    */
   async loginUser(
-    identifier: string,
+    email: string,
     password: string,
   ): Promise<{
     message: string;
@@ -60,7 +60,7 @@ export class AuthService {
   }> {
     // Find user by email OR username
     const user = await this.userRepository.findOne({
-      where: [{ email: identifier }, { userName: identifier }],
+      where: { email: email.toLowerCase() },
     });
 
     if (!user) {
@@ -113,9 +113,7 @@ export class AuthService {
    * Register a new user with simple method.
    * This method does not send an OTP or email verification.
    */
-  async simpleRegister(
-    createUserDto: CreateUserDto1,
-  ) {
+  async simpleRegister(createUserDto: CreateUserDto1) {
     const normalizedEmail = createUserDto.email.toLowerCase();
     // const normalizedUserName = createUserDto.userName.toLowerCase();
 
