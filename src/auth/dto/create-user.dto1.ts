@@ -3,6 +3,7 @@ import { Transform } from '@nestjs/class-transformer';
 import {
   IsEmail,
   IsNotEmpty,
+  IsString,
 } from 'class-validator';
 
 /**
@@ -13,13 +14,10 @@ import {
 export class CreateUserDto1 {
 
   @IsEmail()
-  @ApiProperty()
   @Transform(({ value }) => value.toLowerCase())
   email: string;
 
-  @IsNotEmpty()
-  // @MinLength(8)
-  @ApiProperty()
+  @IsString()
   password: string;
 
 }
