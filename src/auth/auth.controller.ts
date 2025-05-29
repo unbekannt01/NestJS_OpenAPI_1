@@ -25,6 +25,7 @@ import { Public } from 'src/common/decorators/public.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '@nestjs/passport';
 import { Admin } from 'src/common/decorators/admin.decorator';
+import { CreateUserDto1 } from './dto/create-user.dto1';
 
 /**
  * AuthController handles authentication-related operations such as
@@ -71,12 +72,12 @@ export class AuthController {
   @HttpCode(HttpStatus.CREATED) // for register
   @Public()
   @Post('register')
-  @UseInterceptors(FileInterceptor('avatar'))
+  // @UseInterceptors(FileInterceptor('avatar'))
   async simpleRegister(
-    @UploadedFile() file: Express.Multer.File,
-    @Body() registerDto: CreateUserDto,
+    // @UploadedFile() file: Express.Multer.File,
+    @Body() registerDto: CreateUserDto1,
   ) {
-    return await this.authService.simpleRegister(registerDto, file);
+    return await this.authService.simpleRegister(registerDto);
   }
 
   /**

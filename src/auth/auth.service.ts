@@ -22,6 +22,7 @@ import {
 } from 'src/common/filters/custom-exceptio.filter';
 import { EmailVerification } from 'src/email-verification-by-link/entity/email-verify.entity';
 import { EmailServiceForVerifyMail } from 'src/email-verification-by-link/services/email-verify.service';
+import { CreateUserDto1 } from './dto/create-user.dto1';
 
 /**
  * AuthService handles user authentication, registration, and token management.
@@ -113,11 +114,10 @@ export class AuthService {
    * This method does not send an OTP or email verification.
    */
   async simpleRegister(
-    createUserDto: CreateUserDto,
-    file: Express.Multer.File,
+    createUserDto: CreateUserDto1,
   ) {
     const normalizedEmail = createUserDto.email.toLowerCase();
-    const normalizedUserName = createUserDto.userName.toLowerCase();
+    // const normalizedUserName = createUserDto.userName.toLowerCase();
 
     let user = await this.userRepository.findOne({
       where: { email: normalizedEmail },
@@ -128,16 +128,16 @@ export class AuthService {
       checkIfSuspended(user);
     }
 
-    const usernameConflict = await this.userRepository.findOne({
-      where: { userName: normalizedUserName },
-      withDeleted: true,
-    });
+    // const usernameConflict = await this.userRepository.findOne({
+    //   where: { userName: normalizedUserName },
+    //   withDeleted: true,
+    // });
 
-    if (usernameConflict && (!user || usernameConflict.id !== user.id)) {
-      throw new ConflictException(
-        'This username is already taken. Please choose another username or contact support to restore your account.',
-      );
-    }
+    // if (usernameConflict && (!user || usernameConflict.id !== user.id)) {
+    //   throw new ConflictException(
+    //     'This username is already taken. Please choose another username or contact support to restore your account.',
+    //   );
+    // }
 
     if (user) {
       if (user.status === 'ACTIVE') {
@@ -149,14 +149,14 @@ export class AuthService {
       user = this.userRepository.create({
         ...createUserDto,
         email: normalizedEmail,
-        userName: normalizedUserName,
+        // userName: normalizedUserName,
         password: hashedPassword,
-        avatar: file ? file.filename.replace(/\\/g, '/') : undefined,
+        // avatar: file ? file.filename.replace(/\\/g, '/') : undefined,
         status: UserStatus.ACTIVE,
         role: UserRole.USER,
-        birth_date: createUserDto.birth_date || undefined,
+        // birth_date: createUserDto.birth_date || undefined,
         createdAt: new Date(),
-        createdBy: createUserDto.userName,
+        // createdBy: createUserDto.userName,
       });
     }
 
