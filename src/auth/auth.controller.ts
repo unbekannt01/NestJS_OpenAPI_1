@@ -14,6 +14,7 @@ import {
   UploadedFile,
   HttpCode,
   Version,
+  HttpStatus,
 } from '@nestjs/common';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { Response } from 'express';
@@ -67,6 +68,7 @@ export class AuthController {
    * This endpoint allows users to register with simple method.
    */
   @Version('3')
+  @HttpCode(HttpStatus.CREATED) // for register
   @Public()
   @Post('register')
   @UseInterceptors(FileInterceptor('avatar'))
@@ -80,13 +82,14 @@ export class AuthController {
   /**
    * Logs in a user and returns an access token and refresh token.
    */
+  @HttpCode(HttpStatus.OK)
   @Public()
   @Post('login')
   @UsePipes(ValidationPipe)
   async login(
     @Body() login: LoginUserDto,
     @Res({ passthrough: true }) res: Response,
-  ): Promise<{ message: string; refresh_token: string }> {
+  ): Promise<{ message: string; access_token: string; refresh_token: string }> {
     try {
       const { role, access_token, refresh_token } =
         await this.authService.loginUser(login.identifier, login.password);
@@ -99,7 +102,11 @@ export class AuthController {
         path: '/',
       });
 
-      return { message: `${role} Login Successfully!`, refresh_token };
+      return {
+        message: `${role} Login Successfully!`,
+        access_token,
+        refresh_token,
+      };
     } catch (error) {
       throw new BadRequestException(error.message || 'Login failed');
     }
