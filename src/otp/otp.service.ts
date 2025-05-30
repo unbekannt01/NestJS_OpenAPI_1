@@ -6,10 +6,12 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User, UserStatus } from 'src/user/entities/user.entity';
-import { Repository } from 'typeorm';
+import { DeleteResult, Repository } from 'typeorm';
 import { Otp } from './entities/otp.entity';
 import { OtpType } from './entities/otp.entity';
-
+import { LessThan } from 'typeorm';
+import { otpExpiryConfig } from 'src/config/email.config';
+import { Cron, CronExpression } from '@nestjs/schedule';
 /**
  * OtpService
  * This service handles OTP-related operations such as verifying and resending OTPs.
@@ -127,6 +129,25 @@ export class OtpService {
    * This method returns the expiration date and time for the OTP.
    */
   getOtpExpiration(): Date {
-    return new Date(Date.now() + 2 * 60 * 1000); // 2 minutes expiration
+    return new Date(Date.now() + otpExpiryConfig.expirationOtp); // 2 minutes expiration
+  }
+
+  async deleteExpiredOtps(cutoffDate: Date): Promise<DeleteResult> {
+    return await this.otpRepository.delete({
+      createdAt: LessThan(cutoffDate),
+    });
+  }
+
+  /**
+   * Clean up expired OTPs every 5 minutes
+   */
+  @Cron(CronExpression.EVERY_5_MINUTES)
+  async cleanupExpiredOtps() {
+    const expirationTime = new Date(Date.now() - otpExpiryConfig.expirationOtp);
+    const result = await this.deleteExpiredOtps(expirationTime);
+
+    if ((result?.affected ?? 0) > 0) {
+      console.log(`Cleaned up ${result.affected} expired OTPs`);
+    }
   }
 }

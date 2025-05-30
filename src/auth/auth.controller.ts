@@ -26,6 +26,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '@nestjs/passport';
 import { Admin } from 'src/common/decorators/admin.decorator';
 import { CreateUserDto1 } from './dto/create-user.dto1';
+import { Cron } from '@nestjs/schedule';
 
 /**
  * AuthController handles authentication-related operations such as

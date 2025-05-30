@@ -10,6 +10,7 @@ import { Repository } from 'typeorm';
 import { EmailServiceForSupension } from 'src/auth/services/suspend-mail.service';
 import { LazyModuleLoader } from '@nestjs/core';
 import { RequestLog } from './entity/log.entity';
+import { Cron, CronExpression } from '@nestjs/schedule';
 
 /**
  * AdminService
@@ -26,6 +27,15 @@ export class AdminService {
     private readonly emailServiceForSuspend: EmailServiceForSupension,
     private readonly lazymodule: LazyModuleLoader,
   ) {}
+
+  /**
+   * Clean up old request logs every day at midnight
+   */
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  async cleanupOldLogs() {
+    console.log('Removed Logs...');
+    await this.deleteAllLogs();
+  }
 
   /**
    * Suspends a user by their ID.

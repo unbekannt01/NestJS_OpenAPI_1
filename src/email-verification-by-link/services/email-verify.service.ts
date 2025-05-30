@@ -1,6 +1,7 @@
 import * as nodemailer from 'nodemailer';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { smtpConfig } from 'src/config/smtp.config';
 
 /**
  * EmailServiceForVerifyMail
@@ -15,15 +16,7 @@ export class EmailServiceForVerifyMail {
     verificationLink: string,
     first_name: string,
   ) {
-    const transporter = nodemailer.createTransport({
-      host: this.configService.get<string>('SMTP.HOST'),
-      port: parseInt(this.configService.get<string>('SMTP.PORT') || '587'),
-      secure: this.configService.get<string>('SMTP.SECURE') === 'true',
-      auth: {
-        user: this.configService.get<string>('SMTP.USER'),
-        pass: this.configService.get<string>('SMTP.PASSWORD'),
-      },
-    });
+    const transporter = nodemailer.createTransport(smtpConfig);
 
     const mailOptions = {
       from: `"Testing_Purpose" <${this.configService.get<string>('SMTP.USER')}>`,

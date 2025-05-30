@@ -27,10 +27,19 @@ export class IsLoggedInGuard implements CanActivate {
       context.getClass(),
     ]);
     const request = context.switchToHttp().getRequest();
-    const token = request.cookies['access_token'];
 
     if (isPublic) {
       return true;
+    }
+
+    // Check for token in cookie first, then Authorization header
+    let token = request.cookies['access_token'];
+
+    if (!token) {
+      const authHeader = request.headers['authorization'];
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.split(' ')[1];
+      }
     }
 
     if (!token) {

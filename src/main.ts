@@ -18,7 +18,9 @@ config();
  * This function initializes the NestJS application.
  */
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    logger: ['error', 'warn', 'log', 'debug', 'verbose'],
+  });
   const configService = app.get(ConfigService);
   const PORT = configService.get<number>('PORT') || 3001;
 

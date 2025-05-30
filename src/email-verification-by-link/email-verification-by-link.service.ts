@@ -8,9 +8,11 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User, UserStatus } from 'src/user/entities/user.entity';
 import { EmailServiceForVerifyMail } from './services/email-verify.service';
-import { Repository } from 'typeorm';
+import { DeleteResult, LessThan, Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { EmailVerification } from './entity/email-verify.entity';
+import { emailTokenConfig } from 'src/config/email.config';
+import { Cron, CronExpression } from '@nestjs/schedule';
 
 /**
  * EmailVerificationByLinkService
@@ -68,7 +70,9 @@ export class EmailVerificationByLinkService {
    */
   async generateEmailVerificationToken(user: User): Promise<string> {
     const token = uuidv4();
-    const tokenExpiration = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    const tokenExpiration = new Date(
+      Date.now() + emailTokenConfig.expirationMs,
+    ); // 24 hours
 
     const verification = this.emailVerifyRepository.create({
       user: user,
@@ -114,5 +118,26 @@ export class EmailVerificationByLinkService {
       verificationLink,
       user.first_name,
     );
+  }
+
+  async deleteExpiredToken(cutoffDate: Date): Promise<DeleteResult> {
+    return await this.emailVerifyRepository.delete({
+      createdAt: LessThan(cutoffDate),
+    });
+  }
+
+  /**
+   * Clean up expired email verification tokens every 10 minutes
+   */
+  @Cron(CronExpression.EVERY_10_MINUTES)
+  async cleanupExpiredEmailTokens() {
+    const expirationTime = new Date(Date.now() - emailTokenConfig.expirationMs);
+    const result = await this.deleteExpiredToken(expirationTime);
+
+    if ((result?.affected ?? 0) > 0) {
+      console.log(
+        `Cleaned up ${result.affected} expired email verification tokens`,
+      );
+    }
   }
 }

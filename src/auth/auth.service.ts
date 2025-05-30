@@ -3,9 +3,11 @@ import {
   UnauthorizedException,
   NotFoundException,
   ConflictException,
+  Logger,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { MoreThanOrEqual, Repository } from 'typeorm';
+import { LessThanOrEqual, MoreThanOrEqual, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { User, UserRole, UserStatus } from 'src/user/entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
@@ -23,6 +25,9 @@ import {
 import { EmailVerification } from 'src/email-verification-by-link/entity/email-verify.entity';
 import { EmailServiceForVerifyMail } from 'src/email-verification-by-link/services/email-verify.service';
 import { CreateUserDto1 } from './dto/create-user.dto1';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { EmailVerificationByLinkService } from 'src/email-verification-by-link/email-verification-by-link.service';
+import { emailTokenConfig, otpExpiryConfig } from 'src/config/email.config';
 
 /**
  * AuthService handles user authentication, registration, and token management.
@@ -60,7 +65,7 @@ export class AuthService {
   }> {
     // Find user by email OR username
     const user = await this.userRepository.findOne({
-      where: [  
+      where: [
         { email: identifier.toLowerCase() },
         { userName: identifier.toLowerCase() },
       ],
@@ -300,7 +305,7 @@ export class AuthService {
 
     // Generate and save new email verification token
     const token = uuidv4();
-    const tokenExpiration = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    const tokenExpiration = new Date(Date.now() + emailTokenConfig.expirationMs);
 
     const verification = this.emailverifyRepository.create({
       user: user,
@@ -319,16 +324,21 @@ export class AuthService {
       );
     }
 
-    const verificationLink = `${FRONTEND_BASE_URL}/verify-email?token=${token}`;
+  const verificationLink = `${FRONTEND_BASE_URL}/verify-email?token=${token}`;
+  try {
     await this.emailServiceForVerification.sendVerificationEmail(
       user.email,
       verificationLink,
       user.first_name,
     );
+  } catch (error) {
+    console.error('Registration Error:', error);
+    throw new InternalServerErrorException('Registration failed. Please try again later.');
+  }
 
-    return {
-      message: `${user.role} registered successfully. Verification link sent to email.`,
-    };
+  return {
+    message: `${user.role} registered successfully. Verification link sent to email.`,
+  };
   }
 
   /**

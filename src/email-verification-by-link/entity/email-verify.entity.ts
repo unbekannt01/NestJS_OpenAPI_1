@@ -2,6 +2,7 @@ import { Exclude } from '@nestjs/class-transformer';
 import { User } from 'src/user/entities/user.entity';
 import {
   Column,
+  CreateDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
@@ -25,6 +26,9 @@ export class EmailVerification {
   @Exclude()
   @Column({ type: 'timestamp', nullable: true })
   tokenExpiration: Date | null;
+
+  @CreateDateColumn()
+  createdAt: Date;
 
   @ManyToOne(() => User, (user) => user.emailVerifications, {
     onDelete: 'CASCADE',

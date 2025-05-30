@@ -46,6 +46,7 @@ export const validationSchema = Joi.object({
   MAX_LOGIN_ATTEMPTS: Joi.number().default(10),
   LOCKOUT_DURATION: Joi.number().default(900000),
   OTP_EXPIRY: Joi.number().default(120000),
+  EMAIL_VERIFICATION_TOKEN_EXPIRATION_MS: Joi.number(),
 
   // App Settings
   APP_NAME: Joi.string().default('MyApp Local'),

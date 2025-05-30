@@ -3,9 +3,9 @@ import {
   MiddlewareConsumer,
   NestModule,
   ClassSerializerInterceptor,
-  RequestMethod,
+  Logger,
 } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserModule } from './user/user.module';
 import { SearchModule } from './search/search.module';
@@ -26,6 +26,8 @@ import { ProductsModule } from './products/products.module';
 import { JwtAuthGuard } from './auth/guards/jwt.guard';
 import { Languagelnterceptor } from './common/interceptors/language.interceptor';
 import { validationSchema } from './config/env.validation';
+import { ScheduleModule } from '@nestjs/schedule';
+import { AuthModule } from './auth/auth.module';
 
 /**
  * AppModule
@@ -33,20 +35,22 @@ import { validationSchema } from './config/env.validation';
  */
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
       validationSchema,
       envFilePath: [`.env.${process.env.NODE_ENV || 'local'}`],
     }),
     TypeOrmModule.forRoot(typeOrmConfig()),
+    AuthModule,
+    UserModule,
     EmailVerificationByLinkModule,
     LoginUsingGoogleModule,
-    UserModule,
     SearchModule,
-    FileUploadModule,
-    AdminModule,
     PasswordModule,
+    FileUploadModule,
     ProductsModule,
+    AdminModule,
   ],
   providers: [
     SmsService,
@@ -66,10 +70,10 @@ import { validationSchema } from './config/env.validation';
       provide: APP_INTERCEPTOR,
       useClass: Languagelnterceptor,
     },
-    // {
-    //   provide: APP_INTERCEPTOR,
-    //   useClass: LoggerInterceptor,
-    // },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: LoggerInterceptor,
+    },
     {
       provide: APP_INTERCEPTOR,
       useClass: ResponseTransformInterceptor,

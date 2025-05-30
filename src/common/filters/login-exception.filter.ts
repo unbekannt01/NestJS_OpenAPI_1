@@ -19,16 +19,25 @@ export class LoggingExceptionFilter implements ExceptionFilter {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
-
+    const isDev = process.env.NODE_ENV === 'local';
     const status =
       exception instanceof HttpException
         ? exception.getStatus()
         : HttpStatus.INTERNAL_SERVER_ERROR;
 
     this.logger.error(
-      `Exception: ${exception instanceof Error ? exception.message : 'Unknown error'}`,
-      exception instanceof Error ? exception.stack : '',
-      `${request.method} ${request.url}`,
+      `Exception thrown for ${request.method} ${request.url}`,
+      JSON.stringify({
+        message:
+          exception instanceof Error ? exception.message : 'Unknown error',
+        stack: exception instanceof Error ? exception.stack : 'No stack trace',
+        status,
+        path: request.url,
+        method: request.method,
+        body: request.body,
+        query: request.query,
+        params: request.params,
+      }),
     );
 
     response.status(status).json({
@@ -39,6 +48,11 @@ export class LoggingExceptionFilter implements ExceptionFilter {
         exception instanceof HttpException
           ? exception.getResponse()
           : 'Internal server error',
+      ...(isDev &&
+        exception instanceof Error && {
+          errorMessage: exception.message,
+          stack: exception.stack,
+        }),
     });
   }
 }

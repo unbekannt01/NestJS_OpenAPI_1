@@ -17,5 +17,6 @@ import { EmailVerification } from './entity/email-verify.entity';
   ],
   controllers: [EmailVerificationByLinkController],
   providers: [EmailVerificationByLinkService, EmailServiceForVerifyMail],
+  exports: [EmailVerificationByLinkService, EmailServiceForVerifyMail]
 })
 export class EmailVerificationByLinkModule {}

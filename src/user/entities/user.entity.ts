@@ -1,7 +1,13 @@
 import { Exclude, Expose } from 'class-transformer';
 import { BaseEntity } from '../../common/entities/base.entity';
 import { RecentSearch } from 'src/search/entity/recent-search.entity';
-import { Column, Entity, OneToMany, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  OneToMany,
+  OneToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { Otp } from 'src/otp/entities/otp.entity';
 import { EmailVerification } from 'src/email-verification-by-link/entity/email-verify.entity';
 import { RequestLog } from 'src/admin/entity/log.entity';
@@ -113,6 +119,11 @@ export class User extends BaseEntity {
     return age;
   }
 
+  @Expose()
+  get fullName(): string {
+    return `${this.first_name || ''} ${this.last_name || ''}`.trim();
+  }
+
   @OneToMany(() => RecentSearch, (recentSearch) => recentSearch.user)
   recentSearch: RecentSearch[];
 
@@ -125,6 +136,6 @@ export class User extends BaseEntity {
   @OneToMany(() => RequestLog, (reqLog) => reqLog.user)
   reqLog: RequestLog[];
 
-  @OneToMany(() => Product, (product)=> product.user)
+  @OneToMany(() => Product, (product) => product.user)
   products: Product[];
 }

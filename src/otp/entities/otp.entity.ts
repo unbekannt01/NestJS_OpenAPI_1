@@ -1,12 +1,6 @@
-import { Exclude } from 'class-transformer';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn } from 'typeorm';
 import { User } from 'src/user/entities/user.entity';
-import {
-  Column,
-  Entity,
-  JoinColumn,
-  ManyToOne,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
+import { Exclude } from '@nestjs/class-transformer';
 
 /**
  * OtpType
@@ -30,15 +24,15 @@ export class Otp {
   @Column({ type: 'varchar', nullable: true })
   otp: string | null;
 
-  @Exclude()
   @Column({ type: 'timestamp', nullable: true })
-  otpExpiration: Date | null;
+  otpExpiration: Date | null; 
 
-  @Exclude()
   @Column({ type: 'enum', enum: OtpType, nullable: true })
   otp_type: OtpType | null;
 
   @ManyToOne(() => User, (user) => user.otps, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'user_id' })
   user: User;
+
+  @CreateDateColumn()
+  createdAt: Date;
 }
