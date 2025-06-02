@@ -5,7 +5,6 @@ import {
   Column,
   Entity,
   OneToMany,
-  OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Otp } from 'src/otp/entities/otp.entity';

@@ -10,6 +10,7 @@ import {
   MoreThanOrEqual,
   LessThanOrEqual,
   Between,
+  SelectQueryBuilder,
 } from 'typeorm';
 import { RecentSearch } from './entity/recent-search.entity';
 import { User } from 'src/user/entities/user.entity';

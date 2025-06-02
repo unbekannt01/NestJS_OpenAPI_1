@@ -28,6 +28,7 @@ import { Languagelnterceptor } from './common/interceptors/language.interceptor'
 import { validationSchema } from './config/env.validation';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AuthModule } from './auth/auth.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 /**
  * AppModule
@@ -35,6 +36,7 @@ import { AuthModule } from './auth/auth.module';
  */
 @Module({
   imports: [
+    EventEmitterModule.forRoot(),
     ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,

@@ -9,6 +9,7 @@ import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { AdminService } from '../../admin/admin.service';
 import { Request } from 'express';
+import { UserId } from '../decorators/user-id.decorator';
 
 @Injectable()
 export class LoggerInterceptor implements NestInterceptor {
@@ -30,7 +31,7 @@ export class LoggerInterceptor implements NestInterceptor {
         const statusCode = response.statusCode;
         const resTime = Date.now() - startTime;
         // Safely get user id if available
-        const user = req.user;
+        // const user = req.user;
 
         // this.logger.log(`${method} ${url} ${statusCode} - ${resTime}ms`);
 
@@ -43,7 +44,7 @@ export class LoggerInterceptor implements NestInterceptor {
             ip,
             statusCode,
             responseTime: resTime,
-            // user: user ? user : undefined // Replace 'id' with the correct identifier property if different
+            // user: user ? user : undefined
           });
         } catch (error) {
           console.error('Failed to log request:', error);

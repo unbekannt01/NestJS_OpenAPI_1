@@ -10,6 +10,9 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import * as path from 'path';
 import { VersioningType } from '@nestjs/common';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
+import * as compression from 'compression';
+import * as session from 'express-session';
+import * as passport from 'passport';
 
 config();
 
@@ -26,6 +29,7 @@ async function bootstrap() {
 
   const reflector = app.get(Reflector);
 
+  app.use(compression());
   app.useGlobalFilters(new AllExceptionsFilter());
 
   app.enableVersioning({
@@ -51,6 +55,22 @@ async function bootstrap() {
     ],
     exposedHeaders: ['Set-Cookie'],
   });
+
+  app.use(
+    session({
+      secret: 'hello-how-are-you',
+      resave: true,
+      saveUninitialized: false,
+      cookie: {
+        maxAge: 60 * 60 * 1000, // 1 hour
+        secure: process.env.NODE_ENV === 'development',
+        httpOnly: true,
+      },
+    }),
+  );
+
+  app.use(passport.initialize())
+  app.use(passport.session())
 
   // // Add custom security headers
   // app.use((req, res, next) => {

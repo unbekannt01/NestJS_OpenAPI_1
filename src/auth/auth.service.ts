@@ -28,6 +28,8 @@ import { CreateUserDto1 } from './dto/create-user.dto1';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { EmailVerificationByLinkService } from 'src/email-verification-by-link/email-verification-by-link.service';
 import { emailTokenConfig, otpExpiryConfig } from 'src/config/email.config';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { UserRegisteredPayload } from './interfaces/jwt-payload.interface copy';
 
 /**
  * AuthService handles user authentication, registration, and token management.
@@ -49,6 +51,7 @@ export class AuthService {
     private readonly emailServiceForOTP: EmailServiceForOTP,
     private readonly configService: ConfigService,
     private readonly emailServiceForVerification: EmailServiceForVerifyMail,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   /**
@@ -62,6 +65,7 @@ export class AuthService {
     access_token: string;
     refresh_token: string;
     role: UserRole;
+    user: User;
   }> {
     // Find user by email OR username
     const user = await this.userRepository.findOne({
@@ -95,7 +99,7 @@ export class AuthService {
       const role = user.role;
       const token = await this.generateUserToken(user.id, user.role);
 
-      return { message: `${role} Login Successfully!`, role, ...token };
+      return { message: `${role} Login Successfully!`, role, ...token , user};
     } catch (error) {
       user.loginAttempts = (user.loginAttempts || 0) + 1;
       await this.userRepository.save(user);
@@ -121,9 +125,12 @@ export class AuthService {
    * Register a new user with simple method.
    * This method does not send an OTP or email verification.
    */
-  async simpleRegister(createUserDto: CreateUserDto1) {
+  async simpleRegister(
+    createUserDto: CreateUserDto,
+    file: Express.Multer.File,
+  ) {
     const normalizedEmail = createUserDto.email.toLowerCase();
-    // const normalizedUserName = createUserDto.userName.toLowerCase();
+    const normalizedUserName = createUserDto.userName.toLowerCase();
 
     let user = await this.userRepository.findOne({
       where: { email: normalizedEmail },
@@ -134,16 +141,16 @@ export class AuthService {
       checkIfSuspended(user);
     }
 
-    // const usernameConflict = await this.userRepository.findOne({
-    //   where: { userName: normalizedUserName },
-    //   withDeleted: true,
-    // });
+    const usernameConflict = await this.userRepository.findOne({
+      where: { userName: normalizedUserName },
+      withDeleted: true,
+    });
 
-    // if (usernameConflict && (!user || usernameConflict.id !== user.id)) {
-    //   throw new ConflictException(
-    //     'This username is already taken. Please choose another username or contact support to restore your account.',
-    //   );
-    // }
+    if (usernameConflict && (!user || usernameConflict.id !== user.id)) {
+      throw new ConflictException(
+        'This username is already taken. Please choose another username or contact support to restore your account.',
+      );
+    }
 
     if (user) {
       if (user.status === 'ACTIVE') {
@@ -151,22 +158,32 @@ export class AuthService {
       }
     } else {
       const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
-      console.log('Hashed Password to Save:', hashedPassword);
       user = this.userRepository.create({
         ...createUserDto,
         email: normalizedEmail,
-        // userName: normalizedUserName,
+        userName: normalizedUserName,
         password: hashedPassword,
-        // avatar: file ? file.filename.replace(/\\/g, '/') : undefined,
+        avatar: file ? file.filename.replace(/\\/g, '/') : undefined,
         status: UserStatus.ACTIVE,
         role: UserRole.USER,
-        // birth_date: createUserDto.birth_date || undefined,
+        birth_date: createUserDto.birth_date || undefined,
         createdAt: new Date(),
-        // createdBy: createUserDto.userName,
+        createdBy: createUserDto.userName,
       });
     }
 
     await this.userRepository.save(user);
+
+    // Emit the user registered event
+    const payload: UserRegisteredPayload = {
+      id: user.id,
+      email: user.email,
+      userName: user.userName,
+      role: user.role,
+      // Add other relevant user details
+    };
+    this.eventEmitter.emit('user.registered', payload);
+
     return {
       message: `${user.role} registered successfully`,
     };
@@ -215,7 +232,6 @@ export class AuthService {
       otp.user = user;
     } else {
       const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
-      console.log('Hashed Password to Save:', hashedPassword);
       user = this.userRepository.create({
         ...createUserDto,
         email: normalizedEmail,
@@ -305,7 +321,9 @@ export class AuthService {
 
     // Generate and save new email verification token
     const token = uuidv4();
-    const tokenExpiration = new Date(Date.now() + emailTokenConfig.expirationMs);
+    const tokenExpiration = new Date(
+      Date.now() + emailTokenConfig.expirationMs,
+    );
 
     const verification = this.emailverifyRepository.create({
       user: user,
@@ -324,21 +342,23 @@ export class AuthService {
       );
     }
 
-  const verificationLink = `${FRONTEND_BASE_URL}/verify-email?token=${token}`;
-  try {
-    await this.emailServiceForVerification.sendVerificationEmail(
-      user.email,
-      verificationLink,
-      user.first_name,
-    );
-  } catch (error) {
-    console.error('Registration Error:', error);
-    throw new InternalServerErrorException('Registration failed. Please try again later.');
-  }
+    const verificationLink = `${FRONTEND_BASE_URL}/verify-email?token=${token}`;
+    try {
+      await this.emailServiceForVerification.sendVerificationEmail(
+        user.email,
+        verificationLink,
+        user.first_name,
+      );
+    } catch (error) {
+      console.error('Registration Error:', error);
+      throw new InternalServerErrorException(
+        'Registration failed. Please try again later.',
+      );
+    }
 
-  return {
-    message: `${user.role} registered successfully. Verification link sent to email.`,
-  };
+    return {
+      message: `${user.role} registered successfully. Verification link sent to email.`,
+    };
   }
 
   /**
@@ -527,4 +547,19 @@ export class AuthService {
     // If no matching refresh_token, it's invalid
     return false;
   }
+
+  async validateUser(identifier: string, password: string): Promise<any> {
+    const user = await this.userRepository.findOne({
+      where: [
+        { email: identifier.toLowerCase() },
+        { userName: identifier.toLowerCase() },
+      ],
+    });
+
+    if (!user) return null;
+
+    await this.verifyPassword(password, user.password);
+    return user;
+  }
 }
+

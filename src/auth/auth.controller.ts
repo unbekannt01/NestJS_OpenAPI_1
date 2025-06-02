@@ -10,11 +10,11 @@ import {
   UnauthorizedException,
   Req,
   UsePipes,
-  UseInterceptors,
   UploadedFile,
   HttpCode,
   Version,
   HttpStatus,
+  UseInterceptors,
 } from '@nestjs/common';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { Response } from 'express';
@@ -26,7 +26,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '@nestjs/passport';
 import { Admin } from 'src/common/decorators/admin.decorator';
 import { CreateUserDto1 } from './dto/create-user.dto1';
-import { Cron } from '@nestjs/schedule';
+import { Request } from 'express';
 
 /**
  * AuthController handles authentication-related operations such as
@@ -41,6 +41,7 @@ export class AuthController {
    * This endpoint allows users to register using an OTP (One-Time Password).
    */
   @Public()
+  @HttpCode(HttpStatus.CREATED)
   @Post('register')
   @UseInterceptors(FileInterceptor('avatar'))
   async register(
@@ -56,6 +57,7 @@ export class AuthController {
    */
   @Version('2')
   @Public()
+  @HttpCode(HttpStatus.CREATED)
   @Post('register')
   @UseInterceptors(FileInterceptor('avatar'))
   async registerUsingEmailToken(
@@ -73,12 +75,12 @@ export class AuthController {
   @HttpCode(HttpStatus.CREATED) // for register
   @Public()
   @Post('register')
-  // @UseInterceptors(FileInterceptor('avatar'))
+  @UseInterceptors(FileInterceptor('avatar'))
   async simpleRegister(
-    // @UploadedFile() file: Express.Multer.File,
-    @Body() registerDto: CreateUserDto1,
+    @UploadedFile() file: Express.Multer.File,
+    @Body() registerDto: CreateUserDto,
   ) {
-    return await this.authService.simpleRegister(registerDto);
+    return await this.authService.simpleRegister(registerDto, file);
   }
 
   /**
@@ -90,18 +92,36 @@ export class AuthController {
   @UsePipes(ValidationPipe)
   async login(
     @Body() login: LoginUserDto,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ): Promise<{ message: string; access_token: string; refresh_token: string }> {
     try {
-      const { role, access_token, refresh_token } =
+      const { role, access_token, refresh_token, user } =
         await this.authService.loginUser(login.identifier, login.password);
 
+      // Set JWT token cookie (as you have)
       res.cookie('access_token', access_token, {
         httpOnly: true,
         sameSite: 'lax',
         secure: process.env.NODE_ENV === 'production',
         maxAge: 60 * 60 * 1000,
         path: '/',
+      });
+
+      // Set session user data here
+      req.session.user = {
+        id: user.id,
+        role: user.role,
+        email: user.email,
+      };
+
+      req.session.regenerate((err) => {
+        if (err) throw err;
+        req.session.user = {
+          id: user.id,
+          role: user.role,
+          email: user.email,
+        };
       });
 
       return {
@@ -134,17 +154,13 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response,
   ) {
     try {
-      const authHeader = request.headers['authorization'];
-      const accessToken = authHeader?.split(' ')[1];
-
-      if (!accessToken) {
-        throw new UnauthorizedException('No access token found.');
+     
+      const user = request.user as { id : string }
+      if(!user?.id){
+        throw new UnauthorizedException('Invalid User Session...!')
       }
 
-      const payload = this.authService.verifyAccessToken(accessToken);
-      const id = payload.id;
-
-      await this.authService.logout(id);
+      await this.authService.logout(user.id);
 
       response.clearCookie('access_token', {
         path: '/',
@@ -183,5 +199,18 @@ export class AuthController {
       throw new UnauthorizedException('Invalid refresh token');
     }
     return { valid: true };
+  }
+
+  // @Public()
+  // @Get('set-session')
+  // setSession(@Req() req: Request) {
+  //   req.session['user'] = { name: 'John', role: 'admin' };
+  //   return 'Session set';
+  // }
+
+  @Get('profile')
+  @UseGuards(AuthGuard('session'))
+  getSession(@Req() req: Request) {
+    return req.session['user'];
   }
 }
