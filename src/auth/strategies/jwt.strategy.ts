@@ -1,8 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { ConfigService } from '@nestjs/config';
 import { JwtPayload } from '../interfaces/jwt-payload.interface';
+import { Repository } from 'typeorm';
+import { User } from 'src/user/entities/user.entity';
+import { jwtConfig } from 'src/config/jwt.config';
+import { InjectRepository } from '@nestjs/typeorm';
 
 /**
  * JwtStrategy
@@ -10,18 +13,38 @@ import { JwtPayload } from '../interfaces/jwt-payload.interface';
  */
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
-  constructor(configService: ConfigService) {
+  constructor(
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+  ) {
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
         ExtractJwt.fromAuthHeaderAsBearerToken(),
         (req) => req?.cookies?.['access_token'],
       ]),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_SECRET'),
+      secretOrKey: jwtConfig.secret,
+      algorithms: ['HS256'],
     });
   }
 
-  async validate(payload: JwtPayload) {
-    return { id: payload.id, role: payload.role };
+  async validate(payload: JwtPayload): Promise<User> {
+    if (!payload || !payload.id || !payload.jti) {
+      throw new UnauthorizedException('Invalid JWT payload');
+    }
+
+    const user = await this.userRepository.findOne({
+      where: {
+        id: payload.id,
+        jti: payload.jti,
+        is_logged_in: true,
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid or expired session');
+    }
+
+    return user;
   }
 }

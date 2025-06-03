@@ -13,7 +13,7 @@ if (fs.existsSync(envFilePath)) {
   config();
 }
 
-class ConfigService {
+export class ConfigService {
   constructor(private env: { [k: string]: string | undefined }) {}
 
   public getValue(key: string, throwOnMissing = true): string {
@@ -31,6 +31,14 @@ class ConfigService {
 
   public getPort() {
     return this.getValue('PORT', true);
+  }
+
+  public getNumber(key: string): number {
+    return Number(this.getValue(key));
+  }
+
+  public getBoolean(key: string): boolean {
+    return this.getValue(key) === 'true';
   }
 
   // public isProduction() {
@@ -61,6 +69,8 @@ const configService = new ConfigService(process.env).ensureValues([
   'DB_USER',
   'DB_PASS',
   'DB_NAME',
+  'JWT_SECRET',
+  'JWT_EXPIRES_IN',
 ]);
 
 export { configService };

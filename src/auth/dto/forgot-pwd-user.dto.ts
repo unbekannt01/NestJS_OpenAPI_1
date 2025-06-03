@@ -1,5 +1,4 @@
-import { ApiProperty } from "@nestjs/swagger";
-import { IsEmail, IsNotEmpty, IsString } from "class-validator";
+import { IsEmail, IsNotEmpty } from 'class-validator';
 
 /**
  * ForgotPwdDto
@@ -7,9 +6,7 @@ import { IsEmail, IsNotEmpty, IsString } from "class-validator";
  */
 
 export class ForgotPwdDto {
-
-    @IsNotEmpty()
-    @IsEmail()
-    @ApiProperty()
-    email : string;
+  @IsNotEmpty()
+  @IsEmail()
+  email: string;
 }

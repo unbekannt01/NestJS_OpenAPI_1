@@ -3,11 +3,10 @@ import {
   UnauthorizedException,
   NotFoundException,
   ConflictException,
-  Logger,
   InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { LessThanOrEqual, MoreThanOrEqual, Repository } from 'typeorm';
+import { MoreThanOrEqual, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { User, UserRole, UserStatus } from 'src/user/entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
@@ -24,12 +23,9 @@ import {
 } from 'src/common/filters/custom-exceptio.filter';
 import { EmailVerification } from 'src/email-verification-by-link/entity/email-verify.entity';
 import { EmailServiceForVerifyMail } from 'src/email-verification-by-link/services/email-verify.service';
-import { CreateUserDto1 } from './dto/create-user.dto1';
-import { Cron, CronExpression } from '@nestjs/schedule';
-import { EmailVerificationByLinkService } from 'src/email-verification-by-link/email-verification-by-link.service';
-import { emailTokenConfig, otpExpiryConfig } from 'src/config/email.config';
+import { emailTokenConfig } from 'src/config/email.config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { UserRegisteredPayload } from './interfaces/jwt-payload.interface copy';
+import { UserRegisteredPayload } from './interfaces/user-registered-payload';
 
 /**
  * AuthService handles user authentication, registration, and token management.
@@ -99,7 +95,7 @@ export class AuthService {
       const role = user.role;
       const token = await this.generateUserToken(user.id, user.role);
 
-      return { message: `${role} Login Successfully!`, role, ...token , user};
+      return { message: `${role} Login Successfully!`, role, ...token, user };
     } catch (error) {
       user.loginAttempts = (user.loginAttempts || 0) + 1;
       await this.userRepository.save(user);
@@ -479,9 +475,12 @@ export class AuthService {
       throw new Error('JWT_SECRET is not defined in environment variables');
     }
 
+    const jti = uuidv4();
+
     const payload = {
       id: userId,
       role: role,
+      jti: jti,
     };
 
     const access_token = this.jwtService.sign(payload, {
@@ -500,6 +499,7 @@ export class AuthService {
         refresh_token,
         expiryDate_token: expiryDate,
         is_logged_in: true,
+        jti,
       },
     );
 
@@ -562,4 +562,3 @@ export class AuthService {
     return user;
   }
 }
-

@@ -6,10 +6,8 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
-  UseGuards,
 } from '@nestjs/common';
 import { PasswordService } from './password.service';
-import { AuthGuard } from '@nestjs/passport';
 import { ChangePwdDto } from 'src/user/dto/change-pwd-user.dto';
 import { ForgotPwdDto } from 'src/auth/dto/forgot-pwd-user.dto';
 import { ResetPwdDto } from 'src/auth/dto/reset-pwd-user.dto';

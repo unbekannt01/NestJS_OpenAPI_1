@@ -3,7 +3,6 @@ import {
   MiddlewareConsumer,
   NestModule,
   ClassSerializerInterceptor,
-  Logger,
 } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -29,6 +28,7 @@ import { validationSchema } from './config/env.validation';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AuthModule } from './auth/auth.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 /**
  * AppModule
@@ -36,12 +36,21 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
  */
 @Module({
   imports: [
+    ThrottlerModule.forRoot({
+      throttlers: [
+        {
+          ttl: 6 * 1000,
+          limit: 3,
+        },
+      ],
+    }),
     EventEmitterModule.forRoot(),
     ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
       validationSchema,
       envFilePath: [`.env.${process.env.NODE_ENV || 'local'}`],
+      cache: true,
     }),
     TypeOrmModule.forRoot(typeOrmConfig()),
     AuthModule,
@@ -53,6 +62,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
     FileUploadModule,
     ProductsModule,
     AdminModule,
+    // CsrfModule,
   ],
   providers: [
     SmsService,
@@ -67,6 +77,10 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
     {
       provide: APP_GUARD,
       useClass: IsLoggedInGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
     },
     {
       provide: APP_INTERCEPTOR,
@@ -91,11 +105,17 @@ export class AppModule implements NestModule {
     consumer
       .apply(LoggerMiddleware)
       // .exclude(
-      //   { path: 'v1/auth/register', method: RequestMethod.POST },
-      //   { path: 'v1/auth/login', method: RequestMethod.POST },
-      //   { path: 'v1/password/forgot-password', method: RequestMethod.POST },
-      //   { path: 'v1/password/reset-password', method: RequestMethod.POST },
-      //   { path: 'v1/password/reset-password', method: RequestMethod.POST },
+      //   '/v1/auth/login',
+      //   '/v1/auth/register',
+      //   '/v1/auth/refresh-token',
+      //   '/v1/password/forgot-password',
+      //   '/v1/password/reset-password',
+      //   '/v1/csrf/token',
+      //   '/v1/google/google-login',
+      //   '/v1/otp/verify-otp',
+      //   '/v1/otp/resend-otp',
+      //   '/v1/email-verification-by-link/verify-email',
+      //   '/v1/email-verification-by-link/resend-verification',
       // )
       .forRoutes('*');
   }

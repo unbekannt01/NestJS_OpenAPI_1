@@ -25,8 +25,9 @@ import { Public } from 'src/common/decorators/public.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '@nestjs/passport';
 import { Admin } from 'src/common/decorators/admin.decorator';
-import { CreateUserDto1 } from './dto/create-user.dto1';
 import { Request } from 'express';
+import { ConfigService } from '@nestjs/config';
+import { Express } from 'express'; 
 
 /**
  * AuthController handles authentication-related operations such as
@@ -34,7 +35,10 @@ import { Request } from 'express';
  */
 @Controller({ path: 'auth', version: '1' })
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private configService: ConfigService,
+  ) {}
 
   /**
    * Registers a new user.
@@ -92,37 +96,36 @@ export class AuthController {
   @UsePipes(ValidationPipe)
   async login(
     @Body() login: LoginUserDto,
-    @Req() req: Request,
-    @Res({ passthrough: true }) res: Response,
+    res: Response, // Removed the decorator to fix parse error
   ): Promise<{ message: string; access_token: string; refresh_token: string }> {
     try {
-      const { role, access_token, refresh_token, user } =
+      const { role, access_token, refresh_token } =
         await this.authService.loginUser(login.identifier, login.password);
 
       // Set JWT token cookie (as you have)
       res.cookie('access_token', access_token, {
         httpOnly: true,
         sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production',
+        secure: process.env.NODE_ENV === 'development',
         maxAge: 60 * 60 * 1000,
         path: '/',
       });
 
-      // Set session user data here
-      req.session.user = {
-        id: user.id,
-        role: user.role,
-        email: user.email,
-      };
+      // // Set session user data here
+      // req.session.user = {
+      //   id: user.id,
+      //   role: user.role,
+      //   email: user.email,
+      // };
 
-      req.session.regenerate((err) => {
-        if (err) throw err;
-        req.session.user = {
-          id: user.id,
-          role: user.role,
-          email: user.email,
-        };
-      });
+      // req.session.regenerate((err) => {
+      //   if (err) throw err;
+      //   req.session.user = {
+      //     id: user.id,
+      //     role: user.role,
+      //     email: user.email,
+      //   };
+      // });
 
       return {
         message: `${role} Login Successfully!`,
@@ -154,10 +157,9 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response,
   ) {
     try {
-     
-      const user = request.user as { id : string }
-      if(!user?.id){
-        throw new UnauthorizedException('Invalid User Session...!')
+      const user = request.user as { id: string };
+      if (!user?.id) {
+        throw new UnauthorizedException('Invalid User Session...!');
       }
 
       await this.authService.logout(user.id);
