@@ -35,8 +35,12 @@ async function bootstrap() {
     type: VersioningType.URI,
   });
 
-  app.useStaticAssets(path.resolve('uploads'), { prefix: '/uploads' });
-
+  // Only for local environment
+  if (process.env.STORAGE_DRIVER === 'local') {
+    app.useStaticAssets(path.join(__dirname, '..', 'uploads'), {
+      prefix: '/uploads/',
+    });
+  }
   // Configure CORS
   app.enableCors({
     origin: [

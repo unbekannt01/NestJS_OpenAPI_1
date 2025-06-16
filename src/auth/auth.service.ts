@@ -4,6 +4,7 @@ import {
   NotFoundException,
   ConflictException,
   InternalServerErrorException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MoreThanOrEqual, Repository } from 'typeorm';
@@ -26,6 +27,8 @@ import { EmailServiceForVerifyMail } from 'src/email-verification-by-link/servic
 import { emailTokenConfig } from 'src/config/email.config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { UserRegisteredPayload } from './interfaces/user-registered-payload';
+import { SupaBaseService } from 'src/common/services/supabase.service';
+import { FileStorageService } from 'src/common/services/file-storage.service';
 
 /**
  * AuthService handles user authentication, registration, and token management.
@@ -48,6 +51,8 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly emailServiceForVerification: EmailServiceForVerifyMail,
     private readonly eventEmitter: EventEmitter2,
+    private readonly supaBaseService: SupaBaseService,
+    private readonly fileStorageService: FileStorageService,
   ) {}
 
   /**
@@ -113,8 +118,19 @@ export class AuthService {
     }
   }
 
-  async resetLoginAttempts(email: string): Promise<void> {
-    await this.userRepository.update({ email }, { loginAttempts: 0 });
+  async loginWithOAuth(user: User) {
+    user.is_logged_in = true;
+    user.loginAttempts = 0;
+    await this.userRepository.save(user);
+
+    const token = await this.generateUserToken(user.id, user.role);
+
+    return {
+      message: 'Google Login Successful!',
+      role: user.role,
+      ...token,
+      user,
+    };
   }
 
   /**
@@ -148,6 +164,15 @@ export class AuthService {
       );
     }
 
+    let avatarUrl: string | undefined = undefined;
+
+    if (file) {
+      if (!file.buffer) {
+        throw new BadRequestException('Uploaded file is empty or invalid');
+      }
+      avatarUrl = await this.fileStorageService.upload(file);
+    }
+
     if (user) {
       if (user.status === 'ACTIVE') {
         throw new ConflictException('Email already registered...!');
@@ -159,7 +184,7 @@ export class AuthService {
         email: normalizedEmail,
         userName: normalizedUserName,
         password: hashedPassword,
-        avatar: file ? file.filename.replace(/\\/g, '/') : undefined,
+        avatar: avatarUrl,
         status: UserStatus.ACTIVE,
         role: UserRole.USER,
         birth_date: createUserDto.birth_date || undefined,
@@ -170,13 +195,11 @@ export class AuthService {
 
     await this.userRepository.save(user);
 
-    // Emit the user registered event
     const payload: UserRegisteredPayload = {
       id: user.id,
       email: user.email,
       userName: user.userName,
       role: user.role,
-      // Add other relevant user details
     };
     this.eventEmitter.emit('user.registered', payload);
 
@@ -215,6 +238,15 @@ export class AuthService {
       );
     }
 
+    let avatarUrl: string | undefined = undefined;
+
+    if (file) {
+      if (!file.buffer) {
+        throw new BadRequestException('Uploaded file is empty or invalid');
+      }
+      avatarUrl = await this.fileStorageService.upload(file);
+    }
+
     const otp = new Otp();
 
     if (user) {
@@ -233,7 +265,7 @@ export class AuthService {
         email: normalizedEmail,
         userName: normalizedUserName,
         password: hashedPassword,
-        avatar: file ? file.filename.replace(/\\/g, '/') : undefined,
+        avatar: avatarUrl,
         status: UserStatus.INACTIVE,
         role: UserRole.USER,
         birth_date: createUserDto.birth_date || undefined,
@@ -289,6 +321,15 @@ export class AuthService {
       );
     }
 
+    let avatarUrl: string | undefined = undefined;
+
+    if (file) {
+      if (!file.buffer) {
+        throw new BadRequestException('Uploaded file is empty or invalid');
+      }
+      avatarUrl = await this.fileStorageService.upload(file);
+    }
+
     if (user && user.status === UserStatus.ACTIVE) {
       throw new ConflictException('Email already registered...!');
     }
@@ -301,7 +342,8 @@ export class AuthService {
         email: normalizedEmail,
         userName: normalizedUserName,
         password: hashedPassword,
-        avatar: file ? file.filename.replace(/\\/g, '/') : undefined,
+        // avatar: file ? file.filename.replace(/\\/g, '/') : undefined,
+        avatar: avatarUrl,
         status: UserStatus.INACTIVE,
         role: UserRole.USER,
         birth_date: createUserDto.birth_date || undefined,
@@ -374,21 +416,10 @@ export class AuthService {
     user.is_logged_in = false;
     user.refresh_token = null;
     user.expiryDate_token = null;
+    user.jti = null;
     await this.userRepository.save(user);
 
     return { message: 'User logout successful.' };
-  }
-
-  /**
-   * Verify the access token and return the decoded payload.
-   */
-  verifyAccessToken(token: string): any {
-    const jwt = require('jsonwebtoken');
-    try {
-      return jwt.verify(token, process.env.JWT_SECRET);
-    } catch (error) {
-      throw new UnauthorizedException('Invalid access token.');
-    }
   }
 
   /**
@@ -423,13 +454,16 @@ export class AuthService {
   }
 
   /**
-   * Verify the JWT token and return the decoded payload.
+   * Verifies a JWT and returns the decoded payload.
    */
-  async verifyToken(token: string) {
-    const decoded = this.jwtService.verify(token, {
-      secret: this.configService.get<string>('JWT_SECRET'),
-    });
-    return decoded;
+  async verifyToken(token: string): Promise<any> {
+    try {
+      return this.jwtService.verify(token, {
+        secret: this.configService.get<string>('JWT_SECRET'),
+      });
+    } catch (error) {
+      throw new UnauthorizedException('Invalid or expired access token.');
+    }
   }
 
   /**
@@ -534,17 +568,14 @@ export class AuthService {
    * Validate the refresh token.
    */
   async validateRefreshToken(refresh_token: string): Promise<boolean> {
-    // Find user by refresh_token in the database
     const user = await this.userRepository.findOne({
       where: { refresh_token }, // Match the refresh_token in the DB
     });
 
-    // If the user is found, refresh_token is valid
     if (user) {
       return true;
     }
 
-    // If no matching refresh_token, it's invalid
     return false;
   }
 
@@ -559,6 +590,13 @@ export class AuthService {
     if (!user) return null;
 
     await this.verifyPassword(password, user.password);
+    return user;
+  }
+
+  async validateGoogleUser(googleUser: CreateUserDto) {
+    const user = await this.userRepository.findOne({
+      where: { email: googleUser.email },
+    });
     return user;
   }
 }

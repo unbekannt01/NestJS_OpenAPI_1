@@ -12,8 +12,11 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from 'src/user/entities/user.entity';
 import { EmailVerification } from 'src/email-verification-by-link/entity/email-verify.entity';
 import { JwtStrategy } from './strategies/jwt.strategy';
-import { jwtConfig } from 'src/config/jwt.config';
 import { LocalStrategy } from './strategies/local.stategy';
+import { ConfigModule } from 'src/config/module/config.module';
+import { configService } from 'src/common/services/config.service';
+import { SupaBaseService } from 'src/common/services/supabase.service';
+import { FileStorageService } from 'src/common/services/file-storage.service';
 
 /**
  * AuthModule
@@ -21,17 +24,22 @@ import { LocalStrategy } from './strategies/local.stategy';
  */
 @Module({
   imports: [
+    ConfigModule,
     TypeOrmModule.forFeature([User, EmailVerification]),
     forwardRef(() => UserModule),
     forwardRef(() => OtpModule),
     forwardRef(() => EmailVerificationByLinkModule),
-    JwtModule.register(jwtConfig),
+    JwtModule.register({
+      secret : configService.getValue('JWT_SECRET'),
+      signOptions : {
+        expiresIn : configService.getValue('JWT_EXPIRES_IN')
+      }
+    }),
     MulterModule.register({
       storage: diskStorage({
         destination: './uploads',
         filename: (req, file, cb) => {
-          const filename = `${file.originalname}`;
-          cb(null, filename);
+          cb(null, file.originalname);
         },
       }),
     }),
@@ -43,7 +51,9 @@ import { LocalStrategy } from './strategies/local.stategy';
     LocalStrategy,
     EmailServiceForSupension,
     Logger,
+    SupaBaseService,
+    FileStorageService
   ],
-  exports: [AuthService, EmailServiceForSupension],
+  exports: [AuthService, EmailServiceForSupension, JwtModule],
 })
 export class AuthModule {}

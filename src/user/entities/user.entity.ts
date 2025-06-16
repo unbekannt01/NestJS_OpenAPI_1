@@ -6,6 +6,7 @@ import { Otp } from 'src/otp/entities/otp.entity';
 import { EmailVerification } from 'src/email-verification-by-link/entity/email-verify.entity';
 import { RequestLog } from 'src/admin/entity/log.entity';
 import { Product } from 'src/products/entities/product.entity';
+import { UploadFile } from 'src/file-upload/entities/file-upload.entity';
 
 /**
  * UserStatus
@@ -135,4 +136,7 @@ export class User extends BaseEntity {
 
   @OneToMany(() => Product, (product) => product.user)
   products: Product[];
+
+  @OneToMany(() => UploadFile, (fileupload) => fileupload.user)
+  fileupload: UploadFile[];
 }

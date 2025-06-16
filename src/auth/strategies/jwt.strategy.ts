@@ -4,8 +4,8 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { JwtPayload } from '../interfaces/jwt-payload.interface';
 import { Repository } from 'typeorm';
 import { User } from 'src/user/entities/user.entity';
-import { jwtConfig } from 'src/config/jwt.config';
 import { InjectRepository } from '@nestjs/typeorm';
+import { configService } from 'src/common/services/config.service';
 
 /**
  * JwtStrategy
@@ -23,7 +23,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
         (req) => req?.cookies?.['access_token'],
       ]),
       ignoreExpiration: false,
-      secretOrKey: jwtConfig.secret,
+      secretOrKey: configService.getValue('JWT_SECRET'),
       algorithms: ['HS256'],
     });
   }

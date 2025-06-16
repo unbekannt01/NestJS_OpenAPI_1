@@ -27,7 +27,9 @@ import { AuthGuard } from '@nestjs/passport';
 import { Admin } from 'src/common/decorators/admin.decorator';
 import { Request } from 'express';
 import { ConfigService } from '@nestjs/config';
-import { Express } from 'express'; 
+import { Express } from 'express';
+import { Throttle } from '@nestjs/throttler';
+import { memoryStorage } from 'multer';
 
 /**
  * AuthController handles authentication-related operations such as
@@ -47,7 +49,11 @@ export class AuthController {
   @Public()
   @HttpCode(HttpStatus.CREATED)
   @Post('register')
-  @UseInterceptors(FileInterceptor('avatar'))
+  @UseInterceptors(
+    FileInterceptor('avatar', {
+      storage: memoryStorage(),
+    }),
+  )
   async register(
     @UploadedFile() file: Express.Multer.File,
     @Body() registerDto: CreateUserDto,
@@ -63,7 +69,11 @@ export class AuthController {
   @Public()
   @HttpCode(HttpStatus.CREATED)
   @Post('register')
-  @UseInterceptors(FileInterceptor('avatar'))
+  @UseInterceptors(
+    FileInterceptor('avatar', {
+      storage: memoryStorage(),
+    }),
+  )
   async registerUsingEmailToken(
     @UploadedFile() file: Express.Multer.File,
     @Body() registerDto: CreateUserDto,
@@ -79,7 +89,11 @@ export class AuthController {
   @HttpCode(HttpStatus.CREATED) // for register
   @Public()
   @Post('register')
-  @UseInterceptors(FileInterceptor('avatar'))
+  @UseInterceptors(
+    FileInterceptor('avatar', {
+      storage: memoryStorage()
+    }),
+  )
   async simpleRegister(
     @UploadedFile() file: Express.Multer.File,
     @Body() registerDto: CreateUserDto,
@@ -90,42 +104,26 @@ export class AuthController {
   /**
    * Logs in a user and returns an access token and refresh token.
    */
+  @Throttle({ default: { limit: 2, ttl: 3 * 1000 } })
   @HttpCode(HttpStatus.OK)
   @Public()
   @Post('login')
   @UsePipes(ValidationPipe)
   async login(
     @Body() login: LoginUserDto,
-    res: Response, // Removed the decorator to fix parse error
+    @Res({ passthrough: true }) res: Response,
   ): Promise<{ message: string; access_token: string; refresh_token: string }> {
     try {
       const { role, access_token, refresh_token } =
         await this.authService.loginUser(login.identifier, login.password);
 
-      // Set JWT token cookie (as you have)
       res.cookie('access_token', access_token, {
         httpOnly: true,
         sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'development',
+        secure: process.env.NODE_ENV === 'local',
         maxAge: 60 * 60 * 1000,
         path: '/',
       });
-
-      // // Set session user data here
-      // req.session.user = {
-      //   id: user.id,
-      //   role: user.role,
-      //   email: user.email,
-      // };
-
-      // req.session.regenerate((err) => {
-      //   if (err) throw err;
-      //   req.session.user = {
-      //     id: user.id,
-      //     role: user.role,
-      //     email: user.email,
-      //   };
-      // });
 
       return {
         message: `${role} Login Successfully!`,

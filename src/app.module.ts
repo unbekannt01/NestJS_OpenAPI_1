@@ -23,12 +23,12 @@ import { IsLoggedInGuard } from './auth/guards/isLoggedin.guard';
 import { ResponseTransformInterceptor } from './common/interceptors/response-transform.interceptor';
 import { ProductsModule } from './products/products.module';
 import { JwtAuthGuard } from './auth/guards/jwt.guard';
-import { Languagelnterceptor } from './common/interceptors/language.interceptor';
 import { validationSchema } from './config/env.validation';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AuthModule } from './auth/auth.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { Languagelnterceptor } from './common/interceptors/language.interceptor';
 
 /**
  * AppModule
@@ -90,10 +90,10 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
       provide: APP_INTERCEPTOR,
       useClass: LoggerInterceptor,
     },
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: ResponseTransformInterceptor,
-    },
+    // {
+    //   provide: APP_INTERCEPTOR,
+    //   useClass: ResponseTransformInterceptor,
+    // },
     {
       provide: APP_INTERCEPTOR,
       useClass: ClassSerializerInterceptor,
