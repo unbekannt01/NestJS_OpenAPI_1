@@ -51,7 +51,6 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly emailServiceForVerification: EmailServiceForVerifyMail,
     private readonly eventEmitter: EventEmitter2,
-    private readonly supaBaseService: SupaBaseService,
     private readonly fileStorageService: FileStorageService,
   ) {}
 
@@ -170,7 +169,7 @@ export class AuthService {
       if (!file.buffer) {
         throw new BadRequestException('Uploaded file is empty or invalid');
       }
-      avatarUrl = await this.fileStorageService.upload(file);
+      avatarUrl = await this.fileStorageService.upload(file, 'avatar');
     }
 
     if (user) {
@@ -244,7 +243,7 @@ export class AuthService {
       if (!file.buffer) {
         throw new BadRequestException('Uploaded file is empty or invalid');
       }
-      avatarUrl = await this.fileStorageService.upload(file);
+      avatarUrl = await this.fileStorageService.upload(file, 'avatar');
     }
 
     const otp = new Otp();
@@ -327,7 +326,7 @@ export class AuthService {
       if (!file.buffer) {
         throw new BadRequestException('Uploaded file is empty or invalid');
       }
-      avatarUrl = await this.fileStorageService.upload(file);
+      avatarUrl = await this.fileStorageService.upload(file, 'avatar');
     }
 
     if (user && user.status === UserStatus.ACTIVE) {

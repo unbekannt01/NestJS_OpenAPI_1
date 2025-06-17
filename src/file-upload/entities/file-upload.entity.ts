@@ -16,6 +16,12 @@ export class UploadFile {
   @Column()
   file: string;
 
+  @Column({ nullable: true })
+  originalName: string;
+
+  @Column({ nullable: true })
+  mimeType: string;
+
   @Column({ type: 'timestamp', nullable: true })
   Creation: Date | null;
 

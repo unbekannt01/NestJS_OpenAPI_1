@@ -15,6 +15,7 @@ import { Otp } from 'src/otp/entities/otp.entity';
 import { JwtService } from '@nestjs/jwt';
 import { CacheModule } from '@nestjs/cache-manager';
 import { Product } from 'src/products/entities/product.entity';
+import { AlsModule } from 'src/als/als.module';
 
 /**
  * UserModule
@@ -36,6 +37,7 @@ import { Product } from 'src/products/entities/product.entity';
         },
       }),
     }),
+    AlsModule,
   ],
   providers: [
     UserService,

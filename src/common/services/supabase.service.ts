@@ -32,16 +32,16 @@ export class SupaBaseService {
     mimetype: string,
   ): Promise<string> {
     if (this.driver === 'local') {
-      // Save file locally
       const fs = await import('fs');
       const path = await import('path');
+
       const uploadDir = path.resolve(process.cwd(), 'uploads');
 
       if (!fs.existsSync(uploadDir)) {
         fs.mkdirSync(uploadDir, { recursive: true });
       }
-
-      const filePath = path.join(uploadDir, `${Date.now()}-${filename}`);
+      const safeFilename = path.basename(filename);
+      const filePath = path.join(uploadDir, `${Date.now()}-${safeFilename}`);
       await fs.promises.writeFile(filePath, buffer);
 
       return path.relative(process.cwd(), filePath);
@@ -52,7 +52,7 @@ export class SupaBaseService {
     const filePath = `${Date.now()}-${filename}`;
     const bucket = 'uploads-nest';
 
-    const { data, error } = await client.storage
+    const { error } = await client.storage
       .from(bucket)
       .upload(filePath, buffer, {
         contentType: mimetype,
@@ -64,16 +64,17 @@ export class SupaBaseService {
       throw new Error(error.message);
     }
 
-    const { data: signedUrlData, error: signedUrlError } = await client.storage
-      .from(bucket)
-      .createSignedUrl(filePath, 3600);
+    // const { data: signedUrlData, error: signedUrlError } = await client.storage
+    //   .from(bucket)
+    //   .createSignedUrl(filePath, 3600);
 
-    if (signedUrlError) {
-      console.error('Signed URL error:', signedUrlError);
-      throw new Error(signedUrlError.message);
-    }
+    // if (signedUrlError) {
+    //   console.error('Signed URL error:', signedUrlError);
+    //   throw new Error(signedUrlError.message);
+    // }
 
-    return signedUrlData?.signedUrl;
+    // return signedUrlData?.signedUrl;
+    return filePath;
   }
 
   async streamToBuffer(stream: NodeJS.ReadableStream): Promise<Buffer> {
@@ -131,58 +132,54 @@ export class SupaBaseService {
     console.log('Deleted from Supabase:', filePath);
   }
 
-  // async updateFile(
-  //   fileUrlOrPath: string,
-  //   newBuffer: Buffer,
-  //   newFilename: string,
-  //   newMimetype: string,
-  // ): Promise<string> {
+  // async getFileById(fileUrlOrPath: string): Promise<Buffer | null> {
   //   const bucket = 'uploads-nest';
   //   const client = this.getClient();
+
   //   let filePath: string;
+
   //   if (fileUrlOrPath.includes('supabase.co')) {
   //     const parts = fileUrlOrPath.split(`${bucket}/`);
   //     if (parts.length < 2) {
   //       throw new Error('Invalid Supabase file URL');
   //     }
+
   //     filePath = parts[1].split('?')[0];
   //   } else {
   //     filePath = fileUrlOrPath;
   //   }
-  //   // Delete the old file
-  //   await this.deleteFile(fileUrlOrPath);
-  //   // Upload the new file
+
   //   const { data, error } = await client.storage
   //     .from(bucket)
-  //     .upload(`${Date.now()}-${newFilename}`, newBuffer, {
-  //       contentType: newMimetype,
-  //       upsert: true,
-  //     });
+  //     .download(filePath);
+
   //   if (error) {
+  //     console.error('Download error:', error);
   //     throw new Error(error.message);
   //   }
-  //   // Create a signed URL for the new file
-  //   const { data: signedUrlData, error: signedUrlError } = await client.storage
-  //     .from(bucket)   
-  //     .createSignedUrl(`${Date.now()}-${newFilename}`, 3600); 
-  //   if (signedUrlError) {
-  //     throw new Error(signedUrlError.message);
-  //   }
-  //   return signedUrlData?.signedUrl || '';
+
+  //   const arrayBuffer = await data.arrayBuffer();
+  //   return Buffer.from(arrayBuffer);
   // }
+
+  async getSignedUrl(filePath: string): Promise<string> {
+    const client = this.getClient();
+    const { data, error } = await client.storage
+      .from('uploads-nest')
+      .createSignedUrl(filePath, 3600);
+
+    if (error) throw new Error(error.message);
+    return data.signedUrl!;
+  }
 
   async getFileById(fileUrlOrPath: string): Promise<Buffer | null> {
     const bucket = 'uploads-nest';
     const client = this.getClient();
 
     let filePath: string;
-
     if (fileUrlOrPath.includes('supabase.co')) {
       const parts = fileUrlOrPath.split(`${bucket}/`);
-      if (parts.length < 2) {
-        throw new Error('Invalid Supabase file URL');
-      }
-
+      if (parts.length < 2) throw new Error('Invalid Supabase file URL');
       filePath = parts[1].split('?')[0];
     } else {
       filePath = fileUrlOrPath;
@@ -192,10 +189,7 @@ export class SupaBaseService {
       .from(bucket)
       .download(filePath);
 
-    if (error) {
-      console.error('Download error:', error);
-      throw new Error(error.message);
-    }
+    if (error) throw new Error(error.message);
 
     const arrayBuffer = await data.arrayBuffer();
     return Buffer.from(arrayBuffer);

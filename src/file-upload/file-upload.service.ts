@@ -17,20 +17,12 @@ import * as fs from 'fs';
  */
 @Injectable()
 export class FileUploadService {
-  private readonly uploadRepo: Repository<UploadFile>;
-  public readonly supaBaseService: SupaBaseService;
-  public readonly fileStorageService: FileStorageService;
-
   constructor(
     @InjectRepository(UploadFile)
-    uploadRepo: Repository<UploadFile>,
-    supabaseService: SupaBaseService,
-    fileStorageSrevice: FileStorageService,
-  ) {
-    (this.uploadRepo = uploadRepo),
-      (this.supaBaseService = supabaseService),
-      (this.fileStorageService = fileStorageSrevice);
-  }
+    private readonly uploadRepo: Repository<UploadFile>,
+    public readonly supaBaseService: SupaBaseService,
+    public readonly fileStorageService: FileStorageService,
+  ) {}
 
   // /**
   //  * handleFileUpload
@@ -70,7 +62,7 @@ export class FileUploadService {
       throw new BadRequestException('No file uploaded.');
     }
 
-    const { filename, mimetype, buffer } = file;
+    const { buffer } = file;
 
     if (!buffer) {
       throw new BadRequestException('File buffer is missing.');
@@ -81,15 +73,14 @@ export class FileUploadService {
     const alreadyExists = await this.uploadRepo.findOne({
       where: { file: publicUrl, user: { id: userId?.toString() } },
     });
-
     if (alreadyExists) {
-      throw new UnauthorizedException(
-        'File already used or uploaded in database!',
-      );
+      throw new UnauthorizedException('File already uploaded!');
     }
 
     const uploadFile = this.uploadRepo.create({
       file: publicUrl,
+      originalName: file.originalname,
+      mimeType: file.mimetype,
       Creation: new Date(),
     });
 
@@ -101,7 +92,7 @@ export class FileUploadService {
     return `File uploaded successfully: ${publicUrl}`;
   }
 
-  async deleteFile(id: string, userId: string): Promise<string> {
+  async deleteFile(id: string, userId: string) {
     const file = await this.uploadRepo.findOne({
       where: { id, user: { id: userId } },
     });
@@ -114,42 +105,27 @@ export class FileUploadService {
 
     await this.supaBaseService.deleteFile(file.file);
     await this.uploadRepo.delete(id);
-    return 'File has been deleted...!';
+    return { message: 'File has been deleted...!' };
   }
 
   async getFileById(fileId: string): Promise<Buffer> {
+    const file = await this.uploadRepo.findOne({ where: { id: fileId } });
+
+    if (!file) throw new NotFoundException('File not found');
+
     const driver = process.env.STORAGE_DRIVER;
 
     if (driver === 'supabase') {
-      const file = await this.uploadRepo.findOne({
-        where: { id: fileId },
-      });
-
-      if (!file) {
-        throw new NotFoundException('File not found');
-      }
-
-      // Extract file path from the URL
       const buffer = await this.supaBaseService.getFileById(file.file);
-      if (!buffer) {
-        throw new NotFoundException('File not found in storage');
-      }
+      if (!buffer) throw new NotFoundException('File not found in storage');
       return buffer;
     }
 
     // Local fallback
-    const file = await this.uploadRepo.findOne({
-      where: { id: fileId },
-    });
-
-    if (!file) {
-      throw new NotFoundException('File not found');
-    }
-
     const filePath = path.resolve(process.cwd(), file.file.replace(/^\/+/, ''));
-    const buffer = fs.readFileSync(filePath);
-
-    return buffer;
+    if (!fs.existsSync(filePath))
+      throw new NotFoundException('File missing locally');
+    return fs.readFileSync(filePath);
   }
 
   async getFileMetaById(id: string): Promise<UploadFile> {
@@ -160,31 +136,75 @@ export class FileUploadService {
     return file;
   }
 
-  // async updateFile(
-  //   fileId: string,
-  //   userId: string,
-  //   newFile: Express.Multer.File,
-  // ): Promise<string> {
-  //   const file = await this.uploadRepo.findOne({ where: { id: fileId, user: { id: userId}} });
+  async updateFile(
+    fileId: string,
+    newFile: Express.Multer.File,
+    userId: string,
+  ) {
+    if (!newFile) throw new NotFoundException('New File Not Uploaded...!');
 
-  //   if (!file) {
-  //     throw new NotFoundException('File not found');
-  //   }
+    const oldFile = await this.uploadRepo.findOne({
+      where: {
+        id: fileId,
+        user: { id: userId },
+      },
+    });
 
-  //   if (!newFile || !newFile.buffer) {
-  //     throw new BadRequestException('New file buffer is missing.');
-  //   }
+    if (!oldFile)
+      throw new NotFoundException(
+        'Old file deleted or you do not have to permission to delete it...!',
+      );
 
-  //   const updatedFileUrl = await this.supaBaseService.updateFile(
-  //     file.file,
-  //     newFile.buffer,
-  //     newFile.originalname,
-  //     newFile.mimetype,
-  //   );
+    await this.supaBaseService.deleteFile(oldFile.file);
 
-  //   file.file = updatedFileUrl;
-  //   await this.uploadRepo.save(file);
+    const publicUrl = await this.fileStorageService.upload(newFile);
 
-  //   return `File updated successfully: ${updatedFileUrl}`;
-  // }
+    oldFile.file = publicUrl;
+    oldFile.Updation = new Date();
+
+    await this.uploadRepo.save(oldFile);
+
+    return { message: 'File Updated Successfully...' };
+  }
+
+  async downloadFile(fileId: string) {
+    if (!fileId) throw new BadRequestException('File ID not provided.');
+
+    const file = await this.uploadRepo.findOne({ where: { id: fileId } });
+    if (!file) throw new NotFoundException('File not found.');
+
+    const driver = process.env.STORAGE_DRIVER;
+
+    if (driver === 'supabase') {
+      const buffer = await this.getFileById(fileId);
+      const extension = path.extname(file.file).split('?')[0]; // Strip query from signed URL
+      return {
+        buffer,
+        fileName: `file-${file.id}${extension}`,
+        mimeType: file.file.includes('.jpg, .png, .jpeg')
+          ? 'image/jpeg'
+          : 'application/octet-stream',
+        size: buffer.length,
+      };
+    }
+
+    // Fallback for local
+    const filePath = path.resolve(process.cwd(), file.file.replace(/^\/+/, ''));
+    if (!fs.existsSync(filePath)) {
+      throw new NotFoundException('File does not exist on the server.');
+    }
+    return {
+      filePath,
+      fileName: path.basename(file.file),
+      mimeType: file.file.split('.').pop() || 'application/octet-stream',
+      size: fs.statSync(filePath).size,
+    };
+  }
+
+  async getAllFiles() {
+    return this.uploadRepo.find({
+      order: { Creation: 'DESC' },
+      relations: ['user'],
+    });
+  }
 }

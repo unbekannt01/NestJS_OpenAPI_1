@@ -2,25 +2,20 @@ import {
   Module,
   MiddlewareConsumer,
   NestModule,
-  ClassSerializerInterceptor,
 } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserModule } from './user/user.module';
 import { SearchModule } from './search/search.module';
 import { SmsService } from './otp/services/sms.service';
-import { LoggerMiddleware } from './common/middleware/logger.middleware';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { IsSuspendedGuard } from './auth/guards/isNotSuspended.guard';
 import { LoggerInterceptor } from './common/interceptors/logger.interceptor';
-import { typeOrmConfig } from './config/typeorm.config';
 import { LoginUsingGoogleModule } from './login-using-google/login-using-google.module';
 import { EmailVerificationByLinkModule } from './email-verification-by-link/email-verification-by-link.module';
 import { FileUploadModule } from './file-upload/file-upload.module';
 import { AdminModule } from './admin/admin.module';
 import { PasswordModule } from './password/password.module';
 import { IsLoggedInGuard } from './auth/guards/isLoggedin.guard';
-import { ResponseTransformInterceptor } from './common/interceptors/response-transform.interceptor';
 import { ProductsModule } from './products/products.module';
 import { JwtAuthGuard } from './auth/guards/jwt.guard';
 import { validationSchema } from './config/env.validation';
@@ -28,7 +23,10 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { AuthModule } from './auth/auth.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
-import { Languagelnterceptor } from './common/interceptors/language.interceptor';
+import { AlsModule } from './als/als.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { typeOrmConfig } from './config/typeorm.config';
+import { AlsMiddleware } from './als/als.middleware';
 
 /**
  * AppModule
@@ -53,6 +51,7 @@ import { Languagelnterceptor } from './common/interceptors/language.interceptor'
       cache: true,
     }),
     TypeOrmModule.forRoot(typeOrmConfig()),
+    AlsModule,
     AuthModule,
     UserModule,
     EmailVerificationByLinkModule,
@@ -82,10 +81,10 @@ import { Languagelnterceptor } from './common/interceptors/language.interceptor'
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
     },
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: Languagelnterceptor,
-    },
+    // {
+    //   provide: APP_INTERCEPTOR,
+    //   useClass: Languagelnterceptor,
+    // },
     {
       provide: APP_INTERCEPTOR,
       useClass: LoggerInterceptor,
@@ -94,16 +93,16 @@ import { Languagelnterceptor } from './common/interceptors/language.interceptor'
     //   provide: APP_INTERCEPTOR,
     //   useClass: ResponseTransformInterceptor,
     // },
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: ClassSerializerInterceptor,
-    },
+    // {
+    //   provide: APP_INTERCEPTOR,
+    //   useClass: ClassSerializerInterceptor,
+    // },
   ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
-      .apply(LoggerMiddleware)
+      .apply(AlsMiddleware)
       // .exclude(
       //   '/v1/auth/login',
       //   '/v1/auth/register',

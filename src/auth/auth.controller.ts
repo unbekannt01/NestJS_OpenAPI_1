@@ -91,7 +91,7 @@ export class AuthController {
   @Post('register')
   @UseInterceptors(
     FileInterceptor('avatar', {
-      storage: memoryStorage()
+      storage: memoryStorage(),
     }),
   )
   async simpleRegister(
@@ -117,13 +117,7 @@ export class AuthController {
       const { role, access_token, refresh_token } =
         await this.authService.loginUser(login.identifier, login.password);
 
-      res.cookie('access_token', access_token, {
-        httpOnly: true,
-        sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'local',
-        maxAge: 60 * 60 * 1000,
-        path: '/',
-      });
+      res.setHeader('Authorization', `Bearer ${access_token}`);
 
       return {
         message: `${role} Login Successfully!`,
@@ -152,7 +146,7 @@ export class AuthController {
   @Post('logout')
   async logout(
     @Req() request: Request,
-    @Res({ passthrough: true }) response: Response,
+    // @Res({ passthrough: true }) response: Response,
   ) {
     try {
       const user = request.user as { id: string };
@@ -162,12 +156,12 @@ export class AuthController {
 
       await this.authService.logout(user.id);
 
-      response.clearCookie('access_token', {
-        path: '/',
-        httpOnly: true,
-        secure: false,
-        sameSite: 'lax',
-      });
+      // response.clearCookie('access_token', {
+      //   path: '/',
+      //   httpOnly: true,
+      //   secure: false,
+      //   sameSite: 'lax',
+      // });
 
       return { message: 'Logged out successfully' };
     } catch (error) {

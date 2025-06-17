@@ -180,4 +180,10 @@ export class UserController {
   async getUser1(@CurrentUser() user: User) {
     return { message: `${user} profile fetched successfully!`, user };
   }
+
+  @Public()
+  @Get('hello')
+  async getHello() {
+    return this.userService.getHello()
+  }
 }

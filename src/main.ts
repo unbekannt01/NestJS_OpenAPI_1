@@ -9,7 +9,6 @@ import * as cookieParser from 'cookie-parser';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import * as path from 'path';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
-import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 import * as compression from 'compression';
 import helmet from 'helmet';
 
@@ -25,10 +24,12 @@ async function bootstrap() {
   });
   const configService = app.get(ConfigService);
   const PORT = configService.get<number>('PORT') || 3001;
+const cors = require('cors');
 
   app.useGlobalPipes(new ValidationPipe());
   app.use(helmet());
   app.use(compression());
+  app.use(cors());
   // app.useGlobalFilters(new AllExceptionsFilter());
 
   app.enableVersioning({
@@ -42,22 +43,37 @@ async function bootstrap() {
     });
   }
   // Configure CORS
+  // app.enableCors({
+  //   origin: [
+  //     'http://localhost:5173',
+  //     'http://localhost:3001',
+  //     'http://192.168.1.33:5173',
+  //   ],
+  //   credentials: true,
+  //   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  //   allowedHeaders: [
+  //     'Content-Type',
+  //     'Authorization',
+  //     'X-Requested-With',
+  //     'Accept',
+  //   ],
+  //   exposedHeaders: ['Set-Cookie'],
+  // });
   app.enableCors({
-    origin: [
-      'http://localhost:5173',
-      'http://localhost:3001',
-      'http://192.168.1.33:5173',
-    ],
+    origin: ['http://127.0.0.1:8080', 'file://'],
+    // methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    // allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: [
-      'Content-Type',
-      'Authorization',
-      'X-Requested-With',
-      'Accept',
-    ],
-    exposedHeaders: ['Set-Cookie'],
   });
+
+  // if (helmet) {
+  //   app.use(
+  //     helmet({
+  //       crossOriginResourcePolicy: { policy: 'cross-origin' }, // This is crucial
+  //       crossOriginEmbedderPolicy: false, // Disable if causing issues
+  //     }),
+  //   );
+  // }
 
   // app.use(
   //   session({

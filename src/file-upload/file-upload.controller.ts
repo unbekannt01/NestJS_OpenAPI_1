@@ -20,6 +20,7 @@ import { memoryStorage } from 'multer';
 import { Request } from 'express';
 import { AuthGuard } from '@nestjs/passport';
 import { lookup as getMimeType } from 'mime-types';
+import { SupaBaseService } from 'src/common/services/supabase.service';
 
 /**
  * FileUploadController handles file upload and retrieval operations.
@@ -27,7 +28,10 @@ import { lookup as getMimeType } from 'mime-types';
 @Public()
 @Controller({ path: 'file-upload', version: '1' })
 export class FileUploadController {
-  constructor(private readonly fileUploadService: FileUploadService) {}
+  constructor(
+    private readonly fileUploadService: FileUploadService,
+    private readonly supaBaseService: SupaBaseService,
+  ) {}
 
   /**
    * uploadFiles
@@ -45,13 +49,13 @@ export class FileUploadController {
     @Req() request: Request,
   ) {
     const user = request.user as { id: string };
-    return this.fileUploadService.uploadFile(file, user.id);
+    const uploaded = await this.fileUploadService.uploadFile(file, user.id);
+
+    return {
+      data: uploaded,
+    };
   }
 
-  /**
-   * getFile
-   * This method retrieves a file by its name.
-   */
   @Get('getFile')
   getFile(@Query('fileName') fileName: string, @Res() res: Response) {
     if (!fileName) {
@@ -62,7 +66,6 @@ export class FileUploadController {
     return res.sendFile(filePath);
   }
 
-  // delete file using id and pass the jwt token after the file is uploaded
   @Post('deleteFile/:id')
   @UseGuards(AuthGuard('jwt'))
   async deleteFile(@Param('id') id: string, @Req() request: Request) {
@@ -74,7 +77,9 @@ export class FileUploadController {
 
       await this.fileUploadService.deleteFile(id, user.id);
     } catch (error) {
-      throw new NotFoundException('File not found');
+      throw new NotFoundException(
+        'File not found or you do not have to permission to delete it.',
+      );
     }
   }
 
@@ -99,19 +104,114 @@ export class FileUploadController {
     }
   }
 
-  // @Post('updateFile/:id')
-  // @UseGuards(AuthGuard('jwt'))
-  // @UseInterceptors(
-  //   FileInterceptor('file', {
-  //     storage: memoryStorage(),
-  //   }),
-  // )
-  // async updateFile(
-  //   @Param('id') id: string,
-  //   @UploadedFile() file: Express.Multer.File,
-  //   @Req() request: Request,
+  @Post('updateFile/:fileId')
+  @UseGuards(AuthGuard('jwt'))
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+    }),
+  )
+  async updateFile(
+    @Param('fileId') fileId: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Req() request: Request,
+  ) {
+    const user = request.user as { id: string };
+    return this.fileUploadService.updateFile(fileId, file, user.id);
+  }
+
+  // @Get('download/:id')
+  // async downloadFile(
+  //   @Param('id') fileId: string,
+  //   @Res({ passthrough: false }) res: Response,
   // ) {
-  //   const user = request.user as { id: string };
-  //   return this.fileUploadService.updateFile(id, user.id, file);
+  //   const fileMeta = await this.fileUploadService.getFileMetaById(fileId);
+  //   if (!fileMeta) throw new NotFoundException('File metadata not found.');
+
+  //   const buffer = await this.fileUploadService.getFileById(fileId);
+  //   if (!buffer) throw new NotFoundException('File content not found.');
+
+  //   const originalFileName =
+  //     fileMeta.file.split('/').pop()?.split('?')[0] || `file-${fileMeta.id}`;
+  //   const ext = path.extname(originalFileName);
+  //   const mimeType = this.getMimeType(ext);
+
+  //   res.setHeader(
+  //     'Content-Type',
+  //     fileMeta.mimeType,
+  //   );
+  //   res.setHeader(
+  //     'Content-Disposition', `attachment; filename="${fileMeta.originalName || 'file'}"`,
+  //   );
+  //   res.setHeader('Content-Disposition', `inline; filename="${originalFileName}"`);
+
+  //   res.setHeader('Content-Length', buffer.length);
+
+  //   return res.end(buffer);
   // }
+
+  @Get('download/:id')
+  async downloadFile(
+    @Param('id') fileId: string,
+    @Res({ passthrough: false }) res: Response,
+  ) {
+    const fileMeta = await this.fileUploadService.getFileMetaById(fileId);
+    if (!fileMeta) throw new NotFoundException('File not found');
+
+    const buffer = await this.fileUploadService.getFileById(fileId);
+    if (!buffer) throw new NotFoundException('Buffer missing');
+
+    const fileName = fileMeta.originalName || 'file';
+    const mimeType = fileMeta.mimeType || 'application/octet-stream';
+
+    res.setHeader('Content-Type', mimeType);
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.setHeader('Content-Length', buffer.length);
+
+    res.end(buffer);
+  }
+
+  @Get('getFileUrl/:id')
+  async getFileUrl(@Param('id') id: string) {
+    const fileMeta = await this.fileUploadService.getFileMetaById(id);
+    const signedUrl = await this.supaBaseService.getSignedUrl(fileMeta.file);
+
+    return {
+      fileName: fileMeta.originalName,
+      mimeType: fileMeta.mimeType,
+      signedUrl,
+    };
+  }
+
+  // private getMimeType(ext: string): string {
+  //   const map = {
+  //     '.jpg': 'image/jpeg',
+  //     '.jpeg': 'image/jpeg',
+  //     '.png': 'image/png',
+  //     '.pdf': 'application/pdf',
+  //     '.txt': 'text/plain',
+  //   };
+  //   return map[ext.toLowerCase()] || 'application/octet-stream';
+  // }
+
+  @Get('getAllFile')
+  async getAllFile() {
+    const files = await this.fileUploadService.getAllFiles();
+
+    const enriched = await Promise.all(
+      files.map(async (file) => {
+        const signedUrl = await this.supaBaseService.getSignedUrl(file.file);
+        return {
+          id: file.id,
+          file: signedUrl,
+          originalName: file.originalName,
+          mimeType: file.mimeType,
+          // user: file.user,
+          createdAt: file.Creation,
+        };
+      }),
+    );
+
+    return enriched;
+  }
 }
