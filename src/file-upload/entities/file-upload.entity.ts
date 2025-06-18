@@ -28,6 +28,9 @@ export class UploadFile {
   @Column({ type: 'timestamp', nullable: true })
   Updation: Date | null;
 
+  @Column({ nullable: true })
+  fileHash: string;
+
   @ManyToOne(() => User, (user) => user.fileupload, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user: User;

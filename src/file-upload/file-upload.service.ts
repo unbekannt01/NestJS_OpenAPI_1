@@ -11,6 +11,8 @@ import { Repository } from 'typeorm';
 import { FileStorageService } from 'src/common/services/file-storage.service';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as crypto from 'crypto';
+
 /**
  * FileUploadService
  * This service handles file upload operations.
@@ -70,9 +72,15 @@ export class FileUploadService {
 
     const publicUrl = await this.fileStorageService.upload(file);
 
+    const fileHash = crypto.createHash('sha256').update(buffer).digest('hex');
+
     const alreadyExists = await this.uploadRepo.findOne({
-      where: { file: publicUrl, user: { id: userId?.toString() } },
+      where: {
+        fileHash,
+        user: { id: userId },
+      },
     });
+
     if (alreadyExists) {
       throw new UnauthorizedException('File already uploaded!');
     }
@@ -81,7 +89,9 @@ export class FileUploadService {
       file: publicUrl,
       originalName: file.originalname,
       mimeType: file.mimetype,
+      fileHash,
       Creation: new Date(),
+      user: { id: userId },
     });
 
     if (userId) {
@@ -157,9 +167,13 @@ export class FileUploadService {
 
     await this.supaBaseService.deleteFile(oldFile.file);
 
+    // Upload new file and update all relevant fields
     const publicUrl = await this.fileStorageService.upload(newFile);
 
     oldFile.file = publicUrl;
+    oldFile.originalName = newFile.originalname; // <-- update originalName
+    oldFile.mimeType = newFile.mimetype;         // <-- update mimeType
+    oldFile.fileHash = require('crypto').createHash('sha256').update(newFile.buffer).digest('hex'); // <-- update fileHash
     oldFile.Updation = new Date();
 
     await this.uploadRepo.save(oldFile);
