@@ -27,7 +27,7 @@ import { AlsModule } from './als/als.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { typeOrmConfig } from './config/typeorm.config';
 import { AlsMiddleware } from './als/als.middleware';
-import { CloudinaryModule } from './cloudinary/cloudinary.module';
+import { CloudinaryModule } from './common/services/cloudinary.module';
 
 /**
  * AppModule

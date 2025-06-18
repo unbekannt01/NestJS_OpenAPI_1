@@ -87,6 +87,11 @@ export class FileUploadController {
   async getFileById(@Param('id') id: string, @Res() res: Response) {
     try {
       const fileRecord = await this.fileUploadService.getFileMetaById(id);
+      // const driver = process.env.STORAGE_DRIVER || 'local';
+
+      // if (driver === 'cloudinary') {
+      //   return res.redirect(fileRecord.file);
+      // }
       const buffer = await this.fileUploadService.getFileById(id);
 
       const fileName = fileRecord.file.split('/').pop();
@@ -155,33 +160,61 @@ export class FileUploadController {
     @Param('id') fileId: string,
     @Res({ passthrough: false }) res: Response,
   ) {
-    const fileMeta = await this.fileUploadService.getFileMetaById(fileId);
-    if (!fileMeta) throw new NotFoundException('File not found');
+    const result = await this.fileUploadService.downloadFile(fileId);
 
-    const buffer = await this.fileUploadService.getFileById(fileId);
-    if (!buffer) throw new NotFoundException('Buffer missing');
+    // If Cloudinary: redirect to public URL
+    if ('redirectUrl' in result) {
+      if (typeof result.redirectUrl === 'string') {
+        return res.redirect(result.redirectUrl);
+      } else {
+        throw new NotFoundException('Redirect URL is not available.');
+      }
+    }
 
-    const fileName = fileMeta.originalName || 'file';
-    const mimeType = fileMeta.mimeType || 'application/octet-stream';
+    // If Supabase: send buffer
+    if ('buffer' in result) {
+      res.setHeader('Content-Type', result.mimeType);
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="${result.fileName}"`,
+      );
+      res.setHeader('Content-Length', result.size);
+      return res.end(result.buffer);
+    }
 
-    res.setHeader('Content-Type', mimeType);
-    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-    res.setHeader('Content-Length', buffer.length);
-
-    res.end(buffer);
+    //  If Local: use file path
+    res.setHeader('Content-Type', result.mimeType);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${result.fileName}"`,
+    );
+    res.setHeader('Content-Length', result.size);
+    return res.sendFile(result.filePath);
   }
 
-  @Get('getFileUrl/:id')
-  async getFileUrl(@Param('id') id: string) {
-    const fileMeta = await this.fileUploadService.getFileMetaById(id);
-    const signedUrl = await this.supaBaseService.getSignedUrl(fileMeta.file);
+@Get('getFileUrl/:id')
+async getFileUrl(@Param('id') id: string) {
+  const fileMeta = await this.fileUploadService.getFileMetaById(id);
+  const driver = process.env.STORAGE_DRIVER;
 
-    return {
-      fileName: fileMeta.originalName,
-      mimeType: fileMeta.mimeType,
-      signedUrl,
-    };
+  let url: string;
+
+  if (driver === 'cloudinary') {
+    url = fileMeta.file;
+  } else if (driver === 'supabase') {
+    url = await this.supaBaseService.getSignedUrl(fileMeta.file); 
+  } else {
+    // Local file URL (optional fallback)
+    url = `${process.env.HOST_URL || 'http://localhost:3000'}/${fileMeta.file}`;
   }
+
+  return {
+    fileName: fileMeta.originalName,
+    mimeType: fileMeta.mimeType,
+    url, 
+  };
+}
+
 
   // private getMimeType(ext: string): string {
   //   const map = {
@@ -200,10 +233,10 @@ export class FileUploadController {
 
     const enriched = await Promise.all(
       files.map(async (file) => {
-        const signedUrl = await this.supaBaseService.getSignedUrl(file.file);
+        // const signedUrl = await this.supaBaseService.getSignedUrl(file.file);
         return {
           id: file.id,
-          file: signedUrl,
+          file: file.file,
           originalName: file.originalName,
           mimeType: file.mimeType,
           // user: file.user,

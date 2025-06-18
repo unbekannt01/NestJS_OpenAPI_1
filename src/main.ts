@@ -112,5 +112,7 @@ const cors = require('cors');
   } else {
     console.log(`Running in ${env.toUpperCase()} environment`);
   }
+
+  console.log(`Storage Driver :`, process.env.STORAGE_DRIVER);
 }
 bootstrap();

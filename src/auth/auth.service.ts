@@ -169,7 +169,8 @@ export class AuthService {
       if (!file.buffer) {
         throw new BadRequestException('Uploaded file is empty or invalid');
       }
-      avatarUrl = await this.fileStorageService.upload(file, 'avatar');
+      const uploadResult = await this.fileStorageService.upload(file, 'avatar');
+      avatarUrl = uploadResult.url;
     }
 
     if (user) {
@@ -243,7 +244,8 @@ export class AuthService {
       if (!file.buffer) {
         throw new BadRequestException('Uploaded file is empty or invalid');
       }
-      avatarUrl = await this.fileStorageService.upload(file, 'avatar');
+      const uploadResult = await this.fileStorageService.upload(file, 'avatar');
+      avatarUrl = uploadResult.url;
     }
 
     const otp = new Otp();
@@ -326,7 +328,8 @@ export class AuthService {
       if (!file.buffer) {
         throw new BadRequestException('Uploaded file is empty or invalid');
       }
-      avatarUrl = await this.fileStorageService.upload(file, 'avatar');
+      const uploadResult = await this.fileStorageService.upload(file, 'avatar');
+      avatarUrl = uploadResult.url;
     }
 
     if (user && user.status === UserStatus.ACTIVE) {

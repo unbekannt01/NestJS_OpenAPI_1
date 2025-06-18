@@ -12,6 +12,7 @@ import { FileStorageService } from 'src/common/services/file-storage.service';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as crypto from 'crypto';
+import { CloudinaryService } from 'src/common/services/cloudinary.service';
 
 /**
  * FileUploadService
@@ -23,6 +24,7 @@ export class FileUploadService {
     @InjectRepository(UploadFile)
     private readonly uploadRepo: Repository<UploadFile>,
     public readonly supaBaseService: SupaBaseService,
+    public readonly cloudinaryService: CloudinaryService,
     public readonly fileStorageService: FileStorageService,
   ) {}
 
@@ -70,7 +72,8 @@ export class FileUploadService {
       throw new BadRequestException('File buffer is missing.');
     }
 
-    const publicUrl = await this.fileStorageService.upload(file);
+    const { url: publicUrl, publicId } =
+      await this.fileStorageService.upload(file);
 
     const fileHash = crypto.createHash('sha256').update(buffer).digest('hex');
 
@@ -87,6 +90,7 @@ export class FileUploadService {
 
     const uploadFile = this.uploadRepo.create({
       file: publicUrl,
+      publicId,
       originalName: file.originalname,
       mimeType: file.mimetype,
       fileHash,
@@ -113,10 +117,46 @@ export class FileUploadService {
       );
     }
 
-    await this.supaBaseService.deleteFile(file.file);
+    const driver = process.env.STORAGE_DRIVER;
+
+    if (driver === 'supabase') {
+      await this.supaBaseService.deleteFile(file.file);
+    } else if (driver === 'cloudinary' && file.publicId) {
+      await this.cloudinaryService.deleteFile(file.publicId);
+    } else {
+      // local fallback
+      const filePath = path.resolve(
+        process.cwd(),
+        file.file.replace(/^\/+/, ''),
+      );
+      if (fs.existsSync(filePath)) {
+        await fs.promises.unlink(filePath);
+      }
+    }
+
     await this.uploadRepo.delete(id);
     return { message: 'File has been deleted...!' };
   }
+
+  // async getFileById(fileId: string): Promise<Buffer> {
+  //   const file = await this.uploadRepo.findOne({ where: { id: fileId } });
+
+  //   if (!file) throw new NotFoundException('File not found');
+
+  //   const driver = process.env.STORAGE_DRIVER;
+
+  //   if (driver === 'supabase') {
+  //     const buffer = await this.supaBaseService.getFileById(file.file);
+  //     if (!buffer) throw new NotFoundException('File not found in storage');
+  //     return buffer;
+  //   }
+
+  //   // Local fallback
+  //   const filePath = path.resolve(process.cwd(), file.file.replace(/^\/+/, ''));
+  //   if (!fs.existsSync(filePath))
+  //     throw new NotFoundException('File missing locally');
+  //   return fs.readFileSync(filePath);
+  // }
 
   async getFileById(fileId: string): Promise<Buffer> {
     const file = await this.uploadRepo.findOne({ where: { id: fileId } });
@@ -124,6 +164,12 @@ export class FileUploadService {
     if (!file) throw new NotFoundException('File not found');
 
     const driver = process.env.STORAGE_DRIVER;
+
+    if (driver === 'cloudinary') {
+      throw new BadRequestException(
+        'Direct file download is not supported for Cloudinary. Use public URL instead.',
+      );
+    }
 
     if (driver === 'supabase') {
       const buffer = await this.supaBaseService.getFileById(file.file);
@@ -133,8 +179,9 @@ export class FileUploadService {
 
     // Local fallback
     const filePath = path.resolve(process.cwd(), file.file.replace(/^\/+/, ''));
-    if (!fs.existsSync(filePath))
+    if (!fs.existsSync(filePath)) {
       throw new NotFoundException('File missing locally');
+    }
     return fs.readFileSync(filePath);
   }
 
@@ -160,20 +207,40 @@ export class FileUploadService {
       },
     });
 
-    if (!oldFile)
+    if (!oldFile) {
       throw new NotFoundException(
-        'Old file deleted or you do not have to permission to delete it...!',
+        'Old file deleted or you do not have permission to update it...!',
       );
+    }
 
-    await this.supaBaseService.deleteFile(oldFile.file);
+    const driver = process.env.STORAGE_DRIVER;
 
-    // Upload new file and update all relevant fields
-    const publicUrl = await this.fileStorageService.upload(newFile);
+    if (driver === 'supabase') {
+      await this.supaBaseService.deleteFile(oldFile.file);
+    } else if (driver === 'cloudinary') {
+      if (oldFile.publicId) {
+        await this.cloudinaryService.deleteFile(oldFile.publicId);
+      }
+    } else {
+      const filePath = path.resolve(
+        process.cwd(),
+        oldFile.file.replace(/^\/+/, ''),
+      );
+      if (fs.existsSync(filePath)) {
+        await fs.promises.unlink(filePath);
+      }
+    }
 
-    oldFile.file = publicUrl;
-    oldFile.originalName = newFile.originalname; // <-- update originalName
-    oldFile.mimeType = newFile.mimetype;         // <-- update mimeType
-    oldFile.fileHash = require('crypto').createHash('sha256').update(newFile.buffer).digest('hex'); // <-- update fileHash
+    const { url, publicId } = await this.fileStorageService.upload(newFile);
+
+    oldFile.file = url;
+    oldFile.publicId = publicId ?? '';
+    oldFile.originalName = newFile.originalname;
+    oldFile.mimeType = newFile.mimetype;
+    oldFile.fileHash = crypto
+      .createHash('sha256')
+      .update(newFile.buffer)
+      .digest('hex');
     oldFile.Updation = new Date();
 
     await this.uploadRepo.save(oldFile);
@@ -189,28 +256,35 @@ export class FileUploadService {
 
     const driver = process.env.STORAGE_DRIVER;
 
+    if (driver === 'cloudinary') {
+      return {
+        redirectUrl: file.file,
+        fileName: file.originalName || 'file',
+        mimeType: file.mimeType || 'application/octet-stream',
+      };
+    }
+
     if (driver === 'supabase') {
       const buffer = await this.getFileById(fileId);
-      const extension = path.extname(file.file).split('?')[0]; // Strip query from signed URL
+      const extension = path.extname(file.file).split('?')[0];
       return {
         buffer,
         fileName: `file-${file.id}${extension}`,
-        mimeType: file.file.includes('.jpg, .png, .jpeg')
-          ? 'image/jpeg'
-          : 'application/octet-stream',
+        mimeType: file.mimeType || 'application/octet-stream',
         size: buffer.length,
       };
     }
 
-    // Fallback for local
+    // Local fallback
     const filePath = path.resolve(process.cwd(), file.file.replace(/^\/+/, ''));
     if (!fs.existsSync(filePath)) {
       throw new NotFoundException('File does not exist on the server.');
     }
+
     return {
       filePath,
       fileName: path.basename(file.file),
-      mimeType: file.file.split('.').pop() || 'application/octet-stream',
+      mimeType: file.mimeType || 'application/octet-stream',
       size: fs.statSync(filePath).size,
     };
   }

@@ -13,7 +13,7 @@ export const dataSourceOptions = (): DataSourceOptions => {
     synchronize: false,
     migrationsTableName: 'typeorm_migrations',
     migrationsRun: false,
-    logging: configService.getValue('TYPEORM_LOGGING', false) === 'true',
+    // logging: configService.getValue('TYPEORM_LOGGING', false) === 'true',
   };
 
   if (useDatabaseUrl) {

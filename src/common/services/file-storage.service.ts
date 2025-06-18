@@ -2,22 +2,20 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { SupaBaseService } from './supabase.service';
-// import { S3Service } from './s3.service'; // optional, for S3
-// import { CloudinaryService } from './cloudinary.service'; // optional
 import { StorageDriver } from '../enum/storageDriver.enum';
+import { CloudinaryService } from './cloudinary.service';
 
 @Injectable()
 export class FileStorageService {
   constructor(
     private readonly supabaseService: SupaBaseService,
-    // private readonly s3Service?: S3Service,
-    // private readonly cloudinaryService?: CloudinaryService,
+    private readonly cloudinaryService?: CloudinaryService,
   ) {}
 
   async upload(
     file: Express.Multer.File,
     fileType: 'avatar' | 'general' = 'general',
-  ): Promise<string> {
+  ): Promise<{ url: string; publicId?: string }> {
     if (!file || !file.buffer) {
       throw new BadRequestException('Uploaded file is empty or invalid');
     }
@@ -26,25 +24,32 @@ export class FileStorageService {
 
     switch (driver) {
       case StorageDriver.SUPABASE:
-        return this.supabaseService.uploadBuffer(
+        const url = await this.supabaseService.uploadBuffer(
+          file.originalname,
+          file.buffer,
+          file.mimetype,
+        );
+        return { url }; // no publicId needed
+
+      case StorageDriver.CLOUDINARY:
+        if (!this.cloudinaryService) {
+          throw new BadRequestException('Cloudinary service is not available');
+        }
+
+        const cloudinaryResult = await this.cloudinaryService.uploadBuffer(
           file.originalname,
           file.buffer,
           file.mimetype,
         );
 
-      // case StorageDriver.S3:
-      //   return this.s3Service?.uploadBuffer(
-      //     file.originalname,
-      //     file.buffer,
-      //     file.mimetype,
-      //   );
+        if (!cloudinaryResult || !cloudinaryResult.secureUrl) {
+          throw new BadRequestException('Failed to upload file to Cloudinary');
+        }
 
-      // case StorageDriver.CLOUDINARY:
-      //   return this.cloudinaryService?.uploadBuffer(
-      //     file.originalname,
-      //     file.buffer,
-      //     file.mimetype,
-      //   );
+        return {
+          url: cloudinaryResult.secureUrl,
+          publicId: cloudinaryResult.publicId,
+        };
 
       case StorageDriver.LOCAL:
       default:
@@ -52,13 +57,16 @@ export class FileStorageService {
           fileType === 'avatar'
             ? process.env.UPLOADS_DIR || 'uploads/avatars'
             : 'uploads';
+
         const filename = `${Date.now()}-${file.originalname}`;
         const fullPath = path.join(uploadDir, filename);
 
         await fs.mkdir(uploadDir, { recursive: true });
         await fs.writeFile(fullPath, file.buffer);
 
-        return `/${uploadDir}/${filename}`;
+        return {
+          url: `/${uploadDir}/${filename}`,
+        };
     }
   }
 }

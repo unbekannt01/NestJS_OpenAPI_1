@@ -31,6 +31,9 @@ export class UploadFile {
   @Column({ nullable: true })
   fileHash: string;
 
+  @Column({ nullable: true })
+  publicId: string;
+
   @ManyToOne(() => User, (user) => user.fileupload, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user: User;
