@@ -24,7 +24,7 @@ async function bootstrap() {
   });
   const configService = app.get(ConfigService);
   const PORT = configService.get<number>('PORT') || 3001;
-const cors = require('cors');
+  const cors = require('cors');
 
   app.useGlobalPipes(new ValidationPipe());
   app.use(helmet());
@@ -42,6 +42,7 @@ const cors = require('cors');
       prefix: '/uploads/',
     });
   }
+
   // Configure CORS
   // app.enableCors({
   //   origin: [
@@ -59,8 +60,9 @@ const cors = require('cors');
   //   ],
   //   exposedHeaders: ['Set-Cookie'],
   // });
+
   app.enableCors({
-    origin: ['http://127.0.0.1:8080', 'file://'],
+    origin: ['file://'],
     // methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     // allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,

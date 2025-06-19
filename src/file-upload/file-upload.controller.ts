@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Inject,
   NotFoundException,
   Param,
   Post,
@@ -21,6 +22,9 @@ import { Request } from 'express';
 import { AuthGuard } from '@nestjs/passport';
 import { lookup as getMimeType } from 'mime-types';
 import { SupaBaseService } from 'src/common/services/supabase.service';
+import { Throttle } from '@nestjs/throttler';
+import { createReadStream, existsSync, statSync } from 'fs';
+import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
 
 /**
  * FileUploadController handles file upload and retrieval operations.
@@ -31,6 +35,8 @@ export class FileUploadController {
   constructor(
     private readonly fileUploadService: FileUploadService,
     private readonly supaBaseService: SupaBaseService,
+    @Inject(CACHE_MANAGER)
+    private readonly cacheManager: Cache,
   ) {}
 
   /**
@@ -155,6 +161,7 @@ export class FileUploadController {
   //   return res.end(buffer);
   // }
 
+  @Throttle({ default: { limit: 1, ttl: 6 * 1000 } })
   @Get('download/:id')
   async downloadFile(
     @Param('id') fileId: string,
@@ -192,29 +199,28 @@ export class FileUploadController {
     return res.sendFile(result.filePath);
   }
 
-@Get('getFileUrl/:id')
-async getFileUrl(@Param('id') id: string) {
-  const fileMeta = await this.fileUploadService.getFileMetaById(id);
-  const driver = process.env.STORAGE_DRIVER;
+  @Get('getFileUrl/:id')
+  async getFileUrl(@Param('id') id: string) {
+    const fileMeta = await this.fileUploadService.getFileMetaById(id);
+    const driver = process.env.STORAGE_DRIVER;
 
-  let url: string;
+    let url: string;
 
-  if (driver === 'cloudinary') {
-    url = fileMeta.file;
-  } else if (driver === 'supabase') {
-    url = await this.supaBaseService.getSignedUrl(fileMeta.file); 
-  } else {
-    // Local file URL (optional fallback)
-    url = `${process.env.HOST_URL || 'http://localhost:3000'}/${fileMeta.file}`;
+    if (driver === 'cloudinary') {
+      url = fileMeta.file;
+    } else if (driver === 'supabase') {
+      url = await this.supaBaseService.getSignedUrl(fileMeta.file);
+    } else {
+      // Local file URL (optional fallback)
+      url = `${process.env.HOST_URL || 'http://localhost:3000'}/${fileMeta.file}`;
+    }
+
+    return {
+      fileName: fileMeta.originalName,
+      mimeType: fileMeta.mimeType,
+      url,
+    };
   }
-
-  return {
-    fileName: fileMeta.originalName,
-    mimeType: fileMeta.mimeType,
-    url, 
-  };
-}
-
 
   // private getMimeType(ext: string): string {
   //   const map = {
@@ -246,5 +252,61 @@ async getFileUrl(@Param('id') id: string) {
     );
 
     return enriched;
+  }
+
+  @Get('stream/:id')
+  async streamVideo(
+    @Param('id') id: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const fileMeta = await this.fileUploadService.getFileMetaById(id);
+    if (!fileMeta) {
+      return res.status(404).send('File metadata not found');
+    }
+
+    const relativePath = fileMeta.file.startsWith('/')
+      ? fileMeta.file.slice(1)
+      : fileMeta.file;
+
+    const videoPath = path.join(process.cwd(), relativePath);
+
+    if (!existsSync(videoPath)) {
+      console.error('File not found at:', videoPath);
+      return res.status(404).send('File not found on disk');
+    }
+
+    const stat = statSync(videoPath);
+    const fileSize = stat.size;
+    const range = req.headers.range;
+
+    if (!range) {
+      return res.status(400).send('Requires Range header');
+    }
+
+    const CHUNK_SIZE = 10 ** 6;
+    const parts = range.replace(/bytes=/, '').split('-');
+    const start = parseInt(parts[0], 10);
+    const end = parts[1]
+      ? parseInt(parts[1], 10)
+      : Math.min(start + CHUNK_SIZE, fileSize - 1);
+
+    const contentLength = end - start + 1;
+    const headers = {
+      'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+      'Accept-Ranges': 'bytes',
+      'Content-Length': contentLength,
+      'Content-Type': fileMeta.mimeType || 'video/mp4',
+    };
+
+    res.writeHead(206, headers);
+    const videoStream = createReadStream(videoPath, { start, end });
+    videoStream.pipe(res);
+  }
+
+  @Get('debug/cache/:key')
+  async debugCache(@Param('key') key: string) {
+    const value = await this.cacheManager.get(key);
+    return { key, value };
   }
 }

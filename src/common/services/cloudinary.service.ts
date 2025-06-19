@@ -84,7 +84,7 @@ export class CloudinaryService {
       throw new BadRequestException('Cloudinary delete failed');
     }
 
-    console.log('✅ Deleted from Cloudinary:', publicId);
+    console.log('Deleted from Cloudinary:', publicId);
   }
 
   // update a file using its Cloudinary public ID or URL

@@ -1,8 +1,4 @@
-import {
-  Module,
-  MiddlewareConsumer,
-  NestModule,
-} from '@nestjs/common';
+import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { UserModule } from './user/user.module';
 import { SearchModule } from './search/search.module';
@@ -28,6 +24,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { typeOrmConfig } from './config/typeorm.config';
 import { AlsMiddleware } from './als/als.middleware';
 import { CloudinaryModule } from './common/services/cloudinary.module';
+import { CacheModule } from '@nestjs/cache-manager';
 
 /**
  * AppModule
@@ -39,9 +36,14 @@ import { CloudinaryModule } from './common/services/cloudinary.module';
       throttlers: [
         {
           ttl: 6 * 1000,
-          limit: 3,
+          limit: 10,
         },
       ],
+    }),
+    CacheModule.register({
+      ttl: 300, 
+      max: 100, 
+      isGlobal: true,
     }),
     EventEmitterModule.forRoot(),
     ScheduleModule.forRoot(),
