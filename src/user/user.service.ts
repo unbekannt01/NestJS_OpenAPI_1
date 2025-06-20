@@ -195,7 +195,6 @@ export class UserService {
         'status',
         'userName',
         'birth_date',
-        'age',
         'role',
       ],
     });

@@ -25,6 +25,7 @@ import { typeOrmConfig } from './config/typeorm.config';
 import { AlsMiddleware } from './als/als.middleware';
 import { CloudinaryModule } from './common/services/cloudinary.module';
 import { CacheModule } from '@nestjs/cache-manager';
+import { redisStore } from 'cache-manager-redis-store';
 
 /**
  * AppModule
@@ -41,10 +42,10 @@ import { CacheModule } from '@nestjs/cache-manager';
       ],
     }),
     CacheModule.register({
-      ttl: 300, 
-      max: 100, 
       isGlobal: true,
+      ttl: 300,
     }),
+
     EventEmitterModule.forRoot(),
     ScheduleModule.forRoot(),
     ConfigModule.forRoot({

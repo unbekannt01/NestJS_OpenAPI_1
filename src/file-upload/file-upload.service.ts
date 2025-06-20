@@ -15,8 +15,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as crypto from 'crypto';
 import { CloudinaryService } from 'src/common/services/cloudinary.service';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Cache } from 'cache-manager';
+import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
 
 /**
  * FileUploadService
@@ -166,7 +165,8 @@ export class FileUploadService {
       order: { Creation: 'DESC' },
       relations: ['user'],
     });
-    await this.cacheManager.set(cacheKey, allFiles, 300);
+
+    await this.cacheManager.set(cacheKey, allFiles);
     this.logger.log(`Cache UPDATED for key: ${cacheKey} after upload`);
 
     return `File uploaded successfully: ${publicUrl}`;
@@ -379,31 +379,16 @@ export class FileUploadService {
 
   async getAllFiles() {
     const cacheKey = 'all-files';
-
-    try {
-      const cached = await this.cacheManager.get<UploadFile[]>(cacheKey);
-      if (cached) {
-        this.logger.log(`Cache HIT for key: ${cacheKey}`);
-        return cached;
-      }
-
-      this.logger.log(`Cache MISS for key: ${cacheKey}`);
-    } catch (err) {
-      this.logger.error(` Error reading cache for ${cacheKey}`, err);
+    const cached = await this.cacheManager.get(cacheKey);
+    if (cached) {
+      this.logger.log(`Cache HIT for key: ${cacheKey}`);
+      return cached;
     }
 
-    const files = await this.uploadRepo.find({
-      order: { Creation: 'DESC' },
-      relations: ['user'],
-    });
-
-    // try {
-    //   await this.cacheManager.set(cacheKey, files, 300);
-    //   this.logger.log(`Cache SET for key: ${cacheKey}`);
-    // } catch (err) {
-    //   this.logger.error(` Error setting cache for ${cacheKey}`, err);
-    // }
-
+    this.logger.log(`Cache MISS for key: ${cacheKey}`);
+    const files = await this.uploadRepo.find();
+    await this.cacheManager.set(cacheKey, files, 60);
+    this.logger.log(`Cache SET for key: ${cacheKey}`);
     return files;
   }
 }

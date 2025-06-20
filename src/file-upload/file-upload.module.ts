@@ -7,6 +7,7 @@ import { SupaBaseService } from 'src/common/services/supabase.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UploadFile } from './entities/file-upload.entity';
 import { FileStorageService } from 'src/common/services/file-storage.service';
+import { CacheModule } from '@nestjs/cache-manager';
 import { CloudinaryModule } from 'src/common/services/cloudinary.module';
 
 /**
@@ -25,10 +26,15 @@ import { CloudinaryModule } from 'src/common/services/cloudinary.module';
         },
       }),
     }),
-    CloudinaryModule
+    CacheModule.register(),
+    CloudinaryModule,
   ],
   controllers: [FileUploadController],
-  providers: [FileUploadService, SupaBaseService, FileStorageService],
-  exports: [FileStorageService]
+  providers: [
+    FileUploadService,
+    SupaBaseService,
+    FileStorageService,
+  ],
+  exports: [FileStorageService],
 })
 export class FileUploadModule {}

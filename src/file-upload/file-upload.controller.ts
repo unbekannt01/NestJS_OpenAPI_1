@@ -1,5 +1,6 @@
 import {
   Controller,
+  Delete,
   Get,
   Inject,
   NotFoundException,
@@ -24,7 +25,6 @@ import { lookup as getMimeType } from 'mime-types';
 import { SupaBaseService } from 'src/common/services/supabase.service';
 import { Throttle } from '@nestjs/throttler';
 import { createReadStream, existsSync, statSync } from 'fs';
-import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
 
 /**
  * FileUploadController handles file upload and retrieval operations.
@@ -35,8 +35,6 @@ export class FileUploadController {
   constructor(
     private readonly fileUploadService: FileUploadService,
     private readonly supaBaseService: SupaBaseService,
-    @Inject(CACHE_MANAGER)
-    private readonly cacheManager: Cache,
   ) {}
 
   /**
@@ -93,11 +91,6 @@ export class FileUploadController {
   async getFileById(@Param('id') id: string, @Res() res: Response) {
     try {
       const fileRecord = await this.fileUploadService.getFileMetaById(id);
-      // const driver = process.env.STORAGE_DRIVER || 'local';
-
-      // if (driver === 'cloudinary') {
-      //   return res.redirect(fileRecord.file);
-      // }
       const buffer = await this.fileUploadService.getFileById(id);
 
       const fileName = fileRecord.file.split('/').pop();
@@ -237,6 +230,10 @@ export class FileUploadController {
   async getAllFile() {
     const files = await this.fileUploadService.getAllFiles();
 
+    if (!Array.isArray(files)) {
+      throw new Error('Expected files to be an array');
+    }
+
     const enriched = await Promise.all(
       files.map(async (file) => {
         // const signedUrl = await this.supaBaseService.getSignedUrl(file.file);
@@ -304,9 +301,9 @@ export class FileUploadController {
     videoStream.pipe(res);
   }
 
-  @Get('debug/cache/:key')
-  async debugCache(@Param('key') key: string) {
-    const value = await this.cacheManager.get(key);
-    return { key, value };
-  }
+  // @Get('debug/cache/:key')
+  // async debugCache(@Param('key') key: string) {
+  //   const value = await this.cacheManager.get(key);
+  //   return { key, value };
+  // }
 }

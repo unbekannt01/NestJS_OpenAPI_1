@@ -111,13 +111,11 @@ export class AuthController {
   @UsePipes(ValidationPipe)
   async login(
     @Body() login: LoginUserDto,
-    @Res({ passthrough: true }) res: Response,
+    // @Res({ passthrough: true }) res: Response,
   ): Promise<{ message: string; access_token: string; refresh_token: string }> {
     try {
       const { role, access_token, refresh_token } =
         await this.authService.loginUser(login.identifier, login.password);
-
-      res.setHeader('Authorization', `Bearer ${access_token}`);
 
       return {
         message: `${role} Login Successfully!`,
@@ -146,7 +144,7 @@ export class AuthController {
   @Post('logout')
   async logout(
     @Req() request: Request,
-    // @Res({ passthrough: true }) response: Response,
+    @Res({ passthrough: true }) res: Response,
   ) {
     try {
       const user = request.user as { id: string };
@@ -155,13 +153,6 @@ export class AuthController {
       }
 
       await this.authService.logout(user.id);
-
-      // response.clearCookie('access_token', {
-      //   path: '/',
-      //   httpOnly: true,
-      //   secure: false,
-      //   sameSite: 'lax',
-      // });
 
       return { message: 'Logged out successfully' };
     } catch (error) {
