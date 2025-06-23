@@ -1,14 +1,10 @@
 import { Controller, Get, Post, UseGuards } from "@nestjs/common"
 import { AdminService } from "./admin.service"
-import { JwtAuthGuard } from "../auth/guards/jwt.guard"
-import { RolesGuard } from "../auth/guards/roles.guard"
-import { Roles } from "../common/decorators/roles.decorator"
-import { UserRole } from "../user/entities/user.entity"
 import { NotificationsGateway } from "../websockets/notifications.gateway"
+import { Admin } from "src/common/decorators/admin.decorator"
 
-@Controller("admin")
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.ADMIN)
+@Admin()
+@Controller({ path: 'admin', version: '1'})
 export class AdminController {
   constructor(
     private readonly adminService: AdminService,
@@ -16,7 +12,7 @@ export class AdminController {
   ) {}
 
   // Suspend user endpoint
-  @Post("suspend/:id")
+  @Post('suspend/:id')
   async suspendUser(userId: string, body: { message?: string }) {
     const message = body.message || "Account suspended by admin"
     const result = await this.adminService.suspendUser(userId, message)
