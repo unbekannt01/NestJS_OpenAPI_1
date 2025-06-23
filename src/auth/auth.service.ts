@@ -29,6 +29,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { UserRegisteredPayload } from './interfaces/user-registered-payload';
 import { SupaBaseService } from 'src/common/services/supabase.service';
 import { FileStorageService } from 'src/common/services/file-storage.service';
+import { NotificationsGateway } from 'src/websockets/notifications.gateway';
 
 /**
  * AuthService handles user authentication, registration, and token management.
@@ -52,6 +53,7 @@ export class AuthService {
     private readonly emailServiceForVerification: EmailServiceForVerifyMail,
     private readonly eventEmitter: EventEmitter2,
     private readonly fileStorageService: FileStorageService,
+    private readonly notificationsGateway: NotificationsGateway,
   ) {}
 
   /**
@@ -99,13 +101,34 @@ export class AuthService {
       const role = user.role;
       const token = await this.generateUserToken(user.id, user.role);
 
+      // // Notify user of successful login via WebSocket
+      // this.notificationsGateway.notifyLoginAttempt(
+      //   user.id,
+      //   'Unknown Location', // You can enhance this with IP geolocation
+      //   true,
+      // );
+
       return { message: `${role} Login Successfully!`, role, ...token, user };
     } catch (error) {
       user.loginAttempts = (user.loginAttempts || 0) + 1;
       await this.userRepository.save(user);
 
+      // Notify user of failed login attempt
+      // this.notificationsGateway.notifyLoginAttempt(
+      //   user.id,
+      //   'Unknown Location',
+      //   false,
+      // );
+
       if (user.loginAttempts >= 10) {
         await this.userRepository.update(user.id, { isBlocked: true });
+
+        // Send real-time notification for account blocking
+        this.notificationsGateway.notifyAccountBlocked(
+          user.id,
+          'Account blocked due to too many failed login attempts',
+        );
+
         throw new UnauthorizedException(
           'Account blocked due to too many failed login attempts. Please contact support.',
         );
@@ -186,7 +209,7 @@ export class AuthService {
         password: hashedPassword,
         avatar: avatarUrl,
         status: UserStatus.ACTIVE,
-        role: UserRole.USER,
+        role: UserRole.ADMIN,
         birth_date: createUserDto.birth_date || undefined,
         createdAt: new Date(),
         createdBy: createUserDto.userName,

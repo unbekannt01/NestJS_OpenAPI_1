@@ -79,7 +79,18 @@ export class CloudinaryService {
       publicId = fileNameWithExt.split('.')[0];
     }
 
-    const result = await cloudinary.uploader.destroy(publicId);
+    // Try deleting as image first
+    let result = await cloudinary.uploader.destroy(publicId, {
+      resource_type: 'image',
+    });
+
+    // If not found, try as video
+    if (result.result !== 'ok') {
+      result = await cloudinary.uploader.destroy(publicId, {
+        resource_type: 'video',
+      });
+    }
+
     if (result.result !== 'ok') {
       throw new BadRequestException('Cloudinary delete failed');
     }

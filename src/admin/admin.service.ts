@@ -11,6 +11,7 @@ import { EmailServiceForSupension } from 'src/auth/services/suspend-mail.service
 import { LazyModuleLoader } from '@nestjs/core';
 import { RequestLog } from './entity/log.entity';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { NotificationsGateway } from 'src/websockets/notifications.gateway';
 
 /**
  * AdminService
@@ -26,6 +27,7 @@ export class AdminService {
     private readonly logRepository: Repository<RequestLog>,
     private readonly emailServiceForSuspend: EmailServiceForSupension,
     private readonly lazymodule: LazyModuleLoader,
+    private readonly notificationsGateway: NotificationsGateway,
   ) {}
 
   /**
@@ -43,24 +45,42 @@ export class AdminService {
   async suspendUser(id: string, message: string) {
     const user = await this.userRepository.findOne({ where: { id } });
     if (user) {
+      const oldStatus = user.status;
       user.status = UserStatus.SUSPENDED;
       user.suspensionReason = message;
       user.is_logged_in = false;
       user.refresh_token = null;
       user.expiryDate_token = null;
+
+      await this.userRepository.save(user);
+
+      // Send real-time notification
+      this.notificationsGateway.notifyAccountStatusChange(user.id, {
+        oldStatus,
+        newStatus: UserStatus.SUSPENDED,
+        reason: message,
+        suspensionReason: message,
+        changedBy: 'Admin',
+      });
+
+      // Also send suspension-specific notification
+      this.notificationsGateway.notifyAccountSuspended(
+        user.id,
+        message,
+        'Admin',
+      );
+
+      await this.emailServiceForSuspend.sendSuspensionEmail(
+        user.email,
+        user.first_name,
+        message,
+      );
     } else {
       throw new NotFoundException('User not found.');
     }
-    await this.userRepository.save(user);
-    await this.emailServiceForSuspend.sendSuspensionEmail(
-      user.email,
-      user.first_name,
-      message,
-    );
 
     return user;
   }
-
   /**
    * Reactivates a suspended user by their ID.
    */
@@ -73,9 +93,21 @@ export class AdminService {
       throw new BadRequestException('User is Not Suspended...!');
     }
 
+    const oldStatus = user.status;
     user.status = UserStatus.ACTIVE;
     user.suspensionReason = null;
     await this.userRepository.save(user);
+
+    // Send real-time notification
+    this.notificationsGateway.notifyAccountStatusChange(user.id, {
+      oldStatus,
+      newStatus: UserStatus.ACTIVE,
+      reason: 'Account reactivated by admin',
+      changedBy: 'Admin',
+    });
+
+    // Also send reactivation-specific notification
+    this.notificationsGateway.notifyAccountReactivated(user.id, 'Admin');
 
     return {
       message: `${user.first_name} Account Re-Activated Successfully...!`,
@@ -159,13 +191,15 @@ export class AdminService {
       },
     );
 
+    // Send real-time notification
+    this.notificationsGateway.notifyAccountUnblocked(user.id, 'Admin');
+
     return {
       message: 'User has been unblocked successfully',
       email: user.email,
       userName: user.userName,
     };
   }
-
   /**
    * Updates the status of a user to ACTIVE by their ID.
    */

@@ -17,6 +17,7 @@ import { ConfigModule } from 'src/config/module/config.module';
 import { configService } from 'src/common/services/config.service';
 import { SupaBaseService } from 'src/common/services/supabase.service';
 import { FileStorageService } from 'src/common/services/file-storage.service';
+import { WebSocketsModule } from 'src/websockets/websockets.module';
 
 /**
  * AuthModule
@@ -43,6 +44,7 @@ import { FileStorageService } from 'src/common/services/file-storage.service';
         },
       }),
     }),
+    WebSocketsModule
   ],
   controllers: [AuthController],
   providers: [

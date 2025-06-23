@@ -9,6 +9,7 @@ import { EmailVerificationByLinkModule } from 'src/email-verification-by-link/em
 import { OtpModule } from 'src/otp/otp.module';
 import { EmailServiceForSupension } from 'src/auth/services/suspend-mail.service';
 import { RequestLog } from './entity/log.entity';
+import { WebSocketsModule } from 'src/websockets/websockets.module';
 
 /**
  * AdminModule
@@ -21,6 +22,7 @@ import { RequestLog } from './entity/log.entity';
     forwardRef(() => UserModule),
     forwardRef(() => OtpModule),
     forwardRef(() => EmailVerificationByLinkModule),
+    WebSocketsModule
   ],
   controllers: [AdminController],
   providers: [AdminService,EmailServiceForSupension],

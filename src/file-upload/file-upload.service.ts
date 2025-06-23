@@ -159,15 +159,15 @@ export class FileUploadService {
 
     await this.uploadRepo.save(uploadFile);
 
-    // Refresh the cache after saving
-    const cacheKey = 'all-files';
-    const allFiles = await this.uploadRepo.find({
-      order: { Creation: 'DESC' },
-      relations: ['user'],
-    });
+    // // Refresh the cache after saving
+    // const cacheKey = 'all-files';
+    // const allFiles = await this.uploadRepo.find({
+    //   order: { Creation: 'DESC' },
+    //   relations: ['user'],
+    // });
 
-    await this.cacheManager.set(cacheKey, allFiles);
-    this.logger.log(`Cache UPDATED for key: ${cacheKey} after upload`);
+    // await this.cacheManager.set(cacheKey, allFiles);
+    // this.logger.log(`Cache UPDATED for key: ${cacheKey} after upload`);
 
     return `File uploaded successfully: ${publicUrl}`;
   }
@@ -260,23 +260,10 @@ export class FileUploadService {
   // }
 
   async getFileMetaById(id: string): Promise<UploadFile> {
-    const cacheKey = `file-meta-${id}`;
-
-    // Try to get from cache
-    const cached = await this.cacheManager.get<UploadFile>(cacheKey);
-    if (cached) {
-      this.logger?.log(`Cache HIT for key: ${cacheKey}`);
-      return cached;
-    }
-
-    this.logger?.log(`Cache MISS for key: ${cacheKey}`);
-
+    
     // Fetch from DB
     const file = await this.uploadRepo.findOne({ where: { id } });
     if (!file) throw new NotFoundException('File not found');
-
-    // Save to cache with 5 min TTL
-    await this.cacheManager.set(cacheKey, file, 300); // seconds
 
     return file;
   }
@@ -377,18 +364,16 @@ export class FileUploadService {
     };
   }
 
-  async getAllFiles() {
-    const cacheKey = 'all-files';
-    const cached = await this.cacheManager.get(cacheKey);
-    if (cached) {
-      this.logger.log(`Cache HIT for key: ${cacheKey}`);
-      return cached;
-    }
+  // getallfiles
+  async getAllFiles(id?: string): Promise<UploadFile[]> {
 
-    this.logger.log(`Cache MISS for key: ${cacheKey}`);
-    const files = await this.uploadRepo.find();
-    await this.cacheManager.set(cacheKey, files, 60);
-    this.logger.log(`Cache SET for key: ${cacheKey}`);
+    // Fetch from DB
+    const files = await this.uploadRepo.find({
+      where: id ? { user: { id: id } } : {},
+      order: { Creation: 'DESC' },
+      relations: ['user'],
+    });
+
     return files;
   }
 }

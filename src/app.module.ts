@@ -26,6 +26,7 @@ import { AlsMiddleware } from './als/als.middleware';
 import { CloudinaryModule } from './common/services/cloudinary.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import { redisStore } from 'cache-manager-redis-store';
+import { WebSocketsModule } from './websockets/websockets.module';
 
 /**
  * AppModule
@@ -66,6 +67,7 @@ import { redisStore } from 'cache-manager-redis-store';
     ProductsModule,
     AdminModule,
     CloudinaryModule,
+    WebSocketsModule
     // CsrfModule,
   ],
   providers: [
