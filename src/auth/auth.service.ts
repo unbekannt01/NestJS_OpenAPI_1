@@ -209,7 +209,7 @@ export class AuthService {
         password: hashedPassword,
         avatar: avatarUrl,
         status: UserStatus.ACTIVE,
-        role: UserRole.ADMIN,
+        role: UserRole.USER,
         birth_date: createUserDto.birth_date || undefined,
         createdAt: new Date(),
         createdBy: createUserDto.userName,

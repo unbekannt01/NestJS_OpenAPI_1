@@ -1,7 +1,6 @@
 import {
   WebSocketGateway,
   WebSocketServer,
-  SubscribeMessage,
   OnGatewayConnection,
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
@@ -19,11 +18,12 @@ interface ConnectedUser {
 
 @Injectable()
 @WebSocketGateway({
+  namespace: '/notifications',
   cors: {
-    origin: process.env.FRONTEND_BASE_URL || 'http://localhost:3000',
+    origin: '*',
     credentials: true,
   },
-  namespace: '/notifications',
+  transports: ['websocket', 'polling'],
 })
 export class NotificationsGateway
   implements OnGatewayConnection, OnGatewayDisconnect
@@ -41,16 +41,22 @@ export class NotificationsGateway
 
   async handleConnection(client: Socket) {
     try {
+      this.logger.log(`Client attempting to connect: ${client.id}`);
+
+      // Get token from auth object or handshake
       const token =
         client.handshake.auth?.token ||
-        client.handshake.headers?.authorization?.split(' ')[1];
+        client.handshake.headers?.authorization?.split(' ')[1] ||
+        client.handshake.query?.token;
 
       if (!token) {
         this.logger.warn(`Client ${client.id} connected without token`);
+        client.emit('error', { message: 'Authentication token required' });
         client.disconnect();
         return;
       }
 
+      // Verify JWT token
       const payload = this.jwtService.verify(token, {
         secret: this.configService.get<string>('JWT_SECRET'),
       });
@@ -98,12 +104,12 @@ export class NotificationsGateway
     }
   }
 
-  @SubscribeMessage('ping')
   handlePing(client: Socket) {
+    this.logger.log(`Ping received from ${client.id}`);
     client.emit('pong', { timestamp: new Date() });
   }
 
-  // **MAIN FEATURE: Account Status Change Notifications**
+  // Rest of your notification methods remain the same...
   notifyAccountStatusChange(
     userId: string,
     statusData: {
@@ -232,5 +238,22 @@ export class NotificationsGateway
     return Array.from(this.connectedUsers.values()).some(
       (user) => user.userId === userId,
     );
+  }
+
+  // Add this method to your existing NotificationsGateway class
+  broadcastToAllUsers(message: string, type = 'info') {
+    const notification = {
+      type: 'BROADCAST',
+      data: {
+        message,
+        type,
+        timestamp: new Date(),
+        from: 'Admin',
+      },
+    };
+
+    // Send to all connected users
+    this.server.emit('broadcast', notification);
+    this.logger.log(`Broadcast message sent to all users: ${message}`);
   }
 }

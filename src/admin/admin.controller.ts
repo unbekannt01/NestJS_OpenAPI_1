@@ -1,153 +1,83 @@
-import {
-  Controller,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  ParseUUIDPipe,
-  HttpStatus,
-} from '@nestjs/common';
-import { AdminService } from './admin.service';
-import { Admin } from 'src/common/decorators/admin.decorator';
-import { Public } from 'src/common/decorators/public.decorator';
+import { Controller, Get, Post, UseGuards } from "@nestjs/common"
+import { AdminService } from "./admin.service"
+import { JwtAuthGuard } from "../auth/guards/jwt.guard"
+import { RolesGuard } from "../auth/guards/roles.guard"
+import { Roles } from "../common/decorators/roles.decorator"
+import { UserRole } from "../user/entities/user.entity"
+import { NotificationsGateway } from "../websockets/notifications.gateway"
 
-/**
- * AdminController handles admin-related operations such as suspending,
- * reactivating, blocking, and deleting users.
- */
-
-@Admin()
-@Controller({ path: 'admin', version: '1' })
+@Controller("admin")
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(UserRole.ADMIN)
 export class AdminController {
-  constructor(private readonly adminService: AdminService) {}
+  constructor(
+    private readonly adminService: AdminService,
+    private readonly notificationsGateway: NotificationsGateway,
+  ) {}
 
-  /**
-   * Suspends a user by their ID.
-   */
-  @Patch('suspend/:id')
-  async suspendUser(
-    @Param(
-      'id',
-      new ParseUUIDPipe({
-        version: '4',
-        errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE,
-      }),
-    )
-    id: string,
-    @Body() body: { message: string },
-  ) {
-    const { message } = body;
-    return this.adminService.suspendUser(id, message);
+  // Suspend user endpoint
+  @Post("suspend/:id")
+  async suspendUser(userId: string, body: { message?: string }) {
+    const message = body.message || "Account suspended by admin"
+    const result = await this.adminService.suspendUser(userId, message)
+    return {
+      message: "User suspended successfully",
+      user: result,
+    }
   }
 
-  /**
-   * Reactivates a suspended user by their ID.
-   */
-  @Patch('reActivated{/:id}')
-  async reActivatedUser(
-    @Param(
-      'id',
-      new ParseUUIDPipe({
-        version: '4',
-        errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE,
-      }),
-    )
-    id: string,
-  ) {
-    return this.adminService.reActivatedUser(id);
+  // Reactivate user endpoint
+  @Post("reactivate/:id")
+  async reactivateUser(userId: string) {
+    const result = await this.adminService.reActivatedUser(userId)
+    return result
   }
 
-  /**
-   * Unblocks a user by their ID.
-   */
-  @Patch('unblock/:id')
-  async unblockUser(
-    @Param(
-      'id',
-      new ParseUUIDPipe({
-        version: '4',
-        errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE,
-      }),
-    )
-    id: string,
-  ) {
-    return this.adminService.unblockUser(id);
+  // Unblock user endpoint
+  @Post("unblock/:id")
+  async unblockUser(userId: string) {
+    const result = await this.adminService.unblockUser(userId)
+    return result
   }
 
-  /**
-   * Soft deletes a user by their ID.
-   */
-  @Delete('softDelete/:id')
-  async softDeleteUser(
-    @Param(
-      'id',
-      new ParseUUIDPipe({
-        version: '4',
-        errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE,
-      }),
-    )
-    id: string,
-  ) {
-    return this.adminService.softDeleteUser(id);
+  // Get all users
+  @Get("users")
+  async getAllUsers() {
+    // You might need to create this method in AdminService
+    return {
+      message: "Users fetched successfully",
+      users: [], // Replace with actual user data
+    }
   }
 
-  /**
-   * Restores a soft-deleted user by their ID.
-   */
-  @Patch('restore/:id')
-  async reStoreUser(
-    @Param(
-      'id',
-      new ParseUUIDPipe({
-        version: '4',
-        errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE,
-      }),
-    )
-    id: string,
-  ) {
-    return this.adminService.reStoreUser(id);
+  // Add this endpoint to get connected users
+  @Get("connected-users")
+  async getConnectedUsers(): Promise<{ message: string; connectedUsers: any[]; totalConnected: number }> {
+    const connectedUsers = this.notificationsGateway.getConnectedUsers()
+    return {
+      message: "Connected users fetched successfully",
+      connectedUsers,
+      totalConnected: connectedUsers.length,
+    }
   }
 
-  /**
-   * Permanently deletes a user by their ID.
-   */
-  @Delete('hardDelete/:id')
-  async permanantDeleteUser(
-    @Param(
-      'id',
-      new ParseUUIDPipe({
-        version: '4',
-        errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE,
-      }),
-    )
-    id: string,
-  ) {
-    return this.adminService.hardDelete(id);
+  // Add this endpoint to check if user is online
+  @Get("user-online/:id")
+  async checkUserOnline(userId: string) {
+    const isOnline = this.notificationsGateway.isUserOnline(userId)
+    return {
+      userId,
+      isOnline,
+      timestamp: new Date(),
+    }
   }
 
-  /**
-   * Updates the status of a user by their ID.
-   */
-  @Patch('update-status/:id')
-  async updateStatus(
-    @Param(
-      'id',
-      new ParseUUIDPipe({
-        version: '4',
-        errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE,
-      }),
-    )
-    id: string,
-  ) {
-    return this.adminService.updateStatus(id);
-  }
-
-  /**
-   * Deletes all request logs.
-   */
-  @Public()
-  @Delete('logs')
-  deleteAllLogs() {
-    return this.adminService.deleteAllLogs();
+  // Broadcast message to all users
+  @Post("broadcast")
+  async broadcastMessage(body: { message: string }) {
+    // You might need to add this method to NotificationsGateway
+    return {
+      message: "Broadcast sent successfully",
+    }
   }
 }

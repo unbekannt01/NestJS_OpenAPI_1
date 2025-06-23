@@ -4,25 +4,20 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { User, UserStatus } from 'src/user/entities/user.entity';
+import {  User, UserStatus } from 'src/user/entities/user.entity';
 import { Repository } from 'typeorm';
 import { EmailServiceForSupension } from 'src/auth/services/suspend-mail.service';
 import { LazyModuleLoader } from '@nestjs/core';
 import { RequestLog } from './entity/log.entity';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { NotificationsGateway } from 'src/websockets/notifications.gateway';
-
-/**
- * AdminService
- * This service handles admin-related operations such as suspending,
- * reactivating, blocking, and deleting users.
- */
+import { InjectRepository } from '@nestjs/typeorm';
 
 @Injectable()
 export class AdminService {
   constructor(
-    @InjectRepository(User) private readonly userRepository: Repository<User>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
     @InjectRepository(RequestLog)
     private readonly logRepository: Repository<RequestLog>,
     private readonly emailServiceForSuspend: EmailServiceForSupension,
@@ -30,18 +25,12 @@ export class AdminService {
     private readonly notificationsGateway: NotificationsGateway,
   ) {}
 
-  /**
-   * Clean up old request logs every day at midnight
-   */
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async cleanupOldLogs() {
     console.log('Removed Logs...');
     await this.deleteAllLogs();
   }
 
-  /**
-   * Suspends a user by their ID.
-   */
   async suspendUser(id: string, message: string) {
     const user = await this.userRepository.findOne({ where: { id } });
     if (user) {
@@ -54,7 +43,6 @@ export class AdminService {
 
       await this.userRepository.save(user);
 
-      // Send real-time notification
       this.notificationsGateway.notifyAccountStatusChange(user.id, {
         oldStatus,
         newStatus: UserStatus.SUSPENDED,
@@ -63,7 +51,6 @@ export class AdminService {
         changedBy: 'Admin',
       });
 
-      // Also send suspension-specific notification
       this.notificationsGateway.notifyAccountSuspended(
         user.id,
         message,
@@ -81,9 +68,7 @@ export class AdminService {
 
     return user;
   }
-  /**
-   * Reactivates a suspended user by their ID.
-   */
+
   async reActivatedUser(id: string) {
     const user = await this.userRepository.findOne({ where: { id } });
     if (!user) {
@@ -98,7 +83,6 @@ export class AdminService {
     user.suspensionReason = null;
     await this.userRepository.save(user);
 
-    // Send real-time notification
     this.notificationsGateway.notifyAccountStatusChange(user.id, {
       oldStatus,
       newStatus: UserStatus.ACTIVE,
@@ -106,7 +90,6 @@ export class AdminService {
       changedBy: 'Admin',
     });
 
-    // Also send reactivation-specific notification
     this.notificationsGateway.notifyAccountReactivated(user.id, 'Admin');
 
     return {
@@ -114,9 +97,6 @@ export class AdminService {
     };
   }
 
-  /**
-   * Restores a soft-deleted user by their ID.
-   */
   async reStoreUser(id: string) {
     const user = await this.userRepository.findOne({
       where: { id },
@@ -137,9 +117,6 @@ export class AdminService {
     return { message: 'User Restored Successfully!' };
   }
 
-  /**
-   * soft deletes a user by their ID.
-   */
   async softDeleteUser(id: string) {
     const user = await this.userRepository.findOne({ where: { id } });
     if (!user) {
@@ -155,9 +132,6 @@ export class AdminService {
     return { message: 'User Temporary Deleted Successfully!' };
   }
 
-  /**
-   * Permanently deletes a user by their ID.
-   */
   async hardDelete(id: string) {
     const user = await this.userRepository.findOne({ where: { id } });
     if (!user) {
@@ -168,9 +142,6 @@ export class AdminService {
     return { message: 'User Permanently Deleted Successfully!' };
   }
 
-  /**
-   * Unblocks a user by their ID.
-   */
   async unblockUser(id: string) {
     const user = await this.userRepository.findOne({ where: { id } });
 
@@ -182,7 +153,6 @@ export class AdminService {
       throw new BadRequestException('User is not blocked');
     }
 
-    // Reset login attempts and blocked status
     await this.userRepository.update(
       { id: user.id },
       {
@@ -191,7 +161,6 @@ export class AdminService {
       },
     );
 
-    // Send real-time notification
     this.notificationsGateway.notifyAccountUnblocked(user.id, 'Admin');
 
     return {
@@ -200,9 +169,7 @@ export class AdminService {
       userName: user.userName,
     };
   }
-  /**
-   * Updates the status of a user to ACTIVE by their ID.
-   */
+
   async updateStatus(id: string) {
     const user = await this.userRepository.findOne({ where: { id } });
 
@@ -214,15 +181,47 @@ export class AdminService {
       throw new ConflictException('User Already Active...!');
     }
 
+    const oldStatus = user.status;
     user.status = UserStatus.ACTIVE;
     await this.userRepository.save(user);
+
+    this.notificationsGateway.notifyAccountStatusChange(user.id, {
+      oldStatus,
+      newStatus: UserStatus.ACTIVE,
+      reason: 'Account activated by admin',
+      changedBy: 'Admin',
+    });
 
     return { message: 'User Activated Successfully...' };
   }
 
-  /**
-   * Loads the AdminModule lazily.
-   */
+  // Add this method to your existing AdminService class
+  async getAllUsers() {
+    const users = await this.userRepository.find({
+      withDeleted: true,
+      select: [
+        'id',
+        'role',
+        'userName',
+        'first_name',
+        'last_name',
+        'birth_date',
+        'mobile_no',
+        'email',
+        'status',
+        'is_logged_in',
+        'is_Verified',
+        'loginAttempts',
+        'createdAt',
+        'updatedAt',
+        'isBlocked',
+        'suspensionReason',
+        'deletedAt',
+      ],
+    });
+    return users.filter((user) => user.role !== 'ADMIN');
+  }
+
   async loadAdminFeatures() {
     const { AdminModule } = await import('./admin.module');
     const moduleRef = await this.lazymodule.load(() => AdminModule);
@@ -231,9 +230,6 @@ export class AdminService {
     return moduleRef.get(AdminService);
   }
 
-  /**
-   * Logs a request to the database.
-   */
   async logRequest(data: Partial<RequestLog>): Promise<void> {
     const log = this.logRepository.create(data);
     await this.logRepository.save(log);
