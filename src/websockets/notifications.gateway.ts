@@ -70,10 +70,8 @@ export class NotificationsGateway
 
       this.connectedUsers.set(client.id, connectedUser);
 
-      // Join user-specific room
       await client.join(`user_${payload.id}`);
 
-      // Join role-specific room
       if (payload.role === 'ADMIN') {
         await client.join('admins');
       }
@@ -109,7 +107,6 @@ export class NotificationsGateway
     client.emit('pong', { timestamp: new Date() });
   }
 
-  // Rest of your notification methods remain the same...
   notifyAccountStatusChange(
     userId: string,
     statusData: {

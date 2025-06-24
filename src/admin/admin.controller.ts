@@ -2,13 +2,14 @@ import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { NotificationsGateway } from '../websockets/notifications.gateway';
 import { Admin } from 'src/common/decorators/admin.decorator';
+import { Public } from 'src/common/decorators/public.decorator';
 
 @Admin()
 @Controller({ path: 'admin', version: '1' })
 export class AdminController {
   constructor(
     private readonly adminService: AdminService,
-    private readonly notificationsGateway: NotificationsGateway,
+    // private readonly notificationsGateway: NotificationsGateway,
   ) {}
 
   // Suspend user endpoint
@@ -45,31 +46,30 @@ export class AdminController {
     };
   }
 
-  // Add this endpoint to get connected users
-  @Get('connected-users')
-  async getConnectedUsers(): Promise<{
-    message: string;
-    connectedUsers: any[];
-    totalConnected: number;
-  }> {
-    const connectedUsers = this.notificationsGateway.getConnectedUsers();
-    return {
-      message: 'Connected users fetched successfully',
-      connectedUsers,
-      totalConnected: connectedUsers.length,
-    };
-  }
+  // // Add this endpoint to get connected users
+  // @Get('connected-users')
+  // async getConnectedUsers(): Promise<{
+  //   message: string;
+  //   connectedUsers: any[];
+  //   totalConnected: number;
+  // }> {
+  //   const connectedUsers = this.notificationsGateway.getConnectedUsers();
+  //   return {
+  //     message: 'Connected users fetched successfully',
+  //     connectedUsers,
+  //     totalConnected: connectedUsers.length,
+  //   };
+  // }
 
-  // Add this endpoint to check if user is online
-  @Get('user-online/:id')
-  async checkUserOnline(userId: string) {
-    const isOnline = this.notificationsGateway.isUserOnline(userId);
-    return {
-      userId,
-      isOnline,
-      timestamp: new Date(),
-    };
-  }
+  // @Get('user-online/:id')
+  // async checkUserOnline(userId: string) {
+  //   const isOnline = this.notificationsGateway.isUserOnline(userId);
+  //   return {
+  //     userId,
+  //     isOnline,
+  //     timestamp: new Date(),
+  //   };
+  // }
 
   // Broadcast message to all users
   @Post('broadcast')

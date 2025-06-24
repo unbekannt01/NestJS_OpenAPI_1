@@ -17,7 +17,8 @@ import { ConfigModule } from 'src/config/module/config.module';
 import { configService } from 'src/common/services/config.service';
 import { SupaBaseService } from 'src/common/services/supabase.service';
 import { FileStorageService } from 'src/common/services/file-storage.service';
-import { WebSocketsModule } from 'src/websockets/websockets.module';
+import { s3Service } from 'src/common/services/s3.service';
+// import { WebSocketsModule } from 'src/websockets/websockets.module';
 
 /**
  * AuthModule
@@ -44,7 +45,7 @@ import { WebSocketsModule } from 'src/websockets/websockets.module';
         },
       }),
     }),
-    WebSocketsModule
+    // WebSocketsModule
   ],
   controllers: [AuthController],
   providers: [
@@ -54,7 +55,8 @@ import { WebSocketsModule } from 'src/websockets/websockets.module';
     EmailServiceForSupension,
     Logger,
     SupaBaseService,
-    FileStorageService
+    FileStorageService,
+    s3Service
   ],
   exports: [AuthService, EmailServiceForSupension, JwtModule],
 })

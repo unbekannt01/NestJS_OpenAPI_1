@@ -25,8 +25,8 @@ import { typeOrmConfig } from './config/typeorm.config';
 import { AlsMiddleware } from './als/als.middleware';
 import { CloudinaryModule } from './common/services/cloudinary.module';
 import { CacheModule } from '@nestjs/cache-manager';
-import { redisStore } from 'cache-manager-redis-store';
-import { WebSocketsModule } from './websockets/websockets.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 
 /**
  * AppModule
@@ -46,7 +46,10 @@ import { WebSocketsModule } from './websockets/websockets.module';
       isGlobal: true,
       ttl: 300,
     }),
-
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'client'),
+      
+    }),
     EventEmitterModule.forRoot(),
     ScheduleModule.forRoot(),
     ConfigModule.forRoot({
@@ -67,7 +70,7 @@ import { WebSocketsModule } from './websockets/websockets.module';
     ProductsModule,
     AdminModule,
     CloudinaryModule,
-    WebSocketsModule
+    // WebSocketsModule
     // CsrfModule,
   ],
   providers: [

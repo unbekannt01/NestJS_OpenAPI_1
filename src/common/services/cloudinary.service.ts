@@ -2,9 +2,11 @@
 /* eslint-disable prettier/prettier */
 
 import { Injectable, BadRequestException } from '@nestjs/common';
-import { v2 as cloudinary, UploadApiResponse } from 'cloudinary';
+import { v2 as cloudinary, UploadApiResponse, v2 } from 'cloudinary';
 import { Readable } from 'stream';
 import { configService } from './config.service';
+import { error } from 'console';
+import toStream from 'buffer';
 
 interface CloudinaryUploadResult {
   secureUrl: string;
@@ -40,7 +42,7 @@ export class CloudinaryService {
       const stream = cloudinary.uploader.upload_stream(
         {
           folder,
-          public_id: filename.split('.')[0], // remove extension
+          public_id: filename.split('.')[0],
           resource_type: 'auto',
         },
         (error, result: UploadApiResponse | undefined) => {
@@ -62,6 +64,16 @@ export class CloudinaryService {
       readable.pipe(stream);
     });
   }
+
+  // async upload(file: Express.Multer.File) {
+  //   return new Promise((resolve, reject) => {
+  //     const upload = v2.uploader.upload_stream((error, result) => {
+  //       if (error) return reject(error);
+  //       resolve(result);
+  //     });
+  //     toStream(file.buffer).pipe(upload);
+  //   });
+  // }
 
   /**
    * Delete a file using its Cloudinary public ID or URL

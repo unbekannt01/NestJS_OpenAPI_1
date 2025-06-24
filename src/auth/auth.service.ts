@@ -27,9 +27,8 @@ import { EmailServiceForVerifyMail } from 'src/email-verification-by-link/servic
 import { emailTokenConfig } from 'src/config/email.config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { UserRegisteredPayload } from './interfaces/user-registered-payload';
-import { SupaBaseService } from 'src/common/services/supabase.service';
 import { FileStorageService } from 'src/common/services/file-storage.service';
-import { NotificationsGateway } from 'src/websockets/notifications.gateway';
+// import { NotificationsGateway } from 'src/websockets/notifications.gateway';
 
 /**
  * AuthService handles user authentication, registration, and token management.
@@ -53,7 +52,7 @@ export class AuthService {
     private readonly emailServiceForVerification: EmailServiceForVerifyMail,
     private readonly eventEmitter: EventEmitter2,
     private readonly fileStorageService: FileStorageService,
-    private readonly notificationsGateway: NotificationsGateway,
+    // private readonly notificationsGateway: NotificationsGateway,
   ) {}
 
   /**
@@ -123,11 +122,11 @@ export class AuthService {
       if (user.loginAttempts >= 10) {
         await this.userRepository.update(user.id, { isBlocked: true });
 
-        // Send real-time notification for account blocking
-        this.notificationsGateway.notifyAccountBlocked(
-          user.id,
-          'Account blocked due to too many failed login attempts',
-        );
+        // // Send real-time notification for account blocking
+        // this.notificationsGateway.notifyAccountBlocked(
+        //   user.id,
+        //   'Account blocked due to too many failed login attempts',
+        // );
 
         throw new UnauthorizedException(
           'Account blocked due to too many failed login attempts. Please contact support.',

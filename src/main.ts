@@ -68,6 +68,14 @@ async function bootstrap() {
     credentials: true,
   });
 
+  app.use(
+    helmet.contentSecurityPolicy({
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+      },
+    }),
+  );
   // if (helmet) {
   //   app.use(
   //     helmet({

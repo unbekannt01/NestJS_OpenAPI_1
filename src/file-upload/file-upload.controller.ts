@@ -87,6 +87,14 @@ export class FileUploadController {
     }
   }
 
+  // @Delete('s3/:key')
+  // async deleteFromS3(@Param('key') key: string) {
+  //   if (!key) throw new NotFoundException('File key not provided');
+
+  //   const message = await this.fileUploadService.deleteFileFromS3(key);
+  //   return { message };
+  // }
+
   @Get('getFileById/:id')
   async getFileById(@Param('id') id: string, @Res() res: Response) {
     try {
@@ -154,7 +162,8 @@ export class FileUploadController {
   //   return res.end(buffer);
   // }
 
-  @Throttle({ default: { limit: 1, ttl: 6 * 1000 } })
+  // @Throttle({ default: { limit: 1, ttl: 60 * 1000 } })
+  @UseGuards(AuthGuard('jwt'))
   @Get('download/:id')
   async downloadFile(
     @Param('id') fileId: string,
@@ -180,6 +189,11 @@ export class FileUploadController {
       );
       res.setHeader('Content-Length', result.size);
       return res.end(result.buffer);
+    }
+
+    // if S3: redirect to signed URL
+    if ('signedUrl' in result) {
+      return res.redirect(result.signedUrl as string);
     }
 
     //  If Local: use file path

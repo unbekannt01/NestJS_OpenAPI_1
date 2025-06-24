@@ -16,6 +16,8 @@ import * as fs from 'fs';
 import * as crypto from 'crypto';
 import { CloudinaryService } from 'src/common/services/cloudinary.service';
 import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
+import { s3Service } from 'src/common/services/s3.service';
+import { User } from 'src/user/entities/user.entity';
 
 /**
  * FileUploadService
@@ -30,88 +32,11 @@ export class FileUploadService {
     public readonly supaBaseService: SupaBaseService,
     public readonly cloudinaryService: CloudinaryService,
     public readonly fileStorageService: FileStorageService,
+    public readonly s3Service: s3Service,
 
     @Inject(CACHE_MANAGER)
     private readonly cacheManager: Cache,
   ) {}
-
-  // /**
-  //  * handleFileUpload
-  //  * This method handles the file upload process.
-  //  */
-  // handleFileUpload(file: Express.Multer.File) {
-  //   if (!file) {
-  //     throw new NotFoundException('File Not Found...!');
-  //   }
-
-  //   const allowedMimeTypes = [
-  //     'image/jpg',
-  //     'image/jpeg',
-  //     'image/png',
-  //     'application/pdf',
-  //   ];
-  //   if (!allowedMimeTypes) {
-  //     throw new BadRequestException('Invalid MimeTypes...!');
-  //   }
-
-  //   const maxSize = 5 * 1024 * 1024;
-  //   if (file.size > maxSize) {
-  //     throw new BadRequestException('File is too Large...!');
-  //   }
-
-  //   return {
-  //     message: 'File Uploaded Successfully...!',
-  //     fileURLToPath: file.path,
-  //   };
-  // }
-
-  // async uploadFile(
-  //   file: Express.Multer.File,
-  //   userId?: string,
-  // ): Promise<string> {
-  //   if (!file) {
-  //     throw new BadRequestException('No file uploaded.');
-  //   }
-
-  //   const { buffer } = file;
-
-  //   if (!buffer) {
-  //     throw new BadRequestException('File buffer is missing.');
-  //   }
-
-  //   const { url: publicUrl, publicId } =
-  //     await this.fileStorageService.upload(file);
-
-  //   const fileHash = crypto.createHash('sha256').update(buffer).digest('hex');
-
-  //   const alreadyExists = await this.uploadRepo.findOne({
-  //     where: {
-  //       fileHash,
-  //       user: { id: userId },
-  //     },
-  //   });
-
-  //   if (alreadyExists) {
-  //     throw new UnauthorizedException('File already uploaded!');
-  //   }
-
-  //   const uploadFile = this.uploadRepo.create({
-  //     file: publicUrl,
-  //     publicId,
-  //     originalName: file.originalname,
-  //     mimeType: file.mimetype,
-  //     fileHash,
-  //     Creation: new Date(),
-  //     user: { id: userId },
-  //   });
-
-  //   if (userId) {
-  //     (uploadFile as any).user = { id: userId };
-  //   }
-
-  //   await this.uploadRepo.save(uploadFile);
-  //   return `File uploaded successfully: ${publicUrl}`;
-  // }
 
   async uploadFile(
     file: Express.Multer.File,
@@ -127,9 +52,6 @@ export class FileUploadService {
       throw new BadRequestException('File buffer is missing.');
     }
 
-    const { url: publicUrl, publicId } =
-      await this.fileStorageService.upload(file);
-
     const fileHash = crypto.createHash('sha256').update(buffer).digest('hex');
 
     const alreadyExists = await this.uploadRepo.findOne({
@@ -143,6 +65,9 @@ export class FileUploadService {
       throw new UnauthorizedException('File already uploaded!');
     }
 
+    const { url: publicUrl, publicId } =
+      await this.fileStorageService.upload(file);
+
     const uploadFile = this.uploadRepo.create({
       file: publicUrl,
       publicId,
@@ -150,27 +75,34 @@ export class FileUploadService {
       mimeType: file.mimetype,
       fileHash,
       Creation: new Date(),
-      user: { id: userId },
+      user: userId ? { id: userId } : undefined,
     });
-
     if (userId) {
-      (uploadFile as any).user = { id: userId };
+      uploadFile.user = { id: userId } as User;
     }
 
     await this.uploadRepo.save(uploadFile);
 
-    // // Refresh the cache after saving
-    // const cacheKey = 'all-files';
-    // const allFiles = await this.uploadRepo.find({
-    //   order: { Creation: 'DESC' },
-    //   relations: ['user'],
-    // });
-
-    // await this.cacheManager.set(cacheKey, allFiles);
-    // this.logger.log(`Cache UPDATED for key: ${cacheKey} after upload`);
-
     return `File uploaded successfully: ${publicUrl}`;
   }
+
+  // async uploadFileAWS(file: Express.Multer.File) {
+  //   const key = await this.s3Service.uploadBuffer(file);
+  //   return {
+  //     key,
+  //     url: await this.s3Service.getSignedUrl(key),
+  //   };
+  // }
+
+  // async deleteFileFromS3(key: string): Promise<string> {
+  //   await this.s3Service.deleteFile(key);
+  //   return `File with key '${key}' deleted from S3.`;
+  // }
+
+  // async deleteFileFromS3(key: string): Promise<string> {
+  //   await this.s3Service.deleteFile(key);
+  //   return `File with key '${key}' deleted from S3.`;
+  // }
 
   async deleteFile(id: string, userId: string) {
     const file = await this.uploadRepo.findOne({
@@ -189,6 +121,8 @@ export class FileUploadService {
       await this.supaBaseService.deleteFile(file.file);
     } else if (driver === 'cloudinary' && file.publicId) {
       await this.cloudinaryService.deleteFile(file.publicId);
+    } else if (driver === 's3' && file.publicId) {
+      await this.s3Service.deleteFile(file.publicId);
     } else {
       // local fallback
       const filePath = path.resolve(
@@ -224,7 +158,7 @@ export class FileUploadService {
   //   return fs.readFileSync(filePath);
   // }
 
-  async getFileById(fileId: string): Promise<Buffer> {
+  async getFileById(fileId: string) {
     const file = await this.uploadRepo.findOne({ where: { id: fileId } });
 
     if (!file) throw new NotFoundException('File not found');
@@ -235,12 +169,15 @@ export class FileUploadService {
       throw new BadRequestException(
         'Direct file download is not supported for Cloudinary. Use public URL instead.',
       );
-    }
-
-    if (driver === 'supabase') {
+    } else if (driver === 'supabase') {
       const buffer = await this.supaBaseService.getFileById(file.file);
       if (!buffer) throw new NotFoundException('File not found in storage');
       return buffer;
+    } else if (driver === 's3') {
+      const signedUrl = await this.s3Service.getSignedUrl(file.publicId);
+      if (!signedUrl)
+        throw new NotFoundException('File not found in S3 Storage...!');
+      return { signedUrl };
     }
 
     // Local fallback
@@ -260,7 +197,6 @@ export class FileUploadService {
   // }
 
   async getFileMetaById(id: string): Promise<UploadFile> {
-    
     // Fetch from DB
     const file = await this.uploadRepo.findOne({ where: { id } });
     if (!file) throw new NotFoundException('File not found');
@@ -278,8 +214,9 @@ export class FileUploadService {
     const oldFile = await this.uploadRepo.findOne({
       where: {
         id: fileId,
-        user: { id: userId },
+        // user: { id: userId },
       },
+      relations: ['user'],
     });
 
     if (!oldFile) {
@@ -296,6 +233,8 @@ export class FileUploadService {
       if (oldFile.publicId) {
         await this.cloudinaryService.deleteFile(oldFile.publicId);
       }
+    } else if (driver === 's3') {
+      await this.s3Service.deleteFile(oldFile.publicId);
     } else {
       const filePath = path.resolve(
         process.cwd(),
@@ -339,16 +278,26 @@ export class FileUploadService {
       };
     }
 
-    if (driver === 'supabase') {
-      const buffer = await this.getFileById(fileId);
-      const extension = path.extname(file.file).split('?')[0];
+    if (driver === 's3') {
+      const buffer = await this.s3Service.downloadFile(file.publicId);
       return {
         buffer,
-        fileName: `file-${file.id}${extension}`,
+        fileName: file.originalName || 'file',
         mimeType: file.mimeType || 'application/octet-stream',
         size: buffer.length,
       };
     }
+
+    // if (driver === 'supabase') {
+    //   const buffer = await this.getFileById(fileId);
+    //   const extension = path.extname(file.file).split('?')[0];
+    //   return {
+    //     buffer,
+    //     fileName: `file-${file.id}${extension}`,
+    //     mimeType: file.mimeType || 'application/octet-stream',
+    //     size: buffer.length,
+    //   };
+    // }
 
     // Local fallback
     const filePath = path.resolve(process.cwd(), file.file.replace(/^\/+/, ''));
@@ -364,9 +313,7 @@ export class FileUploadService {
     };
   }
 
-  // getallfiles
   async getAllFiles(id?: string): Promise<UploadFile[]> {
-
     // Fetch from DB
     const files = await this.uploadRepo.find({
       where: id ? { user: { id: id } } : {},

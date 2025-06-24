@@ -22,7 +22,7 @@ export class AdminService {
     private readonly logRepository: Repository<RequestLog>,
     private readonly emailServiceForSuspend: EmailServiceForSupension,
     private readonly lazymodule: LazyModuleLoader,
-    private readonly notificationsGateway: NotificationsGateway,
+    // private readonly notificationsGateway: NotificationsGateway,
   ) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
@@ -43,19 +43,19 @@ export class AdminService {
 
       await this.userRepository.save(user);
 
-      this.notificationsGateway.notifyAccountStatusChange(user.id, {
-        oldStatus,
-        newStatus: UserStatus.SUSPENDED,
-        reason: message,
-        suspensionReason: message,
-        changedBy: 'Admin',
-      });
+      // this.notificationsGateway.notifyAccountStatusChange(user.id, {
+      //   oldStatus,
+      //   newStatus: UserStatus.SUSPENDED,
+      //   reason: message,
+      //   suspensionReason: message,
+      //   changedBy: 'Admin',
+      // });
 
-      this.notificationsGateway.notifyAccountSuspended(
-        user.id,
-        message,
-        'Admin',
-      );
+      // this.notificationsGateway.notifyAccountSuspended(
+      //   user.id,
+      //   message,
+      //   'Admin',
+      // );
 
       await this.emailServiceForSuspend.sendSuspensionEmail(
         user.email,
@@ -83,14 +83,14 @@ export class AdminService {
     user.suspensionReason = null;
     await this.userRepository.save(user);
 
-    this.notificationsGateway.notifyAccountStatusChange(user.id, {
-      oldStatus,
-      newStatus: UserStatus.ACTIVE,
-      reason: 'Account reactivated by admin',
-      changedBy: 'Admin',
-    });
+    // this.notificationsGateway.notifyAccountStatusChange(user.id, {
+    //   oldStatus,
+    //   newStatus: UserStatus.ACTIVE,
+    //   reason: 'Account reactivated by admin',
+    //   changedBy: 'Admin',
+    // });
 
-    this.notificationsGateway.notifyAccountReactivated(user.id, 'Admin');
+    // this.notificationsGateway.notifyAccountReactivated(user.id, 'Admin');
 
     return {
       message: `${user.first_name} Account Re-Activated Successfully...!`,
@@ -161,7 +161,7 @@ export class AdminService {
       },
     );
 
-    this.notificationsGateway.notifyAccountUnblocked(user.id, 'Admin');
+    // this.notificationsGateway.notifyAccountUnblocked(user.id, 'Admin');
 
     return {
       message: 'User has been unblocked successfully',
@@ -185,12 +185,12 @@ export class AdminService {
     user.status = UserStatus.ACTIVE;
     await this.userRepository.save(user);
 
-    this.notificationsGateway.notifyAccountStatusChange(user.id, {
-      oldStatus,
-      newStatus: UserStatus.ACTIVE,
-      reason: 'Account activated by admin',
-      changedBy: 'Admin',
-    });
+    // this.notificationsGateway.notifyAccountStatusChange(user.id, {
+    //   oldStatus,
+    //   newStatus: UserStatus.ACTIVE,
+    //   reason: 'Account activated by admin',
+    //   changedBy: 'Admin',
+    // });
 
     return { message: 'User Activated Successfully...' };
   }

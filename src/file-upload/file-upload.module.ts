@@ -9,6 +9,7 @@ import { UploadFile } from './entities/file-upload.entity';
 import { FileStorageService } from 'src/common/services/file-storage.service';
 import { CacheModule } from '@nestjs/cache-manager';
 import { CloudinaryModule } from 'src/common/services/cloudinary.module';
+import { s3Service } from 'src/common/services/s3.service';
 
 /**
  * FileUploadModule
@@ -33,7 +34,9 @@ import { CloudinaryModule } from 'src/common/services/cloudinary.module';
   providers: [
     FileUploadService,
     SupaBaseService,
-    FileStorageService,
+    s3Service,
+    FileStorageService
+    
   ],
   exports: [FileStorageService],
 })

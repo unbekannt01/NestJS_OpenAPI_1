@@ -14,6 +14,7 @@ import {
   UnauthorizedException,
   UseInterceptors,
   UploadedFile,
+  Sse,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -26,6 +27,11 @@ import { CacheInterceptor } from '@nestjs/cache-manager';
 import { Public } from 'src/common/decorators/public.decorator';
 import { CurrentUser } from 'src/common/decorators/user.decorator';
 import { User } from './entities/user.entity';
+import { interval, map, Observable } from 'rxjs';
+
+interface MessageEvent {
+  data: string | object;
+}
 
 /**
  * UserController handles user-related operations such as updating user
@@ -185,5 +191,12 @@ export class UserController {
   @Get('hello')
   async getHello() {
     return this.userService.getHello()
+  }
+
+  @Sse('event')
+  sendEvent(): Observable<MessageEvent> {
+    return interval(1000).pipe(map((num: number)=> ({
+      data: 'Hello Buddy...!' + num,
+    })));
   }
 }

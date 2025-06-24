@@ -4,12 +4,14 @@ import * as path from 'path';
 import { SupaBaseService } from './supabase.service';
 import { StorageDriver } from '../enum/storageDriver.enum';
 import { CloudinaryService } from './cloudinary.service';
+import { s3Service } from './s3.service';
 
 @Injectable()
 export class FileStorageService {
   constructor(
     private readonly supabaseService: SupaBaseService,
     private readonly cloudinaryService?: CloudinaryService,
+    private readonly s3Service?: s3Service,
   ) {}
 
   async upload(
@@ -29,7 +31,19 @@ export class FileStorageService {
           file.buffer,
           file.mimetype,
         );
-        return { url }; // no publicId needed
+        return { url };
+
+      case StorageDriver.S3:
+        if (!this.s3Service) {
+          throw new BadRequestException('S3 service is not available');
+        }
+        const key = await this.s3Service.uploadBuffer(file);
+        const signedUrl = await this.s3Service.getSignedUrl(key);
+        console.log('Uploading to AWS S3...');
+        return {
+          url: signedUrl,
+          publicId: key,
+        };
 
       case StorageDriver.CLOUDINARY:
         if (!this.cloudinaryService) {
@@ -39,7 +53,7 @@ export class FileStorageService {
         const cloudinaryResult = await this.cloudinaryService.uploadBuffer(
           file.originalname,
           file.buffer,
-          file.mimetype,
+          file.mimetype || 'application/octet-stream',
         );
 
         if (!cloudinaryResult || !cloudinaryResult.secureUrl) {
@@ -52,7 +66,6 @@ export class FileStorageService {
         };
 
       case StorageDriver.LOCAL:
-      default:
         const uploadDir =
           fileType === 'avatar'
             ? process.env.UPLOADS_DIR || 'uploads/avatars'
@@ -67,6 +80,8 @@ export class FileStorageService {
         return {
           url: `/${uploadDir}/${filename}`,
         };
+      default:
+        throw new BadRequestException('Invalid storage driver specified');
     }
   }
 }
