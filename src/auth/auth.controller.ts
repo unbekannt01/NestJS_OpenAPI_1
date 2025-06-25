@@ -15,6 +15,8 @@ import {
   Version,
   HttpStatus,
   UseInterceptors,
+  Delete,
+  Param,
 } from '@nestjs/common';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { Response } from 'express';
@@ -197,5 +199,15 @@ export class AuthController {
   @UseGuards(AuthGuard('session'))
   getSession(@Req() req: Request) {
     return req.session['user'];
+  }
+
+  @Delete('avatar')
+  @HttpCode(HttpStatus.OK)
+  async removeAvatar(@Req() req: Request): Promise<string> {
+    if (!req.user || !(req.user as any).id) {
+      throw new UnauthorizedException('User not authenticated');
+    }
+    const userId = (req.user as any).id;
+    return this.authService.removeAvatar(userId);
   }
 }

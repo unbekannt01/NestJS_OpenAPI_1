@@ -27,6 +27,9 @@ import { CloudinaryModule } from './common/services/cloudinary.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
+import { FileUploadUsingS3Module } from './file-upload-using-s3/file-upload-using-s3.module';
+import { FileUploadUsingCloudinaryModule } from './file-upload-using-cloudinary/file-upload-using-cloudinary.module';
+import { FileUploadUsingSupabaseModule } from './file-upload-using-supabase/file-upload-using-supabase.module';
 
 /**
  * AppModule
@@ -46,10 +49,10 @@ import { join } from 'path';
       isGlobal: true,
       ttl: 300,
     }),
-    ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', 'client'),
+    // ServeStaticModule.forRoot({
+    //   rootPath: join(__dirname, '..', 'client'),
       
-    }),
+    // }),
     EventEmitterModule.forRoot(),
     ScheduleModule.forRoot(),
     ConfigModule.forRoot({
@@ -70,6 +73,9 @@ import { join } from 'path';
     ProductsModule,
     AdminModule,
     CloudinaryModule,
+    FileUploadUsingS3Module,
+    FileUploadUsingCloudinaryModule,
+    FileUploadUsingSupabaseModule,
     // WebSocketsModule
     // CsrfModule,
   ],

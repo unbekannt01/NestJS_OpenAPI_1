@@ -15,9 +15,9 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.stategy';
 import { ConfigModule } from 'src/config/module/config.module';
 import { configService } from 'src/common/services/config.service';
-import { SupaBaseService } from 'src/common/services/supabase.service';
 import { FileStorageService } from 'src/common/services/file-storage.service';
-import { s3Service } from 'src/common/services/s3.service';
+import { SupabaseService } from 'src/common/services/supabase.service';
+import { S3Service } from 'src/common/services/s3.service';
 // import { WebSocketsModule } from 'src/websockets/websockets.module';
 
 /**
@@ -54,9 +54,9 @@ import { s3Service } from 'src/common/services/s3.service';
     LocalStrategy,
     EmailServiceForSupension,
     Logger,
-    SupaBaseService,
+    SupabaseService,
     FileStorageService,
-    s3Service
+    S3Service
   ],
   exports: [AuthService, EmailServiceForSupension, JwtModule],
 })

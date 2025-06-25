@@ -1,43 +1,26 @@
+// file-upload.module.ts
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { FileUploadService } from './file-upload.service';
 import { FileUploadController } from './file-upload.controller';
-import { MulterModule } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { SupaBaseService } from 'src/common/services/supabase.service';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { VideoController } from './video.controller';
+
+import { ConfigModule } from '@nestjs/config';
 import { UploadFile } from './entities/file-upload.entity';
 import { FileStorageService } from 'src/common/services/file-storage.service';
-import { CacheModule } from '@nestjs/cache-manager';
-import { CloudinaryModule } from 'src/common/services/cloudinary.module';
-import { s3Service } from 'src/common/services/s3.service';
+import { CloudinaryService } from 'src/common/services/cloudinary.service';
+import { SupabaseService } from 'src/common/services/supabase.service';
+import { S3Service } from 'src/common/services/s3.service';
 
-/**
- * FileUploadModule
- * This module is responsible for handling file uploads.
- */
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([UploadFile]),
-    MulterModule.register({
-      storage: diskStorage({
-        destination: './uploads',
-        filename: (req, file, cb) => {
-          const filename = `${file.originalname}`;
-          cb(null, filename);
-        },
-      }),
-    }),
-    CacheModule.register(),
-    CloudinaryModule,
-  ],
-  controllers: [FileUploadController],
+  imports: [TypeOrmModule.forFeature([UploadFile]), ConfigModule],
+  controllers: [FileUploadController, VideoController],
   providers: [
     FileUploadService,
-    SupaBaseService,
-    s3Service,
-    FileStorageService
-    
+    FileStorageService,
+    CloudinaryService,
+    SupabaseService,
+    S3Service,
   ],
-  exports: [FileStorageService],
 })
 export class FileUploadModule {}

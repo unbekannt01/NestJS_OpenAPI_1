@@ -1,31 +1,24 @@
-// file-upload.service.ts
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
-  BadRequestException,
-  InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FileStorageService } from 'src/common/services/file-storage.service';
+import { UploadFile } from 'src/file-upload/entities/file-upload.entity';
 import { Repository } from 'typeorm';
-import { UploadFile } from './entities/file-upload.entity';
 import * as crypto from 'crypto';
+import { CloudinaryService } from 'src/common/services/cloudinary.service';
 
 @Injectable()
-export class FileUploadService {
+export class FileUploadUsingCloudinaryService {
   constructor(
     @InjectRepository(UploadFile)
     private readonly fileRepo: Repository<UploadFile>,
-    private readonly storageService: FileStorageService,
+    private readonly cloudinaryService: CloudinaryService,
   ) {}
 
   async uploadFile(file: Express.Multer.File, userId: string) {
     if (!file) throw new BadRequestException('No file provided.');
-
-    const user = await this.fileRepo.findOne({
-      where: { user: { id: userId } },
-    });
-    const result = await this.storageService.upload(file);
 
     const fileHash = crypto
       .createHash('sha256')
@@ -40,17 +33,18 @@ export class FileUploadService {
       throw new BadRequestException('File with this name already exists.');
     }
 
+    const uploadResult = await this.cloudinaryService.upload(file);
+
     const fileEntity = this.fileRepo.create({
-      file: result.url,
+      file: uploadResult.url,
       originalName: file.originalname,
       mimeType: file.mimetype,
-      publicId: result.publicId,
+      publicId: uploadResult.publicId,
       fileHash,
-      Creation: new Date(),
-      user: userId ? { id: userId } : undefined,
+      user: { id: userId },
     });
 
-    return this.fileRepo.save(fileEntity);
+    await this.fileRepo.save(fileEntity);
   }
 
   async getFileMetaById(id: string) {
@@ -63,52 +57,41 @@ export class FileUploadService {
     const file = await this.fileRepo.findOne({ where: { id } });
     if (!file) throw new NotFoundException('File not found');
 
-    if (typeof this.storageService.getSignedUrl === 'function') {
-      const signedUrl = await this.storageService.getSignedUrl(
-        file.publicId,
-        file.mimeType,
-      );
-      return { signedUrl };
-    }
-
-    // if (typeof this.storageService.getFile === 'function') {
-    //   return this.storageService.getFile(file.publicId, file.mimeType);
-    // }
-
-    throw new InternalServerErrorException(
-      'No method available to get the file',
+    const signedUrl = await this.cloudinaryService.getSignedUrl(
+      file.publicId,
+      file.mimeType,
     );
+    return { signedUrl };
   }
 
   async deleteFile(id: string) {
     const file = await this.getFileMetaById(id);
     if (file.publicId) {
-      await this.storageService.delete(file.publicId, file.mimeType);
+      await this.cloudinaryService.delete(file.publicId, file.mimeType);
     }
-    return this.fileRepo.remove(file);
+    await this.fileRepo.remove(file);
   }
 
   async getAllFiles() {
     return this.fileRepo.find();
   }
 
-  async updateFile(id: string, file: Express.Multer.File, mimeType: string) {
+  async updateFile(id: string, file: Express.Multer.File) {
     const existing = await this.getFileMetaById(id);
     if (!file) throw new BadRequestException('No file provided');
 
     if (existing.publicId) {
-      await this.storageService.delete(existing.publicId, existing.mimeType);
+      await this.cloudinaryService.delete(existing.publicId, existing.mimeType);
     }
 
-    const result = await this.storageService.upload(file);
+    const result = await this.cloudinaryService.upload(file);
 
     existing.file = result.url;
     existing.publicId = result.publicId || '';
     existing.originalName = file.originalname;
     existing.mimeType = file.mimetype;
-    existing.mimeType = file.mimetype;
     existing.Updation = new Date();
 
-    return this.fileRepo.save(existing);
+    await this.fileRepo.save(existing);
   }
 }

@@ -623,4 +623,23 @@ export class AuthService {
     });
     return user;
   }
+
+  async removeAvatar(userId: string): Promise<string> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+
+    if (!user) {
+      throw new NotFoundException('User not found.');
+    }
+
+    if (!user.avatar) {
+      throw new BadRequestException('No avatar to remove.');
+    }
+
+    await this.fileStorageService.delete(user.avatar, 'avatar');
+
+    user.avatar = null;
+    await this.userRepository.save(user);
+
+    return 'Avatar removed successfully.';
+  }
 }

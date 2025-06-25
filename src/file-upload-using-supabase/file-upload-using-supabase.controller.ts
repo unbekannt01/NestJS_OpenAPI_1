@@ -1,54 +1,48 @@
-// file-upload.controller.ts
 import {
   Controller,
-  Post,
-  UseInterceptors,
-  UploadedFile,
-  Body,
-  Param,
-  Get,
   Delete,
-  Patch,
-  Res,
-  Req,
-  UseGuards,
-  NotFoundException,
+  Get,
   InternalServerErrorException,
+  NotFoundException,
+  Param,
+  Patch,
+  Post,
+  Req,
+  Res,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileUploadUsingSupabaseService } from './file-upload-using-supabase.service';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { FileUploadService } from './file-upload.service';
 import { Request, Response } from 'express';
 import { Public } from 'src/common/decorators/public.decorator';
-import { AuthGuard } from '@nestjs/passport';
-import { Throttle } from '@nestjs/throttler';
 
-@Public()
-@Controller({ path: 'file-upload', version: '1' })
-export class FileUploadController {
-  constructor(private readonly fileUploadService: FileUploadService) {}
+@Controller({ path: 'file-upload-using-supabase', version: '1' })
+export class FileUploadUsingSupabaseController {
+  constructor(
+    private readonly fileUploadUsingSupabaseService: FileUploadUsingSupabaseService,
+  ) {}
 
-  // @Throttle({ default: { limit: 1, ttl: 60 * 1000 } })
-  @UseGuards(AuthGuard('jwt'))
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
-  async upload(@UploadedFile() file: Express.Multer.File, @Req() req: Request) {
+  async uploadFile(@UploadedFile() file: Express.Multer.File, @Req() req: Request) {
     const user: any = req.user;
     const userId = user?.id;
-    if (!userId) {
-      throw new Error('User information is missing from request.');
-    }
-    return this.fileUploadService.uploadFile(file, userId);
+    if (!userId) throw new Error('User information is missing from request.');
+    return this.fileUploadUsingSupabaseService.uploadFile(file, userId);
   }
 
   @Get('getAllFile')
   async findAll() {
-    return this.fileUploadService.getAllFiles();
+    return this.fileUploadUsingSupabaseService.getAllFiles();
   }
 
+  @Public()
   @Get('getFileById/:id')
   async getFileById(@Param('id') id: string, @Res() res: Response) {
-    const fileRecord = await this.fileUploadService.getFileMetaById(id);
-    const buffer = await this.fileUploadService.getFileById(id);
+    const fileRecord =
+      await this.fileUploadUsingSupabaseService.getFileMetaById(id);
+    const buffer = await this.fileUploadUsingSupabaseService.getFileById(id);
 
     const fileName = fileRecord.originalName;
     res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
@@ -62,12 +56,12 @@ export class FileUploadController {
 
   @Delete('deleteFile/:id')
   async remove(@Param('id') id: string) {
-    return this.fileUploadService.deleteFile(id);
+    return this.fileUploadUsingSupabaseService.deleteFile(id);
   }
 
   @Get('getFileMetaById/:id')
   async getFileMeta(@Param('id') id: string) {
-    return await this.fileUploadService.getFileMetaById(id);
+    return await this.fileUploadUsingSupabaseService.getFileMetaById(id);
   }
 
   @Patch('updateFile/:id')
@@ -76,20 +70,22 @@ export class FileUploadController {
     @Param('id') id: string,
     @UploadedFile() file: Express.Multer.File,
   ) {
-    return this.fileUploadService.updateFile(id, file, file?.mimetype);
+    return this.fileUploadUsingSupabaseService.updateFile(id, file);
   }
 
   // @UseGuards(AuthGuard('jwt'))
   @Get('download/:id')
   async download(@Param('id') id: string, @Res() res: Response) {
-    const fileRecord = await this.fileUploadService.getFileMetaById(id);
+    const fileRecord =
+      await this.fileUploadUsingSupabaseService.getFileMetaById(id);
 
     if (!fileRecord) {
       throw new NotFoundException('File not found');
     }
 
     try {
-      const fileResult = await this.fileUploadService.getFileById(id);
+      const fileResult =
+        await this.fileUploadUsingSupabaseService.getFileById(id);
 
       // If storage service returns signed URL
       if (

@@ -1,90 +1,92 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { configService } from './config.service';
+// s3.service.ts
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { S3 } from 'aws-sdk';
+import { ConfigService } from '@nestjs/config';
 import {
-  DeleteObjectCommand,
-  GetObjectCommand,
-  PutObjectCommand,
-  S3Client,
-} from '@aws-sdk/client-s3';
-import { extname } from 'path';
-import { v4 as uuidv4 } from 'uuid';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { Readable } from 'stream';
+  IStorageProvider,
+  UploadResult,
+} from '../../file-upload/providers/IStorageProvider';
 
 @Injectable()
-export class s3Service {
-  private readonly driver = configService.getValue('STORAGE_DRIVER') || 'local';
-  private readonly s3Client: S3Client;
-  private readonly bucket: string;
-  private readonly logger = new Logger(s3Service.name);
+export class S3Service implements IStorageProvider {
+  private s3: S3;
+  private bucket: string;
 
-  constructor() {
-    this.s3Client = new S3Client({
-      region: configService.getValue('AWS_REGION'),
+  constructor(private readonly configService: ConfigService) {
+    this.s3 = new S3({
+      region: configService.get<string>('AWS_REGION') ?? '',
       credentials: {
-        accessKeyId: configService.getValue('AWS_ACCESSKEYID'),
-        secretAccessKey: configService.getValue('AWS_SECRETACCESSKEY'),
+        accessKeyId: configService.get<string>('AWS_ACCESSKEYID') ?? '',
+        secretAccessKey: configService.get<string>('AWS_SECRETACCESSKEY') ?? '',
       },
     });
-    this.bucket = configService.getValue('AWS_BUCKETNAME');
+
+    this.bucket = configService.get<string>('AWS_BUCKETNAME') ?? '';
   }
 
-  async uploadBuffer(file: Express.Multer.File) {
-    const ext = extname(file.originalname);
-    const key = `${uuidv4()}${ext}`;
+  async upload(
+    file: Express.Multer.File,
+    fileType: 'avatar' | 'general' = 'general',
+  ): Promise<UploadResult> {
+    const publicId = `${fileType}/${Date.now()}-${file.originalname}`;
 
-    const cmd = new PutObjectCommand({
-      Bucket: this.bucket,
-      Key: key,
-      Body: file.buffer,
-      ContentType: file.mimetype,
-    });
-
-    await this.s3Client.send(cmd);
-    console.log('File Uploaded Successfully');
-    return key;
-  }
-
-  async getSignedUrl(key: string): Promise<string> {
-    const cmd = new GetObjectCommand({
-      Bucket: this.bucket,
-      Key: key,
-    });
-
-    const url = await getSignedUrl(this.s3Client, cmd, {
-      expiresIn: 60 * 5,
-    });
-    return url;
-  }
-
-  async deleteFile(key: string): Promise<void> {
-    const cmd = new DeleteObjectCommand({
-      Bucket: this.bucket,
-      Key: key,
-    });
-
-    await this.s3Client.send(cmd);
-    console.log('File Deleted Successfully From S3...!');
-  }
-
-  async downloadFile(key: string): Promise<Buffer> {
-    const command = new GetObjectCommand({
-      Bucket: this.bucket,
-      Key: key,
-    });
-
-    const response = await this.s3Client.send(command);
-
-    // Convert readable stream to Buffer
-    const stream = response.Body as Readable;
-
-    const chunks: Buffer[] = [];
-    for await (const chunk of stream) {
-      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    try {
+      await this.s3
+        .putObject({
+          Bucket: this.bucket,
+          Key: publicId,
+          Body: file.buffer,
+          ContentType: file.mimetype,
+        })
+        .promise();
+      console.log('Uploaded To S3...!')
+      return {
+        url: `https://${this.bucket}.s3.amazonaws.com/${publicId}`,
+        publicId: publicId,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
     }
-
-    return Buffer.concat(chunks);
   }
 
-  
+  async delete(publicId: string): Promise<void> {
+    try {
+      await this.s3
+        .deleteObject({
+          Bucket: this.bucket,
+          Key: publicId,
+        })
+        .promise();
+      console.log('Deleted From S3...!');
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
+    }
+  }
+
+  // async getFile(publicId: string): Promise<Buffer> {
+  //   try {
+  //     const data = await this.s3
+  //       .getObject({
+  //         Bucket: this.bucket,
+  //         Key: publicId,
+  //       })
+  //       .promise();
+  //     return data.Body as Buffer;
+  //   } catch (error) {
+  //     throw new InternalServerErrorException(error.message);
+  //   }
+  // }
+
+  async getSignedUrl(publicId: string): Promise<string> {
+    try {
+      return this.s3.getSignedUrl('getObject', {
+        Bucket: this.bucket,
+        Key: publicId,
+        Expires: 60,
+        ResponseContentDisposition: `attachment; filename="${publicId.split('/').pop()}"`,
+      });
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
+    }
+  }
 }
