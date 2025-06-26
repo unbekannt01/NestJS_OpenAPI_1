@@ -1,18 +1,15 @@
-import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { CsrfMiddleware } from './middleware/csrf.middleware';
-import { CsrfService } from './csrf.service';
+import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { CsrfController } from './csrf.controller';
+import { CsrfService } from './csrf.service';
+import { CsrfMiddleware } from './middleware/csrf.middleware';
+import { ProtectedController } from './dummy.controller';
 
-/**
- * CsrfModule
- * This module handles all CSRF-related functionality including
- * token generation, validation, and middleware configuration.
- */
 @Module({
-  imports: [ConfigModule],
-  controllers: [CsrfController],
-  providers: [CsrfService, CsrfMiddleware],
-  exports: [CsrfService, CsrfMiddleware],
+  controllers: [CsrfController, ProtectedController],
+  providers: [CsrfService],
 })
-export class CsrfModule {}
+export class CsrfModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(CsrfMiddleware).forRoutes('*');
+  }
+}

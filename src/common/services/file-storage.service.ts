@@ -52,15 +52,6 @@ export class FileStorageService implements IStorageProvider {
     );
   }
 
-  // getFile(publicId: string, mimeType: string): Promise<Buffer> {
-  //   if (typeof this.provider.getFile === 'function') {
-  //     return this.provider.getFile(publicId, mimeType);
-  //   }
-  //   return Promise.reject(
-  //     new Error('getFile method is not implemented by the storage provider.'),
-  //   );
-  // }
-
   getSignedUrl(publicId: string, mimeType: string) {
     if (typeof this.provider.getSignedUrl === 'function') {
       return this.provider.getSignedUrl(publicId, mimeType);

@@ -27,7 +27,7 @@ import { Throttle } from '@nestjs/throttler';
 export class FileUploadController {
   constructor(private readonly fileUploadService: FileUploadService) {}
 
-  // @Throttle({ default: { limit: 1, ttl: 60 * 1000 } })
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @UseGuards(AuthGuard('jwt'))
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
@@ -62,7 +62,8 @@ export class FileUploadController {
 
   @Delete('deleteFile/:id')
   async remove(@Param('id') id: string) {
-    return this.fileUploadService.deleteFile(id);
+    await this.fileUploadService.deleteFile(id);
+    return { message: 'File Deleted Successfully...!'}
   }
 
   @Get('getFileMetaById/:id')
@@ -79,7 +80,8 @@ export class FileUploadController {
     return this.fileUploadService.updateFile(id, file, file?.mimetype);
   }
 
-  // @UseGuards(AuthGuard('jwt'))
+  @UseGuards(AuthGuard('jwt'))
+  @Throttle({ default: { limit: 1, ttl: 60000 }})
   @Get('download/:id')
   async download(@Param('id') id: string, @Res() res: Response) {
     const fileRecord = await this.fileUploadService.getFileMetaById(id);

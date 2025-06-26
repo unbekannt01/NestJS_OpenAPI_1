@@ -34,8 +34,8 @@ export class FileUploadUsingS3Controller {
     const user: any = req.user;
     const userId = user?.id;
     if (!userId) throw new Error('User information is missing from request.');
-    await this.fileUploadUsingS3Service.uploadFile(file, userId);
-    return { message : 'File Uploaded Sucessfully in S3...!'}
+    const data = await  this.fileUploadUsingS3Service.uploadFile(file, userId);
+    return { message : 'File Uploaded Sucessfully in S3...!', data }
   }
 
   @Get('getAllFile')
@@ -83,7 +83,7 @@ export class FileUploadUsingS3Controller {
     return { message : 'File Updated Successfully in S3...!'}
   }
 
-  // @UseGuards(AuthGuard('jwt'))m
+  // @UseGuards(AuthGuard('jwt'))
   @Public()
   @Get('download/:id')
   async download(@Param('id') id: string, @Res() res: Response) {

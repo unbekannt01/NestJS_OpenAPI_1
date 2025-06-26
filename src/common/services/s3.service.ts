@@ -1,19 +1,25 @@
 // s3.service.ts
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import { S3 } from 'aws-sdk';
+import {
+  GetObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { ConfigService } from '@nestjs/config';
 import {
   IStorageProvider,
   UploadResult,
 } from '../../file-upload/providers/IStorageProvider';
+import { DeleteObjectCommand } from '@aws-sdk/client-s3';
 
 @Injectable()
 export class S3Service implements IStorageProvider {
-  private s3: S3;
+  private s3: S3Client;
   private bucket: string;
 
   constructor(private readonly configService: ConfigService) {
-    this.s3 = new S3({
+    this.s3 = new S3Client({
       region: configService.get<string>('AWS_REGION') ?? '',
       credentials: {
         accessKeyId: configService.get<string>('AWS_ACCESSKEYID') ?? '',
@@ -23,7 +29,6 @@ export class S3Service implements IStorageProvider {
 
     this.bucket = configService.get<string>('AWS_BUCKETNAME') ?? '';
   }
-
   async upload(
     file: Express.Multer.File,
     fileType: 'avatar' | 'general' = 'general',
@@ -31,32 +36,40 @@ export class S3Service implements IStorageProvider {
     const publicId = `${fileType}/${Date.now()}-${file.originalname}`;
 
     try {
-      await this.s3
-        .putObject({
-          Bucket: this.bucket,
-          Key: publicId,
-          Body: file.buffer,
-          ContentType: file.mimetype,
-        })
-        .promise();
-      console.log('Uploaded To S3...!')
+      const command = new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: publicId,
+        Body: file.buffer,
+        ContentType: file.mimetype,
+        Metadata: {
+          originalName: file.originalname,
+          uploadedAt: new Date().toISOString(),
+          fileType: fileType,
+        },
+      });
+
+      await this.s3.send(command);
+      console.log('Uploaded to S3 Storage...!');
+
       return {
         url: `https://${this.bucket}.s3.amazonaws.com/${publicId}`,
         publicId: publicId,
       };
     } catch (error) {
-      throw new InternalServerErrorException(error.message);
+      console.error('S3 upload error:', error);
+      throw new InternalServerErrorException(
+        `Failed to upload file to Supabase: ${error.message}`,
+      );
     }
   }
 
   async delete(publicId: string): Promise<void> {
     try {
-      await this.s3
-        .deleteObject({
-          Bucket: this.bucket,
-          Key: publicId,
-        })
-        .promise();
+      const command = new DeleteObjectCommand({
+        Bucket: this.bucket,
+        Key: publicId,
+      });
+      await this.s3.send(command);
       console.log('Deleted From S3...!');
     } catch (error) {
       throw new InternalServerErrorException(error.message);
@@ -79,12 +92,12 @@ export class S3Service implements IStorageProvider {
 
   async getSignedUrl(publicId: string): Promise<string> {
     try {
-      return this.s3.getSignedUrl('getObject', {
+      const command = new GetObjectCommand({
         Bucket: this.bucket,
         Key: publicId,
-        Expires: 60,
         ResponseContentDisposition: `attachment; filename="${publicId.split('/').pop()}"`,
       });
+      return await getSignedUrl(this.s3, command, { expiresIn: 60 });
     } catch (error) {
       throw new InternalServerErrorException(error.message);
     }

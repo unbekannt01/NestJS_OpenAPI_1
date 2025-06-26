@@ -30,6 +30,7 @@ import { join } from 'path';
 import { FileUploadUsingS3Module } from './file-upload-using-s3/file-upload-using-s3.module';
 import { FileUploadUsingCloudinaryModule } from './file-upload-using-cloudinary/file-upload-using-cloudinary.module';
 import { FileUploadUsingSupabaseModule } from './file-upload-using-supabase/file-upload-using-supabase.module';
+import { CsrfModule } from './csrf/csrf.module';
 
 /**
  * AppModule
@@ -40,7 +41,7 @@ import { FileUploadUsingSupabaseModule } from './file-upload-using-supabase/file
     ThrottlerModule.forRoot({
       throttlers: [
         {
-          ttl: 6 * 1000,
+          ttl: 60000,
           limit: 10,
         },
       ],
@@ -77,7 +78,7 @@ import { FileUploadUsingSupabaseModule } from './file-upload-using-supabase/file
     FileUploadUsingCloudinaryModule,
     FileUploadUsingSupabaseModule,
     // WebSocketsModule
-    // CsrfModule,
+    CsrfModule,
   ],
   providers: [
     SmsService,

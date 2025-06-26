@@ -24,26 +24,52 @@ export class SupabaseService implements IStorageProvider {
     file: Express.Multer.File,
     fileType: 'avatar' | 'general' = 'general',
   ): Promise<UploadResult> {
-    const filePath = `${fileType}/${Date.now()}-${file.originalname}`;
+    // Sanitize filename to avoid issues with special characters
+    const sanitizedFilename = file.originalname
+      .replace(/[^a-zA-Z0-9.-]/g, '_')
+      .toLowerCase();
 
-    const { data, error } = await this.supabase.storage
-      .from(this.bucketName)
-      .upload(filePath, file.buffer, {
-        contentType: file.mimetype,
-        upsert: true,
-      });
+    const filePath = `${fileType}/${Date.now()}-${sanitizedFilename}`;
 
-    if (error) throw new InternalServerErrorException(error.message);
+    try {
+      console.log('Uploading to Supabase...!');
 
-    const { data: publicUrlData } = this.supabase.storage
-      .from(this.bucketName)
-      .getPublicUrl(filePath);
-    console.log('Uploading To SupaBase...!');
+      const { data, error } = await this.supabase.storage
+        .from(this.bucketName)
+        .upload(filePath, file.buffer, {
+          contentType: file.mimetype,
+          upsert: true,
+          metadata: {
+            originalName: file.originalname,
+            uploadedAt: new Date().toISOString(),
+            fileType: fileType,
+          },
+        });
 
-    return {
-      url: publicUrlData.publicUrl,
-      publicId: filePath,
-    };
+      if (error) {
+        console.error('Supabase upload error:', error);
+        throw new InternalServerErrorException(
+          `Upload failed: ${error.message}`,
+        );
+      }
+
+      // Get public URL
+      const { data: publicUrlData } = this.supabase.storage
+        .from(this.bucketName)
+        .getPublicUrl(filePath);
+
+      console.log('Successfully uploaded to Supabase!');
+
+      return {
+        url: publicUrlData.publicUrl,
+        publicId: filePath,
+      };
+    } catch (error) {
+      console.error('Upload error:', error);
+      throw new InternalServerErrorException(
+        `Failed to upload: ${error.message}`,
+      );
+    }
   }
 
   async delete(publicId: string): Promise<void> {

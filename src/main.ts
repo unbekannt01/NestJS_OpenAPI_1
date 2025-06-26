@@ -11,6 +11,7 @@ import * as path from 'path';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
 import * as compression from 'compression';
 import helmet from 'helmet';
+import * as csurf from 'csurf';
 
 config();
 
@@ -61,12 +62,16 @@ async function bootstrap() {
   //   exposedHeaders: ['Set-Cookie'],
   // });
 
+  app.use(cookieParser());
+
   app.enableCors({
-    origin: ['file://'],
+    origin: 'http://localhost:3000',
     // methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     // allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
   });
+  
+  app.use(csurf({ cookie: true }));
 
   app.use(
     helmet.contentSecurityPolicy({
@@ -97,8 +102,6 @@ async function bootstrap() {
   //     },
   //   }),
   // );
-
-  app.use(cookieParser());
 
   // // Uncomment this if you want Swagger API documentation
   // const config = new DocumentBuilder()
