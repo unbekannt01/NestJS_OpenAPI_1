@@ -70,8 +70,8 @@ async function bootstrap() {
     // allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
   });
-  
-  app.use(csurf({ cookie: true }));
+
+  // app.use(csurf({ cookie: true }));
 
   app.use(
     helmet.contentSecurityPolicy({

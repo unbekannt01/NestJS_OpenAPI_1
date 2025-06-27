@@ -5,6 +5,7 @@ import {
   BadRequestException,
   InternalServerErrorException,
   ConflictException,
+  Inject,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FileStorageService } from 'src/common/services/file-storage.service';
@@ -12,6 +13,8 @@ import { Like, Repository } from 'typeorm';
 import { UploadFile } from './entities/file-upload.entity';
 import * as crypto from 'crypto';
 import { getVersionedFileName } from 'src/common/utils/generateVersion.utils';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 
 @Injectable()
 export class FileUploadService {
@@ -19,51 +22,8 @@ export class FileUploadService {
     @InjectRepository(UploadFile)
     private readonly fileRepo: Repository<UploadFile>,
     private readonly storageService: FileStorageService,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
-
-  // async uploadFile(file: Express.Multer.File, userId: string) {
-  //   if (!file) throw new BadRequestException('No file provided');
-
-  //   const fileHash = crypto
-  //     .createHash('sha256')
-  //     .update(file.buffer)
-  //     .digest('hex');
-
-  //   // Check for duplicates BEFORE upload
-  //   const existingFile = await this.fileRepo.findOne({
-  //     where: {
-  //       fileHash: fileHash,
-  //       user: { id: userId },
-  //     },
-  //   });
-
-  //   if (existingFile) {
-  //     throw new ConflictException({
-  //       message: 'A file with identical content already exists.',
-  //       existingFile: {
-  //         id: existingFile.id,
-  //         originalName: existingFile.originalName,
-  //         url: existingFile.file,
-  //         uploadedAt: existingFile.Creation,
-  //       },
-  //     });
-  //   }
-
-  //   //  Only upload if no duplicates found
-  //   const result = await this.storageService.upload(file);
-
-  //   const fileEntity = this.fileRepo.create({
-  //     file: result.url,
-  //     publicId: result.publicId,
-  //     originalName: file.originalname,
-  //     mimeType: file.mimetype,
-  //     fileHash: fileHash,
-  //     user: { id: userId },
-  //     Creation: new Date(),
-  //   });
-
-  //   return this.fileRepo.save(fileEntity);
-  // }
 
   async uploadFile(file: Express.Multer.File, userId: string) {
     if (!file) throw new BadRequestException('No file provided');
@@ -73,7 +33,6 @@ export class FileUploadService {
       .update(file.buffer)
       .digest('hex');
 
-    // Check for exact duplicate (same hash)
     const existingFile = await this.fileRepo.findOne({
       where: {
         fileHash,
@@ -93,7 +52,6 @@ export class FileUploadService {
       });
     }
 
-    // Check for same-name files (to apply versioning)
     const baseName = file.originalname.substring(
       0,
       file.originalname.lastIndexOf('.'),
@@ -114,13 +72,11 @@ export class FileUploadService {
       existingFiles.map((f) => f.originalName),
     );
 
-    // Upload the file with versioned name
     const result = await this.storageService.upload({
       ...file,
       originalname: versionedName,
     });
 
-    // Save to DB
     const fileEntity = this.fileRepo.create({
       file: result.url,
       publicId: result.publicId,
@@ -131,25 +87,40 @@ export class FileUploadService {
       Creation: new Date(),
     });
 
-    return this.fileRepo.save(fileEntity);
+    const savedFile = await this.fileRepo.save(fileEntity);
+    await this.cacheManager.del('allFiles');
+    await this.cacheManager.del(`fileMeta:${savedFile.id}`);
+    await this.cacheManager.del(`signedUrl:${savedFile.id}`);
+    return savedFile;
   }
 
   async getFileMetaById(id: string) {
+    const cacheKey = `fileMeta:${id}`;
+    const cached = await this.cacheManager.get<UploadFile>(cacheKey);
+    if (cached) return cached;
+
     const file = await this.fileRepo.findOne({ where: { id } });
     if (!file) throw new NotFoundException('File not found');
+
+    await this.cacheManager.set(cacheKey, file);
     return file;
   }
 
   async getFileById(id: string) {
-    const file = await this.fileRepo.findOne({ where: { id } });
-    if (!file) throw new NotFoundException('File not found');
+    const cacheKey = `signedUrl:${id}`;
+    const cached = await this.cacheManager.get<{ signedUrl: string }>(cacheKey);
+    if (cached) return cached;
+
+    const file = await this.getFileMetaById(id);
 
     if (typeof this.storageService.getSignedUrl === 'function') {
       const signedUrl = await this.storageService.getSignedUrl(
         file.publicId,
         file.mimeType,
       );
-      return { signedUrl };
+      const response = { signedUrl };
+      await this.cacheManager.set(cacheKey, response, 60000);
+      return response;
     }
 
     throw new InternalServerErrorException(
@@ -163,10 +134,22 @@ export class FileUploadService {
       await this.storageService.delete(file.publicId, file.mimeType);
     }
     await this.fileRepo.remove(file);
+    await this.cacheManager.del('allFiles');
+    await this.cacheManager.del(`fileMeta:${id}`);
+    await this.cacheManager.del(`signedUrl:${id}`);
   }
 
   async getAllFiles() {
-    return this.fileRepo.find();
+    const cachedFiles = await this.cacheManager.get('allFiles');
+    if (cachedFiles) {
+      console.log('Redis HIT: allFiles');
+      return cachedFiles;
+    }
+    console.log('Redis MISS: fetching from DB');
+
+    const files = await this.fileRepo.find();
+    await this.cacheManager.set('allFiles', files, 60000);
+    return files;
   }
 
   async updateFile(id: string, file: Express.Multer.File, mimeType: string) {
@@ -185,6 +168,8 @@ export class FileUploadService {
     existing.mimeType = file.mimetype;
     existing.Updation = new Date();
 
-    return this.fileRepo.save(existing);
+    const updatedFile = await this.fileRepo.save(existing);
+    await this.cacheManager.del('allFiles');
+    return updatedFile;
   }
 }

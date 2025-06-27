@@ -1,5 +1,5 @@
 import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UserModule } from './user/user.module';
 import { SearchModule } from './search/search.module';
 import { SmsService } from './otp/services/sms.service';
@@ -25,12 +25,13 @@ import { typeOrmConfig } from './config/typeorm.config';
 import { AlsMiddleware } from './als/als.middleware';
 import { CloudinaryModule } from './common/services/cloudinary.module';
 import { CacheModule } from '@nestjs/cache-manager';
-import { ServeStaticModule } from '@nestjs/serve-static';
-import { join } from 'path';
 import { FileUploadUsingS3Module } from './file-upload-using-s3/file-upload-using-s3.module';
 import { FileUploadUsingCloudinaryModule } from './file-upload-using-cloudinary/file-upload-using-cloudinary.module';
 import { FileUploadUsingSupabaseModule } from './file-upload-using-supabase/file-upload-using-supabase.module';
 import { CsrfModule } from './csrf/csrf.module';
+import { redisStore } from 'cache-manager-ioredis';
+import { HealthController } from './health.controller';
+import { TerminusModule } from '@nestjs/terminus';
 
 /**
  * AppModule
@@ -46,13 +47,21 @@ import { CsrfModule } from './csrf/csrf.module';
         },
       ],
     }),
-    CacheModule.register({
+    CacheModule.registerAsync({
       isGlobal: true,
-      ttl: 300,
+      useFactory: async () => ({
+        store: redisStore as any,
+        socket: {
+          // host: 'host.docker.internal',
+          host: 'localhost',
+          port: 6379,
+          keyPrefix: 'nestjs:',
+        },
+        ttl: 60000,
+      }),
     }),
     // ServeStaticModule.forRoot({
     //   rootPath: join(__dirname, '..', 'client'),
-      
     // }),
     EventEmitterModule.forRoot(),
     ScheduleModule.forRoot(),
@@ -79,8 +88,10 @@ import { CsrfModule } from './csrf/csrf.module';
     FileUploadUsingSupabaseModule,
     // WebSocketsModule
     CsrfModule,
+    TerminusModule,
   ],
   providers: [
+    // AppService,
     SmsService,
     {
       provide: APP_GUARD,
@@ -115,6 +126,7 @@ import { CsrfModule } from './csrf/csrf.module';
     //   useClass: ClassSerializerInterceptor,
     // },
   ],
+  controllers: [HealthController],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
