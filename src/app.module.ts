@@ -1,4 +1,6 @@
 import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UserModule } from './user/user.module';
 import { SearchModule } from './search/search.module';
@@ -32,6 +34,7 @@ import { CsrfModule } from './csrf/csrf.module';
 import { redisStore } from 'cache-manager-ioredis';
 import { HealthController } from './health.controller';
 import { TerminusModule } from '@nestjs/terminus';
+import { GatewayModule } from './gateway/gateway.module';
 
 /**
  * AppModule
@@ -60,9 +63,9 @@ import { TerminusModule } from '@nestjs/terminus';
         ttl: 60000,
       }),
     }),
-    // ServeStaticModule.forRoot({
-    //   rootPath: join(__dirname, '..', 'client'),
-    // }),
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'client'),
+    }),
     EventEmitterModule.forRoot(),
     ScheduleModule.forRoot(),
     ConfigModule.forRoot({
@@ -89,6 +92,7 @@ import { TerminusModule } from '@nestjs/terminus';
     // WebSocketsModule
     CsrfModule,
     TerminusModule,
+    GatewayModule
   ],
   providers: [
     // AppService,

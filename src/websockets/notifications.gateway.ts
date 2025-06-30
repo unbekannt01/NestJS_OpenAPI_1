@@ -56,7 +56,6 @@ export class NotificationsGateway
         return;
       }
 
-      // Verify JWT token
       const payload = this.jwtService.verify(token, {
         secret: this.configService.get<string>('JWT_SECRET'),
       });
@@ -78,7 +77,6 @@ export class NotificationsGateway
 
       this.logger.log(`User ${payload.id} connected with socket ${client.id}`);
 
-      // Send connection confirmation
       client.emit('connected', {
         message: 'Successfully connected to notifications',
         userId: payload.id,
@@ -101,7 +99,7 @@ export class NotificationsGateway
       this.connectedUsers.delete(client.id);
     }
   }
-
+  
   handlePing(client: Socket) {
     this.logger.log(`Ping received from ${client.id}`);
     client.emit('pong', { timestamp: new Date() });
@@ -129,10 +127,8 @@ export class NotificationsGateway
       },
     };
 
-    // Send to specific user
     this.server.to(`user_${userId}`).emit('accountStatusChanged', notification);
 
-    // Also notify admins
     this.server.to('admins').emit('userStatusChanged', {
       ...notification,
       userId,

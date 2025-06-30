@@ -21,11 +21,15 @@ import { Request, Response } from 'express';
 import { Public } from 'src/common/decorators/public.decorator';
 import { AuthGuard } from '@nestjs/passport';
 import { Throttle } from '@nestjs/throttler';
+import { GatewayService } from 'src/gateway/gateway.service';
 
 @Public()
 @Controller({ path: 'file-upload', version: '1' })
 export class FileUploadController {
-  constructor(private readonly fileUploadService: FileUploadService) {}
+  constructor(
+    private readonly fileUploadService: FileUploadService,
+    private readonly gateWayService: GatewayService,
+  ) {}
 
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @UseGuards(AuthGuard('jwt'))
@@ -37,6 +41,7 @@ export class FileUploadController {
     if (!userId) {
       throw new Error('User information is missing from request.');
     }
+    this.gateWayService.notifyWhenFileUpload(user.email);
     return this.fileUploadService.uploadFile(file, userId);
   }
 
@@ -63,7 +68,7 @@ export class FileUploadController {
   @Delete('deleteFile/:id')
   async remove(@Param('id') id: string) {
     await this.fileUploadService.deleteFile(id);
-    return { message: 'File Deleted Successfully...!'}
+    return { message: 'File Deleted Successfully...!' };
   }
 
   @Get('getFileMetaById/:id')
@@ -81,7 +86,7 @@ export class FileUploadController {
   }
 
   @UseGuards(AuthGuard('jwt'))
-  @Throttle({ default: { limit: 1, ttl: 60000 }})
+  @Throttle({ default: { limit: 1, ttl: 60000 } })
   @Get('download/:id')
   async download(@Param('id') id: string, @Res() res: Response) {
     const fileRecord = await this.fileUploadService.getFileMetaById(id);

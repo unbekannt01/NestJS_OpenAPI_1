@@ -6,28 +6,28 @@ import {
   S3Client,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { ConfigService } from '@nestjs/config';
 import {
   IStorageProvider,
   UploadResult,
 } from '../../file-upload/providers/IStorageProvider';
 import { DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { configService } from './config.service';
 
 @Injectable()
 export class S3Service implements IStorageProvider {
   private s3: S3Client;
   private bucket: string;
 
-  constructor(private readonly configService: ConfigService) {
+  constructor() {
     this.s3 = new S3Client({
-      region: configService.get<string>('AWS_REGION') ?? '',
+      region: configService.getValue('AWS_REGION') ?? '',
       credentials: {
-        accessKeyId: configService.get<string>('AWS_ACCESSKEYID') ?? '',
-        secretAccessKey: configService.get<string>('AWS_SECRETACCESSKEY') ?? '',
+        accessKeyId: configService.getValue('AWS_ACCESSKEYID') ?? '',
+        secretAccessKey: configService.getValue('AWS_SECRETACCESSKEY') ?? '',
       },
     });
 
-    this.bucket = configService.get<string>('AWS_BUCKETNAME') ?? '';
+    this.bucket = configService.getValue('AWS_BUCKETNAME') ?? '';
   }
   async upload(
     file: Express.Multer.File,

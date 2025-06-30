@@ -11,6 +11,7 @@ import { FileStorageService } from 'src/common/services/file-storage.service';
 import { CloudinaryService } from 'src/common/services/cloudinary.service';
 import { SupabaseService } from 'src/common/services/supabase.service';
 import { S3Service } from 'src/common/services/s3.service';
+import { GatewayService } from 'src/gateway/gateway.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([UploadFile]), ConfigModule],
@@ -21,6 +22,7 @@ import { S3Service } from 'src/common/services/s3.service';
     CloudinaryService,
     SupabaseService,
     S3Service,
+    GatewayService,
   ],
 })
 export class FileUploadModule {}

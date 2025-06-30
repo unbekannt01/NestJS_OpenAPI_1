@@ -32,6 +32,9 @@ import { ConfigService } from '@nestjs/config';
 import { Express } from 'express';
 import { Throttle } from '@nestjs/throttler';
 import { memoryStorage } from 'multer';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { GatewayService } from 'src/gateway/gateway.service';
+import { UserService } from 'src/user/user.service';
 
 /**
  * AuthController handles authentication-related operations such as
@@ -42,6 +45,9 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private configService: ConfigService,
+    private readonly eventEmitter: EventEmitter2,
+    private readonly gateWayService: GatewayService,
+    private readonly userService: UserService
   ) {}
 
   /**
@@ -116,8 +122,11 @@ export class AuthController {
     // @Res({ passthrough: true }) res: Response,
   ): Promise<{ message: string; access_token: string; refresh_token: string }> {
     try {
-      const { role, access_token, refresh_token } =
+      const { user, role, access_token, refresh_token } =
         await this.authService.loginUser(login.identifier, login.password);
+
+      console.log('calling notifyUserLogin....!', user.email);
+      this.gateWayService.notifyuserlogin(user.email);
 
       return {
         message: `${role} Login Successfully!`,
@@ -155,7 +164,11 @@ export class AuthController {
       }
 
       await this.authService.logout(user.id);
-
+      const fullUser = await this.userService.getUserById(user.id);
+      if (fullUser && fullUser.email) {
+        this.gateWayService.notifyuserlogout(fullUser.email);
+      }
+      
       return { message: 'Logged out successfully' };
     } catch (error) {
       console.error('Error during logout:', error);

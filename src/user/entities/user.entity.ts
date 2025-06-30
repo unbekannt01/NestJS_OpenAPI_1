@@ -7,6 +7,12 @@ import { EmailVerification } from 'src/email-verification-by-link/entity/email-v
 import { RequestLog } from 'src/admin/entity/log.entity';
 import { Product } from 'src/products/entities/product.entity';
 import { UploadFile } from 'src/file-upload/entities/file-upload.entity';
+import { CartItem } from 'src/cart/entities/cart.entity';
+import { Review } from 'src/review/entities/review.entity';
+import { Order } from 'src/order/entities/order.entity';
+// import { CartItem } from '';
+// import { Order } from '';
+// import { Review } from '';
 
 /**
  * UserStatus
@@ -25,6 +31,7 @@ export enum UserStatus {
 export enum UserRole {
   ADMIN = 'ADMIN',
   USER = 'USER',
+  SELLER = 'SELLER',
 }
 
 /**
@@ -139,4 +146,13 @@ export class User extends BaseEntity {
 
   @OneToMany(() => UploadFile, (fileupload) => fileupload.user)
   fileupload: UploadFile[];
+
+  @OneToMany(() => CartItem, (cartItem) => cartItem.user)
+  cartItems: CartItem[];
+
+  @OneToMany(() => Order, (order) => order.user)
+  orders: Order[];
+
+  @OneToMany(() => Review, (review) => review.user)
+  reviews: Review[];
 }

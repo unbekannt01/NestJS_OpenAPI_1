@@ -2,45 +2,69 @@ import {
   Controller,
   Get,
   Post,
-  Body,
   Patch,
   Param,
-  UseGuards,
   Delete,
+  Query,
+  UseGuards,
 } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { ProductSearchDto } from './dto/product-search.dto';
 import { UserId } from 'src/common/decorators/user-id.decorator';
 import { Public } from 'src/common/decorators/public.decorator';
+import { AuthGuard } from '@nestjs/passport';
 
-@Controller({ path: 'product', version: '1' })
+@Controller({ path: 'products', version: '1' })
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
-  @Post('add')
-  async create(@Body() createProductDto: CreateProductDto, @UserId() userId: string) {
+  @Post()
+  @UseGuards(AuthGuard('jwt'))
+  create(createProductDto: CreateProductDto, @UserId() userId: string) {
     return this.productsService.createProduct(createProductDto, userId);
   }
 
+  @Get()
   @Public()
-  @Get('getall')
   findAll() {
     return this.productsService.findAll();
   }
 
+  @Get('search')
+  @Public()
+  search(@Query() searchDto: ProductSearchDto) {
+    return this.productsService.searchProducts(searchDto);
+  }
+
+  @Get('featured')
+  @Public()
+  getFeatured(@Query('limit') limit?: number) {
+    return this.productsService.getFeaturedProducts(limit);
+  }
+
   @Get(':id')
+  @Public()
   findOne(@Param('id') id: string) {
     return this.productsService.findOne(id);
   }
 
+  @Get(':id/recommendations')
+  @Public()
+  getRecommendations(@Param('id') id: string, @Query('limit') limit?: number) {
+    return this.productsService.getProductRecommendations(id, limit);
+  }
+
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto) {
+  @UseGuards(AuthGuard('jwt'))
+  update(@Param('id') id: string, updateProductDto: UpdateProductDto) {
     return this.productsService.update(id, updateProductDto);
   }
 
-  @Delete('deleteProduct/:id')
-  delete(@Param('id') id:string){
-    return this.productsService.remove(id)
+  @Delete(':id')
+  @UseGuards(AuthGuard('jwt'))
+  remove(@Param('id') id: string) {
+    return this.productsService.remove(id);
   }
 }

@@ -18,6 +18,7 @@ import { configService } from 'src/common/services/config.service';
 import { FileStorageService } from 'src/common/services/file-storage.service';
 import { SupabaseService } from 'src/common/services/supabase.service';
 import { S3Service } from 'src/common/services/s3.service';
+import { GatewayService } from 'src/gateway/gateway.service';
 // import { WebSocketsModule } from 'src/websockets/websockets.module';
 
 /**
@@ -32,10 +33,10 @@ import { S3Service } from 'src/common/services/s3.service';
     forwardRef(() => OtpModule),
     forwardRef(() => EmailVerificationByLinkModule),
     JwtModule.register({
-      secret : configService.getValue('JWT_SECRET'),
-      signOptions : {
-        expiresIn : configService.getValue('JWT_EXPIRES_IN')
-      }
+      secret: configService.getValue('JWT_SECRET'),
+      signOptions: {
+        expiresIn: configService.getValue('JWT_EXPIRES_IN'),
+      },
     }),
     MulterModule.register({
       storage: diskStorage({
@@ -56,7 +57,8 @@ import { S3Service } from 'src/common/services/s3.service';
     Logger,
     SupabaseService,
     FileStorageService,
-    S3Service
+    S3Service,
+    GatewayService
   ],
   exports: [AuthService, EmailServiceForSupension, JwtModule],
 })
