@@ -29,16 +29,11 @@ export class BrandsController {
     return this.brandsService.findAll();
   }
 
-  @Get('featured')
   @Public()
-  findFeatured() {
-    return this.brandsService.findFeatured();
+  @Get('tree')
+  getBrandsWithCategoriesTree() {
+    return this.brandsService.findBrandsWithCategoriesTree();
   }
-
-  // @Get('tree')
-  // getBrandsWithCategoriesTree() {
-  //   return this.brandsService.findBrandsWithCategoriesTree();
-  // }
 
   @Get(':id')
   @Public()

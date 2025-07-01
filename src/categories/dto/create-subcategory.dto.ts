@@ -4,6 +4,8 @@ import {
   IsBoolean,
   IsNumber,
   Min,
+  IsNotEmpty,
+  IsUUID,
 } from 'class-validator';
 
 export class CreateSubCategoryDto {
@@ -11,6 +13,8 @@ export class CreateSubCategoryDto {
   name: string;
 
   @IsString()
+  @IsNotEmpty()
+  @IsUUID()
   categoryId: string;
 
   @IsOptional()

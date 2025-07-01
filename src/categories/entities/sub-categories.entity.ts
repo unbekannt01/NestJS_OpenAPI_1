@@ -35,8 +35,11 @@ export class SubCategory {
   sortOrder: number;
 
   @ManyToOne(() => Category, (cat) => cat.subcategories, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'category_id' })
+  @JoinColumn({ name: 'categoryId' })
   category: Category;
+
+  @Column()
+  categoryId: string;
 
   @OneToMany(() => Product, (product) => product.subCategory)
   products: Product[];

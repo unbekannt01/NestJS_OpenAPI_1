@@ -17,6 +17,7 @@ import { ProductSearchDto } from './dto/product-search.dto';
 import { Public } from 'src/common/decorators/public.decorator';
 import { AuthGuard } from '@nestjs/passport';
 import { Request } from 'express';
+import { Throttle } from '@nestjs/throttler';
 
 @Controller({ path: 'products', version: '1' })
 export class ProductsController {
@@ -32,6 +33,7 @@ export class ProductsController {
     return this.productsService.createProduct(createProductDto, userId);
   }
 
+  @Throttle({ default: { limit: 1, ttl: 60000 }})
   @Get('getAll')
   @Public()
   findAll() {
@@ -64,7 +66,7 @@ export class ProductsController {
 
   @Patch(':id')
   @UseGuards(AuthGuard('jwt'))
-  update(@Param('id') id: string, updateProductDto: UpdateProductDto) {
+  update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto) {
     return this.productsService.update(id, updateProductDto);
   }
 

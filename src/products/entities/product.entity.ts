@@ -122,12 +122,18 @@ export class Product {
   user: User;
 
   @ManyToOne(() => SubCategory, (sub) => sub.products, { onDelete: 'SET NULL' })
-  @JoinColumn({ name: 'sub_category_id' })
+  @JoinColumn({ name: 'subCategoryId' })
   subCategory: SubCategory;
+
+  @Column({ name: 'subCategoryId', nullable: true })
+  subCategoryId: string;
 
   @ManyToOne(() => Brand, (brand) => brand.products, { nullable: true })
   @JoinColumn({ name: 'brand_id' })
   brand: Brand;
+
+  @Column({ name: 'brand_id', nullable: true })
+  brandId: string;
 
   @OneToMany(() => Review, (review) => review.product)
   reviews: Review[];

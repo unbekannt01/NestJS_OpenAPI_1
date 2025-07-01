@@ -6,6 +6,7 @@ import { UpdateCategoryDto } from './dto/update-category.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { SubCategory } from './entities/sub-categories.entity';
 import { CreateSubCategoryDto } from './dto/create-subcategory.dto';
+import { UpdateSubCategoryDto } from './dto/update-subcategory.dto';
 
 @Injectable()
 export class CategoriesService {
@@ -27,20 +28,29 @@ export class CategoriesService {
     return this.categoryRepository.save(category);
   }
 
-  async createSubCategory(createSubCategoryDto: CreateSubCategoryDto) {
-    const slug = this.generateSlug(createSubCategoryDto.name);
+  async createSubCategory(dto: CreateSubCategoryDto) {
+    const slug = this.generateSlug(dto.name);
+
+    const category = await this.categoryRepository.findOne({
+      where: { id: dto.categoryId },
+    });
+    if (!category) throw new NotFoundException('Category not found');
 
     const subCategory = this.subCategoryRepository.create({
-      ...createSubCategoryDto,
+      ...dto,
       slug,
+      categoryId: dto.categoryId,
     });
+
+    return this.subCategoryRepository.save(subCategory);
   }
 
   async findAll() {
     return this.categoryRepository.find({
       where: { isActive: true },
-      relations: ['parent', 'children'],
+      // relations: ['subcategories', 'subcategories.products'],
       order: { sortOrder: 'ASC', name: 'ASC' },
+      select: ['id', 'name', 'description'],
     });
   }
 
@@ -63,7 +73,7 @@ export class CategoriesService {
   async findOne(id: string) {
     const category = await this.categoryRepository.findOne({
       where: { id },
-      relations: ['parent', 'children', 'products'],
+      select: ['id', 'name', 'description'],
     });
 
     if (!category) {
@@ -73,7 +83,7 @@ export class CategoriesService {
     return category;
   }
 
-  async update(id: string, updateCategoryDto: UpdateCategoryDto) {
+  async updateCategory(id: string, updateCategoryDto: UpdateCategoryDto) {
     const category = await this.findOne(id);
 
     if (updateCategoryDto.name && updateCategoryDto.name !== category.name) {
@@ -81,6 +91,23 @@ export class CategoriesService {
     }
 
     await this.categoryRepository.update(id, updateCategoryDto);
+    return this.findOne(id);
+  }
+
+  async updateSubCategory(
+    id: string,
+    updateSubCategoryDto: UpdateSubCategoryDto,
+  ) {
+    const category = await this.findOne(id);
+
+    if (
+      updateSubCategoryDto.name &&
+      updateSubCategoryDto.name !== category.name
+    ) {
+      updateSubCategoryDto.slug = this.generateSlug(updateSubCategoryDto.name);
+    }
+
+    await this.categoryRepository.update(id, updateSubCategoryDto);
     return this.findOne(id);
   }
 

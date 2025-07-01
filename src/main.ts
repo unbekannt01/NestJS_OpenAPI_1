@@ -65,13 +65,19 @@ async function bootstrap() {
   app.use(cookieParser());
 
   app.enableCors({
-    origin: '*',
-    // methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    // allowedHeaders: ['Content-Type', 'Authorization'],
+    // origin: '*',
     credentials: true,
   });
 
-  // app.use(csurf({ cookie: true }));
+  // app.use(
+  //   csurf({
+  //     cookie: {
+  //       httpOnly: true,
+  //       secure: false,
+  //       sameSite: 'strict',
+  //     },
+  //   }),
+  // );
 
   app.use(
     helmet.contentSecurityPolicy({
@@ -81,6 +87,7 @@ async function bootstrap() {
       },
     }),
   );
+
   // if (helmet) {
   //   app.use(
   //     helmet({

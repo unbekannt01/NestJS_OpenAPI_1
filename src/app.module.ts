@@ -92,11 +92,12 @@ import { BrandsModule } from './brands/brand.module';
     FileUploadUsingCloudinaryModule,
     FileUploadUsingSupabaseModule,
     // WebSocketsModule
-    CsrfModule,
+    // CsrfModule,
     TerminusModule,
     GatewayModule,
     CategoriesModule,
-    BrandsModule
+    BrandsModule,
+    ProductsModule
   ],
   providers: [
     // AppService,

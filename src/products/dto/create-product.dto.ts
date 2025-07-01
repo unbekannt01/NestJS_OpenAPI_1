@@ -84,7 +84,7 @@ export class CreateProductDto {
 
   @IsOptional()
   @IsString()
-  categoryId?: string
+  subCategoryId?: string
 
   @IsOptional()
   @IsString()

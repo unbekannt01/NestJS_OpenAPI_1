@@ -27,9 +27,9 @@ export class ProductsService {
     if (!user) throw new NotFoundException('User not found');
 
     let subcategory: SubCategory | null = null;
-    if (dto.categoryId) {
+    if (dto.subCategoryId) {
       subcategory = await this.categoryRepository.findOne({
-        where: { id: dto.categoryId },
+        where: { id: dto.subCategoryId },
       });
       if (!subcategory) throw new NotFoundException('Sub-Category not found');
     }
@@ -45,25 +45,8 @@ export class ProductsService {
     const sku = dto.sku || this.generateSKU(dto.name);
 
     const product = this.productRepository.create({
-      name: dto.name,
-      model: dto.model,
-      description: dto.description,
-      price: dto.price,
-      originalPrice: dto.originalPrice,
+      ...dto,
       sku,
-      images: dto.images,
-      condition: dto.condition,
-      powerType: dto.powerType,
-      voltage: dto.voltage,
-      weight: dto.weight,
-      dimensions: dto.dimensions,
-      isFeatured: dto.isFeatured,
-      isOnSale: dto.isOnSale,
-      warrantyPeriod: dto.warrantyPeriod,
-      includedAccessories: dto.includedAccessories,
-      compatibleWith: dto.compatibleWith,
-      videoUrl: dto.videoUrl,
-      stockQuantity: dto.stockQuantity,
       user,
       subCategory: subcategory,
       brand,
@@ -221,8 +204,8 @@ export class ProductsService {
 
   findAll() {
     return this.productRepository.find({
-      relations: ['brand', 'category', 'specifications'],
-      where: { isActive: true },
+      relations: ['brand', 'subCategory'],
+      where: { isActive: true || null },
     });
   }
 
@@ -239,8 +222,8 @@ export class ProductsService {
     return product;
   }
 
-  update(id: string, updateProductDto: UpdateProductDto) {
-    return this.productRepository.update(id, updateProductDto);
+  async update(id: string, updateProductDto: UpdateProductDto) {
+    return await this.productRepository.update(id, updateProductDto);
   }
 
   async remove(id: string) {
