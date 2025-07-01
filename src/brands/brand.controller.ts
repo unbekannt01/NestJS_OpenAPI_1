@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Param,
+  Delete,
+  Body,
+} from '@nestjs/common';
 import { CreateBrandDto } from './dto/create-brand.dto';
 import { UpdateBrandDto } from './dto/update-brand.dto';
 import { Public } from 'src/common/decorators/public.decorator';
@@ -9,13 +17,13 @@ import { Admin } from 'src/common/decorators/admin.decorator';
 export class BrandsController {
   constructor(private readonly brandsService: BrandsService) {}
 
-  @Post('add-brand')
+  @Post('add')
   @Admin()
-  create(createBrandDto: CreateBrandDto) {
+  create(@Body() createBrandDto: CreateBrandDto) {
     return this.brandsService.create(createBrandDto);
   }
 
-  @Get('get-all-brand')
+  @Get('getAll')
   @Public()
   findAll() {
     return this.brandsService.findAll();
@@ -26,6 +34,11 @@ export class BrandsController {
   findFeatured() {
     return this.brandsService.findFeatured();
   }
+
+  // @Get('tree')
+  // getBrandsWithCategoriesTree() {
+  //   return this.brandsService.findBrandsWithCategoriesTree();
+  // }
 
   @Get(':id')
   @Public()

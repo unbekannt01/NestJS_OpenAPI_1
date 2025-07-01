@@ -16,6 +16,7 @@ import {
 } from 'typeorm';
 import { Review } from 'src/review/entities/review.entity';
 import { CartItem } from 'src/cart/entities/cart.entity';
+import { SubCategory } from 'src/categories/entities/sub-categories.entity';
 
 export enum ToolCondition {
   NEW = 'NEW',
@@ -120,11 +121,9 @@ export class Product {
   @JoinColumn({ name: 'user_id' })
   user: User;
 
-  @ManyToOne(() => Category, (category) => category.products, {
-    nullable: true,
-  })
-  @JoinColumn({ name: 'category_id' })
-  category: Category;
+  @ManyToOne(() => SubCategory, (sub) => sub.products, { onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'sub_category_id' })
+  subCategory: SubCategory;
 
   @ManyToOne(() => Brand, (brand) => brand.products, { nullable: true })
   @JoinColumn({ name: 'brand_id' })

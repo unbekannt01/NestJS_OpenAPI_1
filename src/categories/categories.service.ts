@@ -4,33 +4,36 @@ import { Category } from './entities/categories.entity';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { InjectRepository } from '@nestjs/typeorm';
+import { SubCategory } from './entities/sub-categories.entity';
+import { CreateSubCategoryDto } from './dto/create-subcategory.dto';
 
 @Injectable()
 export class CategoriesService {
   constructor(
     @InjectRepository(Category)
-    private readonly categoryRepository: Repository<Category>) {}
+    private readonly categoryRepository: Repository<Category>,
+    @InjectRepository(SubCategory)
+    private readonly subCategoryRepository: Repository<SubCategory>,
+  ) {}
 
-  async create(createCategoryDto: CreateCategoryDto) {
+  async createCategory(createCategoryDto: CreateCategoryDto) {
     const slug = this.generateSlug(createCategoryDto.name);
-
-    let parent: Category | null = null;
-    if (createCategoryDto.parentId) {
-      parent = await this.categoryRepository.findOne({
-        where: { id: createCategoryDto.parentId },
-      });
-      if (!parent) {
-        throw new NotFoundException('Parent category not found');
-      }
-    }
 
     const category = this.categoryRepository.create({
       ...createCategoryDto,
       slug,
-      ...(parent ? { parent } : {}),
     });
 
     return this.categoryRepository.save(category);
+  }
+
+  async createSubCategory(createSubCategoryDto: CreateSubCategoryDto) {
+    const slug = this.generateSlug(createSubCategoryDto.name);
+
+    const subCategory = this.subCategoryRepository.create({
+      ...createSubCategoryDto,
+      slug,
+    });
   }
 
   async findAll() {
@@ -42,11 +45,19 @@ export class CategoriesService {
   }
 
   async findTree() {
-    return this.categoryRepository.find({
-      where: { isActive: true, parent: IsNull() },
-      relations: ['children'],
+    const categories = await this.categoryRepository.find({
+      where: { isActive: true },
+      relations: ['subcategories', 'subcategories.products'],
       order: { sortOrder: 'ASC', name: 'ASC' },
     });
+
+    return categories.map((category) => ({
+      ...category,
+      children: category.subcategories.map((sub) => ({
+        ...sub,
+        products: sub.products || [],
+      })),
+    }));
   }
 
   async findOne(id: string) {

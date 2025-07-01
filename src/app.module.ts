@@ -35,6 +35,8 @@ import { redisStore } from 'cache-manager-ioredis';
 import { HealthController } from './health.controller';
 import { TerminusModule } from '@nestjs/terminus';
 import { GatewayModule } from './gateway/gateway.module';
+import { CategoriesModule } from './categories/categories.module';
+import { BrandsModule } from './brands/brand.module';
 
 /**
  * AppModule
@@ -92,7 +94,9 @@ import { GatewayModule } from './gateway/gateway.module';
     // WebSocketsModule
     CsrfModule,
     TerminusModule,
-    GatewayModule
+    GatewayModule,
+    CategoriesModule,
+    BrandsModule
   ],
   providers: [
     // AppService,

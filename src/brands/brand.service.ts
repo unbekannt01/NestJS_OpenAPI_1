@@ -40,7 +40,7 @@ export class BrandsService {
   async findOne(id: string) {
     const brand = await this.brandRepository.findOne({
       where: { id },
-      relations: ['products'],
+      relations: ['products', 'products.category', 'product.category.parent'],
     });
 
     if (!brand) {
@@ -77,4 +77,50 @@ export class BrandsService {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '');
   }
+
+  // async findBrandsWithCategoriesTree(): Promise<any[]> {
+  //   const brands = await this.brandRepository.find({
+  //     relations: ['products', 'products.category', 'products.category.parent'],
+  //   });
+
+  //   const result = brands.map((brand) => {
+  //     const categoryMap = new Map();
+
+  //     brand.products.forEach((product) => {
+  //       const cat = product.category;
+
+  //       if (cat?.category?.id) {
+  //         // It's a subcategory
+  //         if (!categoryMap.has(cat.category.id)) {
+  //           categoryMap.set(cat.category.id, {
+  //             id: cat.category.id,
+  //             name: cat.category.name,
+  //             children: [],
+  //           });
+  //         }
+  //         categoryMap.get(cat.category.id).children.push({
+  //           id: cat.id,
+  //           name: cat.name,
+  //         });
+  //       } else {
+  //         // It's a top-level category
+  //         if (!categoryMap.has(cat.id)) {
+  //           categoryMap.set(cat.id, {
+  //             id: cat.id,
+  //             name: cat.name,
+  //             children: [],
+  //           });
+  //         }
+  //       }
+  //     });
+
+  //     return {
+  //       id: brand.id,
+  //       name: brand.name,
+  //       categories: [...categoryMap.values()],
+  //     };
+  //   });
+
+  //   return result;
+  // }
 }

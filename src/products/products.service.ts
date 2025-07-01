@@ -3,11 +3,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Product } from './entities/product.entity';
 import { User } from 'src/user/entities/user.entity';
-import { Category } from 'src/categories/entities/categories.entity';
 import { Brand } from 'src/brands/entities/brand.entity';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductSearchDto } from './dto/product-search.dto';
+import { SubCategory } from 'src/categories/entities/sub-categories.entity';
 
 @Injectable()
 export class ProductsService {
@@ -16,8 +16,8 @@ export class ProductsService {
     private readonly productRepository: Repository<Product>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
-    @InjectRepository(Category)
-    private readonly categoryRepository: Repository<Category>,
+    @InjectRepository(SubCategory)
+    private readonly categoryRepository: Repository<SubCategory>,
     @InjectRepository(Brand)
     private readonly brandRepository: Repository<Brand>,
   ) {}
@@ -26,12 +26,12 @@ export class ProductsService {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
 
-    let category: Category | null = null;
+    let subcategory: SubCategory | null = null;
     if (dto.categoryId) {
-      category = await this.categoryRepository.findOne({
+      subcategory = await this.categoryRepository.findOne({
         where: { id: dto.categoryId },
       });
-      if (!category) throw new NotFoundException('Category not found');
+      if (!subcategory) throw new NotFoundException('Sub-Category not found');
     }
 
     let brand: Brand | null = null;
@@ -65,7 +65,7 @@ export class ProductsService {
       videoUrl: dto.videoUrl,
       stockQuantity: dto.stockQuantity,
       user,
-      category,
+      subCategory: subcategory,
       brand,
     } as Partial<Product>);
 
@@ -190,24 +190,24 @@ export class ProductsService {
   async getProductRecommendations(productId: string, limit = 5) {
     const product = await this.productRepository.findOne({
       where: { id: productId },
-      relations: ['category', 'brand'],
+      relations: ['subCategory', 'subCategory.category', 'brand'],
     });
 
     if (!product) {
       throw new NotFoundException('Product not found');
     }
 
-    // Get similar products based on category and brand
     const recommendations = await this.productRepository
       .createQueryBuilder('product')
       .leftJoinAndSelect('product.brand', 'brand')
-      .leftJoinAndSelect('product.category', 'category')
+      .leftJoinAndSelect('product.subCategory', 'subCategory')
+      .leftJoinAndSelect('subCategory.category', 'category')
       .where('product.id != :productId', { productId })
       .andWhere('product.isActive = :isActive', { isActive: true })
       .andWhere(
-        '(product.categoryId = :categoryId OR product.brandId = :brandId)',
+        '(product.subCategoryId = :subCategoryId OR product.brandId = :brandId)',
         {
-          categoryId: product.category?.id,
+          subCategoryId: product.subCategory?.id,
           brandId: product.brand?.id,
         },
       )
@@ -257,5 +257,49 @@ export class ProductsService {
     const prefix = productName.substring(0, 3).toUpperCase();
     const timestamp = Date.now().toString().slice(-6);
     return `${prefix}-${timestamp}`;
+  }
+
+  async findBrandsWithCategoriesTree(): Promise<any[]> {
+    const brands = await this.brandRepository.find({
+      relations: [
+        'products',
+        'products.subCategory',
+        'products.subCategory.category',
+      ],
+    });
+
+    const result = brands.map((brand) => {
+      const categoryMap = new Map<string, any>();
+
+      brand.products.forEach((product) => {
+        const subCategory = product.subCategory;
+        const category = subCategory?.category;
+
+        if (category) {
+          if (!categoryMap.has(category.id)) {
+            categoryMap.set(category.id, {
+              id: category.id,
+              name: category.name,
+              children: [],
+            });
+          }
+
+          if (subCategory) {
+            categoryMap.get(category.id).children.push({
+              id: subCategory.id,
+              name: subCategory.name,
+            });
+          }
+        }
+      });
+
+      return {
+        id: brand.id,
+        name: brand.name,
+        categories: [...categoryMap.values()],
+      };
+    });
+
+    return result;
   }
 }

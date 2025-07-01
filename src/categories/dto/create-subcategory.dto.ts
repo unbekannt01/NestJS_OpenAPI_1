@@ -6,9 +6,12 @@ import {
   Min,
 } from 'class-validator';
 
-export class CreateCategoryDto {
+export class CreateSubCategoryDto {
   @IsString()
   name: string;
+
+  @IsString()
+  categoryId: string;
 
   @IsOptional()
   @IsString()

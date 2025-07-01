@@ -2,14 +2,17 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
+  ManyToOne,
   OneToMany,
+  JoinColumn,
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { SubCategory } from './sub-categories.entity';
+import { Category } from './categories.entity';
+import { Product } from 'src/products/entities/product.entity';
 
-@Entity('categories')
-export class Category {
+@Entity('sub_categories')
+export class SubCategory {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -31,8 +34,12 @@ export class Category {
   @Column({ default: 0 })
   sortOrder: number;
 
-  @OneToMany(() => SubCategory, (sub) => sub.category, { cascade: true })
-  subcategories: SubCategory[];
+  @ManyToOne(() => Category, (cat) => cat.subcategories, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'category_id' })
+  category: Category;
+
+  @OneToMany(() => Product, (product) => product.subCategory)
+  products: Product[];
 
   @CreateDateColumn()
   createdAt: Date;

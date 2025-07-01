@@ -5,24 +5,32 @@ import {
   Patch,
   Param,
   Delete,
+  Body,
 } from '@nestjs/common';
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { Public } from 'src/common/decorators/public.decorator';
 import { Admin } from 'src/common/decorators/admin.decorator';
+import { CreateSubCategoryDto } from './dto/create-subcategory.dto';
 
 @Controller({ path: 'categories', version: '1' })
 export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
   @Admin()
-  @Post()
-  create(createCategoryDto: CreateCategoryDto) {
-    return this.categoriesService.create(createCategoryDto);
+  @Post('add')
+  createCategory(@Body() createCategoryDto: CreateCategoryDto) {
+    return this.categoriesService.createCategory(createCategoryDto);
   }
 
-  @Get()
+  @Admin()
+  @Post('add-subcategory')
+  createSubCategory(@Body() createCategoryDto: CreateSubCategoryDto) {
+    return this.categoriesService.createSubCategory(createCategoryDto);
+  }
+
+  @Get('getAll')
   @Public()
   findAll() {
     return this.categoriesService.findAll();
