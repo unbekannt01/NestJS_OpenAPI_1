@@ -63,6 +63,35 @@ export class ProductsService {
     };
   }
 
+  async createBulkProducts(dtos: CreateProductDto[], userId: string) {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    const products = await Promise.all(
+      dtos.map(async (dto) => {
+        const subCategory = dto.subCategoryId
+          ? await this.categoryRepository.findOneBy({ id: dto.subCategoryId })
+          : null;
+
+        const brand = dto.brandId
+          ? await this.brandRepository.findOneBy({ id: dto.brandId })
+          : null;
+
+        const sku = this.generateSKU(dto.name);
+
+        return this.productRepository.create({
+          ...dto,
+          sku,
+          user,
+          subCategory,
+          brand,
+        } as Partial<Product>);
+      }),
+    );
+
+    return await this.productRepository.save(products);
+  }
+
   async searchProducts(searchDto: ProductSearchDto) {
     const {
       query,
@@ -82,22 +111,43 @@ export class ProductsService {
 
     const queryBuilder = this.productRepository
       .createQueryBuilder('product')
-      .leftJoinAndSelect('product.brand', 'brand')
-      .leftJoinAndSelect('product.category', 'category')
-      .leftJoinAndSelect('product.specifications', 'specifications')
+      .leftJoin('product.brand', 'brand')
+      .leftJoin('product.subCategory', 'subCategory')
+      .leftJoin('subCategory.category', 'category')
       .where('product.isActive = :isActive', { isActive: true });
+
+    // Select only required fields
+    queryBuilder.select([
+      'product.id',
+      'product.name',
+      'product.model',
+      'product.price',
+      'product.originalPrice',
+      'product.images',
+      'product.brandId',
+      'product.subCategoryId',
+      'product.stockQuantity',
+      'brand.id',
+      'brand.name',
+      'subCategory.id',
+      'subCategory.name',
+      'category.id',
+      'category.name',
+    ]);
 
     // Text search
     if (query) {
       queryBuilder.andWhere(
-        '(product.name ILIKE :query OR product.description ILIKE :query OR product.model ILIKE :query OR brand.name ILIKE :query)',
+        `(product.name ILIKE :query OR product.description ILIKE :query OR product.model ILIKE :query OR brand.name ILIKE :query)`,
         { query: `%${query}%` },
       );
     }
 
     // Filters
     if (categoryId) {
-      queryBuilder.andWhere('product.categoryId = :categoryId', { categoryId });
+      queryBuilder.andWhere('subCategory.categoryId = :categoryId', {
+        categoryId,
+      });
     }
 
     if (brandId) {
@@ -148,8 +198,25 @@ export class ProductsService {
 
     const [products, total] = await queryBuilder.getManyAndCount();
 
+    // Manual projection of simplified result
+    const result = products.map((product: Product) => ({
+      id: product.id,
+      name: product.name,
+      model: product.model,
+      price: product.price,
+      originalPrice: product.originalPrice,
+      images: product.images,
+      stockQuantity: product.stockQuantity,
+      brandName: product.brand?.name,
+      brandId: product.brandId,
+      subCategoryName: product.subCategory?.name,
+      SubCategoryId: product.subCategory?.id,
+      categoryName: product.subCategory?.category?.name,
+      categoryId: product.subCategory?.category?.id,
+    }));
+
     return {
-      products,
+      products: result,
       pagination: {
         page,
         limit,
@@ -164,7 +231,7 @@ export class ProductsService {
   async getFeaturedProducts(limit = 10) {
     return this.productRepository.find({
       where: { isFeatured: true, isActive: true },
-      relations: ['brand', 'category'],
+      // relations: ['subCategory'],
       order: { averageRating: 'DESC' },
       take: limit,
     });
@@ -242,47 +309,72 @@ export class ProductsService {
     return `${prefix}-${timestamp}`;
   }
 
-  async findBrandsWithCategoriesTree(): Promise<any[]> {
-    const brands = await this.brandRepository.find({
-      relations: [
-        'products',
-        'products.subCategory',
-        'products.subCategory.category',
-      ],
-    });
+  // async findBrandsWithCategoriesTree(): Promise<any[]> {
+  //   const brands = await this.brandRepository.find({
+  //     relations: [
+  //       'products',
+  //       'products.subCategory',
+  //       'products.subCategory.category',
+  //     ],
+  //   });
 
-    const result = brands.map((brand) => {
-      const categoryMap = new Map<string, any>();
+  //   const result = brands.map((brand) => {
+  //     const categoryMap = new Map<string, any>();
 
-      brand.products.forEach((product) => {
-        const subCategory = product.subCategory;
-        const category = subCategory?.category;
+  //     brand.products.forEach((product) => {
+  //       const subCategory = product.subCategory;
+  //       const category = subCategory?.category;
 
-        if (category) {
-          if (!categoryMap.has(category.id)) {
-            categoryMap.set(category.id, {
-              id: category.id,
-              name: category.name,
-              children: [],
-            });
-          }
+  //       if (category) {
+  //         if (!categoryMap.has(category.id)) {
+  //           categoryMap.set(category.id, {
+  //             id: category.id,
+  //             name: category.name,
+  //             children: [],
+  //           });
+  //         }
 
-          if (subCategory) {
-            categoryMap.get(category.id).children.push({
-              id: subCategory.id,
-              name: subCategory.name,
-            });
-          }
-        }
+  //         if (subCategory) {
+  //           categoryMap.get(category.id).children.push({
+  //             id: subCategory.id,
+  //             name: subCategory.name,
+  //           });
+  //         }
+  //       }
+  //     });
+
+  //     return {
+  //       id: brand.id,
+  //       name: brand.name,
+  //       categories: [...categoryMap.values()],
+  //     };
+  //   });
+
+  //   return result;
+  // }
+
+  async getMainCategories() {
+    try {
+      const categories = await this.categoryRepository.find({
+        where: {
+          isActive: true,
+        },
+        order: { name: 'ASC' },
+        select: ['id', 'name', 'description', 'isActive'],
       });
 
       return {
-        id: brand.id,
-        name: brand.name,
-        categories: [...categoryMap.values()],
+        success: true,
+        message: 'Categories fetched successfully',
+        data: categories,
       };
-    });
-
-    return result;
+    } catch (error) {
+      console.error('Error fetching main categories:', error);
+      return {
+        success: false,
+        message: 'Failed to fetch categories',
+        data: [],
+      };
+    }
   }
 }

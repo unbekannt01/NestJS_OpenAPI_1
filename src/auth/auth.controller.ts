@@ -128,7 +128,7 @@ export class AuthController {
       console.log('calling notifyUserLogin....!', user.email);
       this.gateWayService.notifyuserlogin(user.email);
 
-      return {
+      return { 
         message: `${role} Login Successfully!`,
         access_token,
         refresh_token,

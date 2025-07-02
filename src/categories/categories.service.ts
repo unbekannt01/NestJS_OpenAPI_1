@@ -48,7 +48,7 @@ export class CategoriesService {
   async findAll() {
     return this.categoryRepository.find({
       where: { isActive: true },
-      // relations: ['subcategories', 'subcategories.products'],
+      relations: ['subcategories', 'subcategories.products'],
       order: { sortOrder: 'ASC', name: 'ASC' },
       select: ['id', 'name', 'description'],
     });
@@ -70,55 +70,84 @@ export class CategoriesService {
     }));
   }
 
-  async findOne(id: string) {
+  async findCategoryOrSubcategoryById(id: string) {
+    // Try to find in Category first
     const category = await this.categoryRepository.findOne({
       where: { id },
       select: ['id', 'name', 'description'],
     });
 
-    if (!category) {
-      throw new NotFoundException('Category not found');
+    if (category) {
+      return {
+        type: 'category',
+        data: category,
+      };
     }
 
-    return category;
+    // If not found, try in SubCategory
+    const subcategory = await this.subCategoryRepository.findOne({
+      where: { id },
+      select: ['id', 'name', 'description', 'categoryId'],
+    });
+
+    if (subcategory) {
+      return {
+        type: 'subcategory',
+        data: subcategory,
+      };
+    }
+
+    throw new NotFoundException(
+      'No category or subcategory found with the given ID',
+    );
   }
 
   async updateCategory(id: string, updateCategoryDto: UpdateCategoryDto) {
-    const category = await this.findOne(id);
+    const category = await this.findCategoryOrSubcategoryById(id);
 
-    if (updateCategoryDto.name && updateCategoryDto.name !== category.name) {
+    if (
+      updateCategoryDto.name &&
+      updateCategoryDto.name !== category.data.name
+    ) {
       updateCategoryDto.slug = this.generateSlug(updateCategoryDto.name);
     }
 
     await this.categoryRepository.update(id, updateCategoryDto);
-    return this.findOne(id);
+    return this.findCategoryOrSubcategoryById(id);
   }
 
   async updateSubCategory(
     id: string,
     updateSubCategoryDto: UpdateSubCategoryDto,
   ) {
-    const category = await this.findOne(id);
+    const category = await this.findCategoryOrSubcategoryById(id);
 
     if (
       updateSubCategoryDto.name &&
-      updateSubCategoryDto.name !== category.name
+      updateSubCategoryDto.name !== category.data.name
     ) {
       updateSubCategoryDto.slug = this.generateSlug(updateSubCategoryDto.name);
     }
-
-    await this.categoryRepository.update(id, updateSubCategoryDto);
-    return this.findOne(id);
+    await this.subCategoryRepository.update(id, updateSubCategoryDto);
+    return this.findCategoryOrSubcategoryById(id);
   }
 
-  async remove(id: string) {
+  async removeCategory(id: string) {
     const result = await this.categoryRepository.delete(id);
 
     if (result.affected === 0) {
       throw new NotFoundException('Category not found');
     }
-
     return { message: 'Category deleted successfully' };
+  }
+
+  async removeSubCategory(id: string) {
+    const result = await this.subCategoryRepository.delete(id);
+
+    if (result.affected === 0) {
+      throw new NotFoundException('Subcategory not found');
+    }
+    return { message: 'Subcategory deleted successfully' };
   }
 
   private generateSlug(name: string): string {
@@ -126,5 +155,57 @@ export class CategoriesService {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '');
+  }
+
+  async getMainCategories() {
+    try {
+      const categories = await this.categoryRepository.find({
+        where: {
+          isActive: true,
+        },
+        order: { name: 'ASC' },
+        select: ['id', 'name', 'description', 'isActive'],
+      });
+
+      return {
+        success: true,
+        message: 'Categories fetched successfully',
+        data: categories,
+      };
+    } catch (error) {
+      console.error('Error fetching main categories:', error);
+      return {
+        success: false,
+        message: 'Failed to fetch categories',
+        data: [],
+      };
+    }
+  }
+
+  // Get subcategories by category ID
+  async getSubCategoriesByCategoryId(categoryId: string) {
+    try {
+      const subCategories = await this.subCategoryRepository.find({
+        where: {
+          categoryId: categoryId,
+          isActive: true,
+        },
+        order: { name: 'ASC' },
+        select: ['id', 'name', 'description', 'categoryId', 'isActive'],
+      });
+
+      return {
+        success: true,
+        message: 'Subcategories fetched successfully',
+        data: subCategories,
+      };
+    } catch (error) {
+      console.error('Error fetching subcategories:', error);
+      return {
+        success: false,
+        message: 'Failed to fetch subcategories',
+        data: [],
+      };
+    }
   }
 }

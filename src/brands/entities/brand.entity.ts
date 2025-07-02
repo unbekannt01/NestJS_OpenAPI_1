@@ -19,7 +19,7 @@ export class Brand {
   @Column({ unique: true })
   slug: string;
 
-  @Column('text', { nullable: true })
+  @Column({ nullable: true })
   description: string;
 
   @Column({ nullable: true })

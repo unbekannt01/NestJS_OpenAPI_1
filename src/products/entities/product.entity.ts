@@ -30,6 +30,7 @@ export enum PowerType {
   ELECTRIC_CORDLESS = 'ELECTRIC_CORDLESS',
   PNEUMATIC = 'PNEUMATIC',
   HYDRAULIC = 'HYDRAULIC',
+  BATTERY = 'BATTERY'
 }
 
 @Entity('products')

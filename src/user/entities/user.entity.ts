@@ -10,6 +10,7 @@ import { UploadFile } from 'src/file-upload/entities/file-upload.entity';
 import { CartItem } from 'src/cart/entities/cart.entity';
 import { Review } from 'src/review/entities/review.entity';
 import { Order } from 'src/order/entities/order.entity';
+import { PasswordHistory } from 'src/password/entities/password-history.entity';
 // import { CartItem } from '';
 // import { Order } from '';
 // import { Review } from '';
@@ -155,4 +156,7 @@ export class User extends BaseEntity {
 
   @OneToMany(() => Review, (review) => review.user)
   reviews: Review[];
+
+  @OneToMany(() => PasswordHistory, (passwordHistory) => passwordHistory.user)
+  passwordHistory: PasswordHistory[]
 }

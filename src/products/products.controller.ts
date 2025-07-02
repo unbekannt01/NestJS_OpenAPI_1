@@ -18,6 +18,7 @@ import { Public } from 'src/common/decorators/public.decorator';
 import { AuthGuard } from '@nestjs/passport';
 import { Request } from 'express';
 import { Throttle } from '@nestjs/throttler';
+import { Admin } from 'src/common/decorators/admin.decorator';
 
 @Controller({ path: 'products', version: '1' })
 export class ProductsController {
@@ -33,7 +34,20 @@ export class ProductsController {
     return this.productsService.createProduct(createProductDto, userId);
   }
 
-  @Throttle({ default: { limit: 1, ttl: 60000 }})
+  @Post('add-bulk')
+  @Admin()
+  createBulk(
+    @Body() createProductDto: CreateProductDto[],
+    @Req() req: Request,
+  ) {
+    const userId = (req.user as { id: string })?.id;
+    if (!userId) {
+      throw new Error('Admin Information is missing from request.');
+    }
+    return this.productsService.createBulkProducts(createProductDto, userId);
+  }
+
+  @Throttle({ default: { limit: 1, ttl: 60000 } })
   @Get('getAll')
   @Public()
   findAll() {
@@ -42,8 +56,25 @@ export class ProductsController {
 
   @Get('search')
   @Public()
-  search(@Query() searchDto: ProductSearchDto) {
-    return this.productsService.searchProducts(searchDto);
+  async search(@Query() searchDto: ProductSearchDto) {
+    try {
+      return await this.productsService.searchProducts(searchDto);
+    } catch (error) {
+      console.error('Search endpoint error:', error);
+      return {
+        success: false,
+        message: 'Search failed',
+        products: [],
+        pagination: {
+          page: 1,
+          limit: 20,
+          total: 0,
+          totalPages: 0,
+          hasNext: false,
+          hasPrev: false,
+        },
+      };
+    }
   }
 
   @Get('featured')

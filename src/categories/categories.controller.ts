@@ -6,7 +6,6 @@ import {
   Param,
   Delete,
   Body,
-  Req,
 } from '@nestjs/common';
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
@@ -14,7 +13,6 @@ import { UpdateCategoryDto } from './dto/update-category.dto';
 import { Public } from 'src/common/decorators/public.decorator';
 import { Admin } from 'src/common/decorators/admin.decorator';
 import { CreateSubCategoryDto } from './dto/create-subcategory.dto';
-import { Request } from 'express';
 import { UpdateSubCategoryDto } from './dto/update-subcategory.dto';
 
 @Controller({ path: 'categories', version: '1' })
@@ -31,7 +29,7 @@ export class CategoriesController {
   @Post('add-subcategory')
   createSubCategory(
     @Body() createCategoryDto: CreateSubCategoryDto,
-    @Req() req: Request,
+    // @Req() req: Request,
   ) {
     return this.categoriesService.createSubCategory(createCategoryDto);
   }
@@ -42,6 +40,20 @@ export class CategoriesController {
     return this.categoriesService.findAll();
   }
 
+  // Get only main categories (for dropdown)
+  @Get('main')
+  @Public()
+  getMainCategories() {
+    return this.categoriesService.getMainCategories();
+  }
+
+  @Get(':categoryId/subcategories')
+  @Public()
+  getSubCategoriesByCategoryId(@Param('categoryId') categoryId: string) {
+    return this.categoriesService.getSubCategoriesByCategoryId(categoryId);
+  }
+
+  @Admin()
   @Get('tree')
   @Public()
   findTree() {
@@ -51,24 +63,36 @@ export class CategoriesController {
   @Get(':id')
   @Public()
   findOne(@Param('id') id: string) {
-    return this.categoriesService.findOne(id);
+    return this.categoriesService.findCategoryOrSubcategoryById(id);
   }
 
   @Patch('updateCategory/:id')
   @Admin()
-  updateCategory(@Param('id') id: string, @Body() updateCategoryDto: UpdateCategoryDto) {
+  updateCategory(
+    @Param('id') id: string,
+    @Body() updateCategoryDto: UpdateCategoryDto,
+  ) {
     return this.categoriesService.updateCategory(id, updateCategoryDto);
   }
 
   @Patch('updateSubCategory/:id')
   @Admin()
-  updateSubCategory(@Param('id') id: string, updateSubCategoryDto: UpdateSubCategoryDto) {
+  updateSubCategory(
+    @Param('id') id: string,
+    @Body() updateSubCategoryDto: UpdateSubCategoryDto,
+  ) {
     return this.categoriesService.updateSubCategory(id, updateSubCategoryDto);
   }
 
-  @Delete(':id')
+  @Delete('deteteCategory/:id')
   @Admin()
-  remove(@Param('id') id: string) {
-    return this.categoriesService.remove(id);
+  removecategory(@Param('id') id: string) {
+    return this.categoriesService.removeCategory(id);
+  }
+
+  @Delete('deleteSubcategory/:id')
+  @Admin()
+  removesubcategory(@Param('id') id: string) {
+    return this.categoriesService.removeSubCategory(id);
   }
 }

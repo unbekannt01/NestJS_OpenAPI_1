@@ -37,6 +37,8 @@ import { TerminusModule } from '@nestjs/terminus';
 import { GatewayModule } from './gateway/gateway.module';
 import { CategoriesModule } from './categories/categories.module';
 import { BrandsModule } from './brands/brand.module';
+import { OrderModule } from './order/order.module';
+import { ReviewModule } from './review/review.module';
 
 /**
  * AppModule
@@ -97,7 +99,9 @@ import { BrandsModule } from './brands/brand.module';
     GatewayModule,
     CategoriesModule,
     BrandsModule,
-    ProductsModule
+    ProductsModule,
+    OrderModule,
+    ReviewModule
   ],
   providers: [
     // AppService,

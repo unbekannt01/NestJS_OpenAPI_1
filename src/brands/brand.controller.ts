@@ -23,6 +23,12 @@ export class BrandsController {
     return this.brandsService.create(createBrandDto);
   }
 
+  @Post('bulk')
+  @Admin()
+  createBulk(@Body() createBrandDto: CreateBrandDto[]) {
+    return this.brandsService.createMultiple(createBrandDto);
+  }
+
   @Get('getAll')
   @Public()
   findAll() {
@@ -43,7 +49,7 @@ export class BrandsController {
 
   @Patch(':id')
   @Admin()
-  update(@Param('id') id: string, updateBrandDto: UpdateBrandDto) {
+  update(@Param('id') id: string, @Body() updateBrandDto: UpdateBrandDto) {
     return this.brandsService.update(id, updateBrandDto);
   }
 

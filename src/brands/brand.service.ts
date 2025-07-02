@@ -23,6 +23,11 @@ export class BrandsService {
     return this.brandRepository.save(brand);
   }
 
+  async createMultiple(createBrandDto: CreateBrandDto[]) {
+    const brands = await this.brandRepository.create(createBrandDto);
+    return await this.brandRepository.save(brands);
+  }
+
   async findAll() {
     return this.brandRepository.find({
       where: { isActive: true },
@@ -42,15 +47,14 @@ export class BrandsService {
       where: { id },
       relations: [
         'products',
-        'products.subCategory',
-        'product.subCategory.category',
+        // 'products.subCategory',
+        // 'product.subCategory.category',
       ],
     });
 
     if (!brand) {
       throw new NotFoundException('Brand not found');
     }
-
     return brand;
   }
 
