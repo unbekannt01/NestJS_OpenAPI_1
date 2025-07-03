@@ -11,6 +11,7 @@ import * as path from 'path';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
 import * as compression from 'compression';
 import helmet from 'helmet';
+import * as bodyParser from 'body-parser';
 import * as csurf from 'csurf';
 
 config();
@@ -68,6 +69,8 @@ async function bootstrap() {
     // origin: '*',
     credentials: true,
   });
+
+  app.use('/v1/payment/webhook', bodyParser.raw({ type: 'application/json' }));
 
   // app.use(
   //   csurf({

@@ -1,9 +1,20 @@
-import { Controller, Post, Body, UseGuards, Query, Req } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  Query,
+  Req,
+  Headers,
+  BadRequestException,
+  Res,
+} from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { AuthGuard } from '@nestjs/passport';
 import { CreatePaymentIntentDto } from './dto/create-payment-intent.dto';
 import { Request } from 'express';
 import { ConfirmPaymentDto } from './dto/confirm-payment.dto';
+import { configService } from 'src/common/services/config.service';
 
 @Controller({ path: 'payment', version: '1' })
 export class PaymentController {
@@ -29,6 +40,34 @@ export class PaymentController {
   ) {
     const userId = (req.user as { id: string })?.id;
     return this.paymentService.verifyRazorpayPayment(userId, confirmPaymentDto);
+  }
+
+  @Post('webhook')
+  async handleWebhook(
+    @Req() req: Request,
+    @Headers('x-razorpay-signature') signature: string,
+  ) {
+    const rawBody = (req.body as Buffer).toString();
+    const secret = configService.getValue('RAZORPAY_WEBHOOK_SECRET');
+
+    const isValid = await this.paymentService.verifySignature(
+      rawBody,
+      signature,
+      secret,
+    );
+
+    if (!isValid) {
+      return { success: false, message: 'Invalid webhook signature' };
+    }
+
+    const payload = JSON.parse(rawBody);
+    const paymentEntity = payload?.payload?.payment?.entity;
+
+    if (payload.event === 'payment.captured' && paymentEntity) {
+      await this.paymentService.processWebhookPayment(paymentEntity);
+    }
+
+    return { success: true, message: 'Webhook processed' };
   }
 
   // @Post('create-order')

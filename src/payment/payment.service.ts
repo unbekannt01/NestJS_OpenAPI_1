@@ -121,18 +121,13 @@ export class PaymentService {
     }
   }
 
-  async verifySignature(
-    body: any,
-    signature: string,
-    secret: string,
-  ): Promise<boolean> {
-    const crypto = await import('crypto');
-    const generatedSignature = crypto
+  verifySignature(rawBody: string, signature: string, secret: string): boolean {
+    const expectedSignature = crypto
       .createHmac('sha256', secret)
-      .update(body)
+      .update(rawBody)
       .digest('hex');
 
-    return generatedSignature === signature;
+    return expectedSignature === signature;
   }
 
   async verifyRazorpayPayment(
@@ -148,7 +143,7 @@ export class PaymentService {
       verifyDto;
 
     const payment = await this.paymentRepository.findOne({
-      where: { id: paymentId },
+      where: { id: paymentId, user: { id: userId } },
       relations: ['order', 'user'],
     });
 
@@ -167,23 +162,56 @@ export class PaymentService {
       );
     }
 
+    const order = payment.order;
+    order.status = OrderStatus.CONFIRMED;
+    order.deliveredAt = new Date();
+
     payment.razorpayPaymentId = razorpayPaymentId;
     payment.razorpaySignature = razorpaySignature;
     payment.status = PaymentStatus.COMPLETED;
 
-    await this.paymentRepository.save(payment);
-
-    const order = payment.order;
-    order.status = OrderStatus.CONFIRMED;
-    payment.status = PaymentStatus.COMPLETED;
-    order.deliveredAt = new Date();
-
+    // Save both in correct order
     await this.orderRepository.save(order);
+    await this.paymentRepository.save(payment);
 
     return {
       success: true,
       message: 'Payment verified and records updated successfully',
     };
+  }
+
+  async processWebhookPayment(payload: any) {
+    const razorpayOrderId = payload.order_id;
+    const razorpayPaymentId = payload.id;
+
+    const payment = await this.paymentRepository.findOne({
+      where: { razorpayOrderId },
+      relations: ['order'],
+    });
+
+    if (!payment) {
+      this.logger.warn(`Payment not found for orderId: ${razorpayOrderId}`);
+      return;
+    }
+
+    if (payment.status === PaymentStatus.COMPLETED) {
+      this.logger.log(`Payment already completed: ${payment.id}`);
+      return;
+    }
+
+    const order = payment.order;
+
+    order.status = OrderStatus.CONFIRMED;
+    order.deliveredAt = new Date();
+
+    payment.razorpayPaymentId = razorpayPaymentId;
+    payment.status = PaymentStatus.COMPLETED;
+    payment.razorpaySignature = 'Webhook verified (server-side)';
+
+    await this.orderRepository.save(order);
+    await this.paymentRepository.save(payment);
+
+    this.logger.log(`Payment verified & updated for order ${order.id}`);
   }
 
   // async createRazorpayOrder(

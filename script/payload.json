@@ -1,0 +1,1 @@
+{"event":"payment.captured","payload":{"payment":{"entity":{"id":"pay_abc123","order_id":"order_xyz789","amount":50000,"currency":"INR"}}}}
