@@ -47,7 +47,7 @@ export class ProductsController {
     return this.productsService.createBulkProducts(createProductDto, userId);
   }
 
-  @Throttle({ default: { limit: 1, ttl: 60000 } })
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Get('getAll')
   @Public()
   findAll() {
