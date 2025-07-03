@@ -1,7 +1,11 @@
-import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
+import {
+  Module,
+  type MiddlewareConsumer,
+  type NestModule,
+} from '@nestjs/common';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { UserModule } from './user/user.module';
 import { SearchModule } from './search/search.module';
 import { SmsService } from './otp/services/sms.service';
@@ -30,15 +34,16 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { FileUploadUsingS3Module } from './file-upload-using-s3/file-upload-using-s3.module';
 import { FileUploadUsingCloudinaryModule } from './file-upload-using-cloudinary/file-upload-using-cloudinary.module';
 import { FileUploadUsingSupabaseModule } from './file-upload-using-supabase/file-upload-using-supabase.module';
-import { CsrfModule } from './csrf/csrf.module';
 import { redisStore } from 'cache-manager-ioredis';
 import { HealthController } from './health.controller';
 import { TerminusModule } from '@nestjs/terminus';
 import { GatewayModule } from './gateway/gateway.module';
 import { CategoriesModule } from './categories/categories.module';
 import { BrandsModule } from './brands/brand.module';
+import { CartModule } from './cart/cart.module';
 import { OrderModule } from './order/order.module';
-import { ReviewModule } from './review/review.module';
+import { PaymentModule } from './payment/payment.module';
+// import stripeConfig from './config/stripe.config';
 
 /**
  * AppModule
@@ -77,6 +82,7 @@ import { ReviewModule } from './review/review.module';
       validationSchema,
       envFilePath: [`.env.${process.env.NODE_ENV || 'local'}`],
       cache: true,
+      // load: [stripeConfig],
     }),
     TypeOrmModule.forRoot(typeOrmConfig()),
     AlsModule,
@@ -99,9 +105,9 @@ import { ReviewModule } from './review/review.module';
     GatewayModule,
     CategoriesModule,
     BrandsModule,
-    ProductsModule,
+    CartModule,
     OrderModule,
-    ReviewModule
+    PaymentModule,
   ],
   providers: [
     // AppService,

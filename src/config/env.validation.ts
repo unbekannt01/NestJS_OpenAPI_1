@@ -56,4 +56,9 @@ export const validationSchema = Joi.object({
     .truthy('true')
     .falsy('false')
     .default(true),
+
+  // Payment - Razorpay
+  RAZORPAY_KEY_ID: Joi.string().required(),
+  RAZORPAY_KEY_SECRET: Joi.string().required(),
+  RAZORPAY_WEBHOOK_SECRET: Joi.string().required(),
 });

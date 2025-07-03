@@ -28,6 +28,7 @@ import { emailTokenConfig } from 'src/config/email.config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { UserRegisteredPayload } from './interfaces/user-registered-payload';
 import { FileStorageService } from 'src/common/services/file-storage.service';
+import { configService } from 'src/common/services/config.service';
 // import { NotificationsGateway } from 'src/websockets/notifications.gateway';
 
 /**
@@ -542,13 +543,13 @@ export class AuthService {
     };
 
     const access_token = this.jwtService.sign(payload, {
-      secret,
-      expiresIn: '1h',
+      secret: configService.getValue('JWT_SECRET'),
+      expiresIn : configService.getValue('JWT_EXPIRES_IN'),
     });
 
     const refresh_token = uuidv4();
     const expiryDate = new Date();
-    expiryDate.setDate(expiryDate.getDate() + 7); // 7 days from now
+    expiryDate.setDate(expiryDate.getDate() + 7); 
 
     // Update user with refresh token
     await this.userRepository.update(
