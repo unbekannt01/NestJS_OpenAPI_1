@@ -53,7 +53,7 @@ export class CartService {
       cartItem.quantity += quantity;
     } else {
       cartItem = this.cartRepository.create({
-        user: user as { id: string },
+        user: { id: userId },
         product,
         quantity,
         price: product.price,

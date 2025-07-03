@@ -24,26 +24,22 @@ export class OrderService {
   ) {}
 
   async createOrder(userId: string, createOrderDto: CreateOrderDto) {
-    const user = await this.userRepository.findOne({ where: { id: userId } });
     const cart = await this.cartService.getCart(userId);
 
     if (cart.items.length === 0) {
       throw new BadRequestException('Cart is empty');
     }
 
-    // Generate order number
     const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-    // Calculate totals
     const subtotal = cart.total;
-    const taxAmount = subtotal * 0.08; 
+    const taxAmount = subtotal * 0.08;
     const shippingCost = subtotal > 100 ? 0 : 15;
     const totalAmount = subtotal + taxAmount + shippingCost;
 
-    // Create order
     const order = this.orderRepository.create({
       orderNumber,
-      user: user as { id: string },
+      user: { id: userId },
       totalAmount,
       shippingCost,
       taxAmount,
@@ -54,7 +50,6 @@ export class OrderService {
 
     const savedOrder = await this.orderRepository.save(order);
 
-    // Create order items
     const orderItems = cart.items.map((cartItem) =>
       this.orderItemRepository.create({
         order: savedOrder,
@@ -64,10 +59,7 @@ export class OrderService {
         totalPrice: cartItem.price * cartItem.quantity,
       }),
     );
-
     await this.orderItemRepository.save(orderItems);
-
-    // Clear cart
     await this.cartService.clearCart(userId);
 
     return this.getOrder(savedOrder.id, userId);
@@ -94,13 +86,8 @@ export class OrderService {
   }
 
   async getOrder(orderId: string, userId?: string) {
-    const whereCondition: any = { id: orderId };
-    if (userId) {
-      whereCondition.user = { id: userId };
-    }
-
     const order = await this.orderRepository.findOne({
-      where: whereCondition,
+      where: { id: orderId, user: { id: userId } },
       relations: [
         'orderItems',
         'orderItems.product',
@@ -113,7 +100,30 @@ export class OrderService {
       throw new NotFoundException('Order not found');
     }
 
-    return order;
+    return {
+      id: order.id,
+      orderNumber: order.orderNumber,
+      totalAmount: order.totalAmount,
+      shippingCost: order.shippingCost,
+      taxAmount: order.taxAmount,
+      status: order.status,
+      paymentStatus: order.paymentStatus,
+      shippingAddress: order.shippingAddress,
+      billingAddress: order.billingAddress,
+      userId: order.user.id,
+      orderItems: order.orderItems.map((item) => ({
+        id: item.id,
+        quantity: item.quantity,
+        price: item.price,
+        totalPrice: item.totalPrice,
+        product: {
+          id: item.product.id,
+          name: item.product.name,
+        },
+      })),
+      createdAt: order.createdAt,
+      deliveredAt: order.deliveredAt,
+    };
   }
 
   async getAllOrders(page: number, limit: number) {
