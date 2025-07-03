@@ -125,6 +125,7 @@
     "@types/socket.io": "^3.0.1",
     "@types/supertest": "^6.0.2",
     "@types/twilio": "^3.19.3",
+    "copyfiles": "^2.4.1",
     "cross-env": "^7.0.3",
     "cross-var": "^1.1.0",
     "eslint": "^9.18.0",
