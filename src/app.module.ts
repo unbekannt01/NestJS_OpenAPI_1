@@ -43,6 +43,7 @@ import { BrandsModule } from './brands/brand.module';
 import { CartModule } from './cart/cart.module';
 import { OrderModule } from './order/order.module';
 import { PaymentModule } from './payment/payment.module';
+// import { PaymentModule } from './payment/payment.module';
 // import stripeConfig from './config/stripe.config';
 
 /**

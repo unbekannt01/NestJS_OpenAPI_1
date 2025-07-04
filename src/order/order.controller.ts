@@ -8,6 +8,7 @@ import {
   Req,
   Query,
   Body,
+  Delete,
 } from '@nestjs/common';
 import { OrderService } from './order.service';
 import { AuthGuard } from '@nestjs/passport';
@@ -36,7 +37,7 @@ export class OrderController {
     const userId = (req.user as { id: string })?.id;
     return this.orderService.getUserOrders(userId, page, limit);
   }
-
+ 
   @Get(':id')
   getOrder(@Param('id') id: string, @Req() req: Request) {
     const userId = (req.user as { id: string })?.id;
@@ -56,5 +57,11 @@ export class OrderController {
     @Body() updateStatusDto: UpdateOrderStatusDto,
   ) {
     return this.orderService.updateOrderStatus(id, updateStatusDto.status);
+  }
+
+  @Delete(':id')
+  deleteOrder(@Req() req: Request, @Param('id') orderId: string) {
+    const userId = (req.user as { id: string })?.id;
+    return this.orderService.deleteOrder(orderId, userId);
   }
 }

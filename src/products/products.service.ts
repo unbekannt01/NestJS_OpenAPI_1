@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Product } from './entities/product.entity';
 import { User } from 'src/user/entities/user.entity';
 import { Brand } from 'src/brands/entities/brand.entity';
@@ -67,8 +67,28 @@ export class ProductsService {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
 
-    const products = await Promise.all(
+    const generatedDtos = await Promise.all(
       dtos.map(async (dto) => {
+        let baseSku = this.generateSKU(dto.name); // e.g., 'STA-228285'
+        let uniqueSku = baseSku;
+        let counter = 1;
+
+        // Check for uniqueness in DB
+        while (
+          await this.productRepository.findOne({ where: { sku: uniqueSku } })
+        ) {
+          uniqueSku = `${baseSku}-${counter++}`;
+        }
+
+        return {
+          ...dto,
+          sku: uniqueSku,
+        };
+      }),
+    );
+
+    const products = await Promise.all(
+      generatedDtos.map(async (dto) => {
         const subCategory = dto.subCategoryId
           ? await this.categoryRepository.findOneBy({ id: dto.subCategoryId })
           : null;
@@ -77,11 +97,8 @@ export class ProductsService {
           ? await this.brandRepository.findOneBy({ id: dto.brandId })
           : null;
 
-        const sku = this.generateSKU(dto.name);
-
         return this.productRepository.create({
           ...dto,
-          sku,
           user,
           subCategory,
           brand,
@@ -89,7 +106,7 @@ export class ProductsService {
       }),
     );
 
-    return await this.productRepository.save(products);
+    return this.productRepository.save(products);
   }
 
   async searchProducts(searchDto: ProductSearchDto) {

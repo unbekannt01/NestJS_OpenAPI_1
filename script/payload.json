@@ -1,1 +1,22 @@
-{"event":"payment.captured","payload":{"payment":{"entity":{"id":"pay_abc123","order_id":"order_xyz789","amount":50000,"currency":"INR"}}}}
+{
+  "entity": "event",
+  "account_id": "QoTyPBlayq1j7I",
+  "event": "payment.captured",
+  "contains": ["payment"],
+  "payload": {
+    "payment": {
+      "entity": {
+        "id": "a4edfac3-023c-4306-9a1a-3d8849dbcc90",
+        "amount": 14039,
+        "currency": "INR",
+        "status": "captured",
+        "order_id": "order_QorPNuwR7EqABl",
+        "method": "card",
+        "email": "user1@gmail.com",
+        "contact": "+919876543210",
+        "created_at": 1751623542
+      }
+    }
+  },
+  "created_at": 1751623542
+}

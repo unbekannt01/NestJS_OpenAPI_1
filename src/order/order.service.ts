@@ -6,10 +6,10 @@ import {
 import { Repository } from 'typeorm';
 import { Order, OrderStatus } from './entities/order.entity';
 import { OrderItem } from './entities/order-item.entity';
-import { CartService } from 'src/cart/cart.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { User } from 'src/user/entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
+import { CartService } from 'src/cart/cart.service';
 
 @Injectable()
 export class OrderService {
@@ -160,5 +160,19 @@ export class OrderService {
     }
 
     return this.orderRepository.save(order);
+  }
+
+  async deleteOrder(orderId: string, userId: string) {
+    const order = await this.orderRepository.findOne({
+      where: {
+        id: orderId,
+        user: { id: userId },
+      },
+    });
+
+    if (!order) throw new NotFoundException('Order Not Found...!');
+
+    await this.orderRepository.delete(orderId);
+    return { message: 'Order Removed Successfully...!' };
   }
 }

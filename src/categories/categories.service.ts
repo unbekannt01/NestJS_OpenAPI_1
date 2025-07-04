@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { IsNull, type Repository } from 'typeorm';
 import { Category } from './entities/categories.entity';
 import { CreateCategoryDto } from './dto/create-category.dto';
@@ -20,7 +24,7 @@ export class CategoriesService {
   async createCategory(createCategoryDto: CreateCategoryDto) {
     const slug = this.generateSlug(createCategoryDto.name);
 
-    const category = this.categoryRepository.create({
+    const category = await this.categoryRepository.create({
       ...createCategoryDto,
       slug,
     });
@@ -43,6 +47,40 @@ export class CategoriesService {
     });
 
     return this.subCategoryRepository.save(subCategory);
+  }
+
+  async createSubCategory1(dtos: CreateSubCategoryDto[]) {
+    const subCategories: SubCategory[] = [];
+
+    for (const dto of dtos) {
+      if (!dto.categoryId) {
+        throw new BadRequestException(
+          `Missing categoryId for subcategory: ${dto.name}`,
+        );
+      }
+
+      const category = await this.categoryRepository.findOne({
+        where: { id: dto.categoryId },
+      });
+
+      if (!category) {
+        throw new NotFoundException(
+          `Category with id ${dto.categoryId} not found`,
+        );
+      }
+
+      const slug = this.generateSlug(dto.name);
+
+      const subCategory = this.subCategoryRepository.create({
+        ...dto,
+        slug,
+        categoryId: dto.categoryId,
+      });
+
+      subCategories.push(subCategory);
+    }
+
+    return this.subCategoryRepository.save(subCategories);
   }
 
   async findAll() {

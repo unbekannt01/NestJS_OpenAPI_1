@@ -34,6 +34,15 @@ export class CategoriesController {
     return this.categoriesService.createSubCategory(createCategoryDto);
   }
 
+  @Admin()
+  @Post('add-subcategory1')
+  createSubCategory1(
+    @Body() createCategoryDto: CreateSubCategoryDto[],
+    // @Req() req: Request,
+  ) {
+    return this.categoriesService.createSubCategory1(createCategoryDto);
+  }
+
   @Get('getAll')
   @Public()
   findAll() {
