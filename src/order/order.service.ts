@@ -17,6 +17,7 @@ export class OrderService {
     @InjectRepository(Order)
     private orderRepository: Repository<Order>,
     @InjectRepository(OrderItem)
+
     private orderItemRepository: Repository<OrderItem>,
     @InjectRepository(User)
     private userRepository: Repository<User>,

@@ -52,6 +52,7 @@ import { PaymentModule } from './payment/payment.module';
  */
 @Module({
   imports: [
+    TypeOrmModule.forRoot(typeOrmConfig()),
     ThrottlerModule.forRoot({
       throttlers: [
         {
@@ -62,16 +63,18 @@ import { PaymentModule } from './payment/payment.module';
     }),
     CacheModule.registerAsync({
       isGlobal: true,
-      useFactory: async () => ({
-        store: redisStore as any,
-        socket: {
-          // host: 'host.docker.internal',
-          host: 'localhost',
-          port: 6379,
-          keyPrefix: 'nestjs:',
-        },
-        ttl: 60000,
-      }),
+      useFactory: async () => {
+        try {
+          return {
+            store: redisStore as any,
+            socket: { host: 'localhost', port: 6379 },
+            ttl: 60_000,
+          };
+        } catch (e) {
+          console.error('Redis connection failed:', e);
+          return {};
+        }
+      },
     }),
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'client'),
@@ -85,7 +88,6 @@ import { PaymentModule } from './payment/payment.module';
       cache: true,
       // load: [stripeConfig],
     }),
-    TypeOrmModule.forRoot(typeOrmConfig()),
     AlsModule,
     AuthModule,
     UserModule,
