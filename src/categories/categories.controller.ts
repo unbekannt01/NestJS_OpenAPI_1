@@ -21,7 +21,7 @@ export class CategoriesController {
 
   @Admin()
   @Post('add-category')
-  createCategory(@Body() createCategoryDto: CreateCategoryDto) {
+  createCategory(@Body() createCategoryDto: CreateCategoryDto[]) {
     return this.categoriesService.createCategory(createCategoryDto);
   }
 
@@ -29,7 +29,6 @@ export class CategoriesController {
   @Post('add-subcategory')
   createSubCategory(
     @Body() createCategoryDto: CreateSubCategoryDto,
-    // @Req() req: Request,
   ) {
     return this.categoriesService.createSubCategory(createCategoryDto);
   }
@@ -38,7 +37,6 @@ export class CategoriesController {
   @Post('add-subcategory1')
   createSubCategory1(
     @Body() createCategoryDto: CreateSubCategoryDto[],
-    // @Req() req: Request,
   ) {
     return this.categoriesService.createSubCategory1(createCategoryDto);
   }
@@ -56,7 +54,7 @@ export class CategoriesController {
     return this.categoriesService.getMainCategories();
   }
 
-  @Get(':categoryId/subcategories')
+  @Get('subcategories/:categoryId')
   @Public()
   getSubCategoriesByCategoryId(@Param('categoryId') categoryId: string) {
     return this.categoriesService.getSubCategoriesByCategoryId(categoryId);

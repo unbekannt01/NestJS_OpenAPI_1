@@ -7,11 +7,8 @@ import { Otp } from 'src/otp/entities/otp.entity';
 import { OtpModule } from 'src/otp/otp.module';
 import { AuthModule } from 'src/auth/auth.module';
 import { EmailServiceForOTP } from 'src/otp/services/email.service';
+import { SmsService } from 'src/otp/services/sms.service';
 
-/**
- * PasswordModule
- * This module is responsible for handling password-related functionalities.
- */
 @Module({
   imports: [
     TypeOrmModule.forFeature([User, Otp]),
@@ -19,7 +16,7 @@ import { EmailServiceForOTP } from 'src/otp/services/email.service';
     forwardRef(() => OtpModule),
   ],
   controllers: [PasswordController],
-  providers: [PasswordService, EmailServiceForOTP],
+  providers: [PasswordService, EmailServiceForOTP,SmsService],
   exports: [PasswordService, EmailServiceForOTP],
 })
 export class PasswordModule {}

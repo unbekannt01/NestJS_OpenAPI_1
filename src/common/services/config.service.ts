@@ -71,6 +71,7 @@ const configService = new ConfigService(process.env).ensureValues([
   'DB_NAME',
   'JWT_SECRET',
   'JWT_EXPIRES_IN',
+  'JWT_REFRESH_EXPIRES_IN'
 ]);
 
 export { configService };

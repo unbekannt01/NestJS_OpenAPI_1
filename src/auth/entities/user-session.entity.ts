@@ -1,5 +1,4 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, JoinColumn, Index } from "typeorm"
-import { User } from "src/user/entities/user.entity"
 
 @Entity("user_sessions")
 export class UserSession {

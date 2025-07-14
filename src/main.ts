@@ -12,14 +12,9 @@ import { ValidationPipe, VersioningType } from '@nestjs/common';
 import * as compression from 'compression';
 import helmet from 'helmet';
 import * as bodyParser from 'body-parser';
-import * as csurf from 'csurf';
 
 config();
 
-/**
- * bootstrap
- * This function initializes the NestJS application.
- */
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: ['error', 'warn', 'log', 'debug', 'verbose'],
@@ -66,7 +61,7 @@ async function bootstrap() {
   app.use(cookieParser());
 
   app.enableCors({
-    // origin: '*',
+    origin: '*',
     credentials: true,
   });
 

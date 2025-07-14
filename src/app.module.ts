@@ -10,7 +10,6 @@ import { UserModule } from './user/user.module';
 import { SearchModule } from './search/search.module';
 import { SmsService } from './otp/services/sms.service';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
-import { IsSuspendedGuard } from './auth/guards/isNotSuspended.guard';
 import { LoggerInterceptor } from './common/interceptors/logger.interceptor';
 import { LoginUsingGoogleModule } from './login-using-google/login-using-google.module';
 import { EmailVerificationByLinkModule } from './email-verification-by-link/email-verification-by-link.module';
@@ -43,13 +42,10 @@ import { BrandsModule } from './brands/brand.module';
 import { CartModule } from './cart/cart.module';
 import { OrderModule } from './order/order.module';
 import { PaymentModule } from './payment/payment.module';
+import { ReviewModule } from './review/review.module';
 // import { PaymentModule } from './payment/payment.module';
 // import stripeConfig from './config/stripe.config';
 
-/**
- * AppModule
- * This is the root module of the application.
- */
 @Module({
   imports: [
     TypeOrmModule.forRoot(typeOrmConfig()),
@@ -111,17 +107,13 @@ import { PaymentModule } from './payment/payment.module';
     CartModule,
     OrderModule,
     PaymentModule,
+    ReviewModule
   ],
   providers: [
-    // AppService,
     SmsService,
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
-    },
-    {
-      provide: APP_GUARD,
-      useClass: IsSuspendedGuard,
     },
     {
       provide: APP_GUARD,

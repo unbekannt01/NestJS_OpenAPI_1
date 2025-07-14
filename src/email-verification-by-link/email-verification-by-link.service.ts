@@ -12,11 +12,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { EmailVerification } from './entity/email-verify.entity';
 import { emailTokenConfig } from 'src/config/email.config';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { configService } from 'src/common/services/config.service';
 
-/**
- * EmailVerificationByLinkService
- * This service is responsible for handling email verification by link.
- */
 @Injectable()
 export class EmailVerificationByLinkService {
   constructor(
@@ -24,14 +21,9 @@ export class EmailVerificationByLinkService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(EmailVerification)
     private readonly emailVerifyRepository: Repository<EmailVerification>,
-    private readonly configService: ConfigService,
     private readonly emailService: EmailServiceForVerifyMail,
   ) {}
 
-  /**
-   * findByVerificationToken
-   * This method verifies the email address of the user.
-   */
   async findByVerificationToken(token: string): Promise<User> {
     const verification = await this.emailVerifyRepository.findOne({
       where: { verificationToken: token },
@@ -63,10 +55,6 @@ export class EmailVerificationByLinkService {
     return user;
   }
 
-  /**
-   * generateEmailVerificationToken
-   * This method generates a new email verification token for the user.
-   */
   async generateEmailVerificationToken(user: User): Promise<string> {
     const token = uuidv4();
     const tokenExpiration = new Date(
@@ -83,10 +71,6 @@ export class EmailVerificationByLinkService {
     return token;
   }
 
-  /**
-   * resendVerificationEmail
-   * This method resends the verification email to the user.
-   */
   async resendVerificationEmail(email: string): Promise<void> {
     const user = await this.userRepository.findOne({
       where: { email },
@@ -104,7 +88,7 @@ export class EmailVerificationByLinkService {
     const token = await this.generateEmailVerificationToken(user);
 
     const FRONTEND_BASE_URL =
-      this.configService.get<string>('FRONTEND_BASE_URL');
+      configService.getValue('FRONTEND_BASE_URL');
     if (!FRONTEND_BASE_URL) {
       throw new Error(
         'FRONTEND_BASE_URL is not defined in environment variables',
@@ -125,9 +109,6 @@ export class EmailVerificationByLinkService {
     });
   }
 
-  /**
-   * Clean up expired email verification tokens every 10 minutes
-   */
   @Cron(CronExpression.EVERY_10_MINUTES)
   async cleanupExpiredEmailTokens() {
     const expirationTime = new Date(Date.now() - emailTokenConfig.expirationMs);

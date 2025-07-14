@@ -1,39 +1,22 @@
 import {
   Body,
   Controller,
-  Get,
   HttpCode,
   HttpStatus,
-  NotFoundException,
   Post,
-  Req,
   Res,
-  UnauthorizedException,
-  UseGuards,
 } from '@nestjs/common';
 import { LoginUsingGoogleService } from './login-using-google.service';
 import { Public } from 'src/common/decorators/public.decorator';
 import { GoogleLoginDto } from './dto/google-login.dto';
-import { GoogleAuthGuard } from 'src/auth/guards/google-auth.guard';
-import { AuthService } from 'src/auth/auth.service';
 import { Response } from 'express';
-/**
- * LoginUsingGoogleController handles Google login operations.
- * It provides an endpoint for users to log in using their Google accounts.
- */
+
 @Public()
 @Controller({ path: 'google', version: '1' })
 export class LoginUsingGoogleController {
   constructor(
-    private readonly authService: AuthService,
     private readonly loginUsingGoogleService: LoginUsingGoogleService,
   ) {}
-
-  /**
-   * googleLogin
-   * This method handles Google login.
-   * It sets the access token in an HTTP-only cookie and returns user details.
-   */
 
   @Post('google-login')
   @HttpCode(HttpStatus.OK)
@@ -49,7 +32,7 @@ export class LoginUsingGoogleController {
       httpOnly: true,
       // secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 15 * 60 * 1000, // 15 minutes
+      maxAge: 15 * 60 * 1000,
       path: '/',
     });
 

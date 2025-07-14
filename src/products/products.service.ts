@@ -67,18 +67,24 @@ export class ProductsService {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
 
+    const existingSkus = new Set<string>();
+    const batchSkus = new Set<string>();
+
     const generatedDtos = await Promise.all(
       dtos.map(async (dto) => {
-        let baseSku = this.generateSKU(dto.name); // e.g., 'STA-228285'
+        let baseSku = this.generateSKU(dto.name);
         let uniqueSku = baseSku;
         let counter = 1;
 
-        // Check for uniqueness in DB
         while (
-          await this.productRepository.findOne({ where: { sku: uniqueSku } })
+          existingSkus.has(uniqueSku) ||
+          batchSkus.has(uniqueSku) ||
+          (await this.productRepository.findOne({ where: { sku: uniqueSku } }))
         ) {
           uniqueSku = `${baseSku}-${counter++}`;
         }
+
+        batchSkus.add(uniqueSku);
 
         return {
           ...dto,
@@ -286,10 +292,10 @@ export class ProductsService {
     return recommendations;
   }
 
-  findAll() {
+  async findAll() {
     return this.productRepository.find({
       relations: ['brand', 'subCategory'],
-      where: { isActive: true || null },
+      where: { isActive: true },
     });
   }
 
@@ -320,10 +326,12 @@ export class ProductsService {
     return { message: 'Product deleted successfully' };
   }
 
-  private generateSKU(productName: string): string {
-    const prefix = productName.substring(0, 3).toUpperCase();
-    const timestamp = Date.now().toString().slice(-6);
-    return `${prefix}-${timestamp}`;
+  generateSKU(name: string): string {
+    return name
+      .replace(/[^a-zA-Z0-9]/g, '-')
+      .replace(/-+/g, '-')
+      .toUpperCase()
+      .substring(0, 20);
   }
 
   // async findBrandsWithCategoriesTree(): Promise<any[]> {

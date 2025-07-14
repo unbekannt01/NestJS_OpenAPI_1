@@ -12,10 +12,6 @@ import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 
-/**
- * LoginUsingGoogleService
- * This service handles Google login functionality.
- */
 @Injectable()
 export class LoginUsingGoogleService {
   private googleClient: OAuth2Client;
@@ -27,10 +23,6 @@ export class LoginUsingGoogleService {
     this.googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
   }
 
-  /**
-   * googleLogin
-   * This method handles Google login.
-   */
   async googleLogin(googleLoginDto: GoogleLoginDto) {
     try {
       if (!googleLoginDto.credential) {
@@ -85,7 +77,7 @@ export class LoginUsingGoogleService {
         message: 'Google login successful',
         access_token: tokens.access_token,
         refresh_token: tokens.refresh_token,
-        expires_in: tokens.expires_in,
+        // expires_in: tokens.expires_in,
         user: {
           id: user.id,
           email: user.email,
@@ -110,7 +102,6 @@ export class LoginUsingGoogleService {
   }
 
   async findUserByEmail(email: string): Promise<User | null> {
-  return this.userRepository.findOne({ where: { email } });
-}
-
+    return this.userRepository.findOne({ where: { email } });
+  }
 }

@@ -1,12 +1,11 @@
-import { Controller, Get, HttpStatus, Param, Req, Res } from "@nestjs/common";
-import { createReadStream, statSync } from "fs";
-import { join } from "path";
-import { Request, Response } from "express";
+import { Controller, Get, HttpStatus, Param, Req, Res } from '@nestjs/common';
+import { createReadStream, statSync } from 'fs';
+import { join } from 'path';
+import { Request, Response } from 'express';
 
 @Controller('video')
 export class VideoController {
-  
-    @Get('video/:id')
+  @Get('video/:id')
   streamVideo(
     @Param('id') id: string,
     @Req() req: Request,

@@ -34,14 +34,6 @@ export class BrandsService {
       order: { name: 'ASC' },
     });
   }
-
-  // async findFeatured() {
-  //   return this.brandRepository.find({
-  //     where: { isActive: true, isFeatured: true },
-  //     order: { name: 'ASC' },
-  //   });
-  // }
-
   async findOne(id: string) {
     const brand = await this.brandRepository.findOne({
       where: { id },

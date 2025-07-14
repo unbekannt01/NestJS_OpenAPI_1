@@ -9,12 +9,12 @@ export class EmailServiceForOTP {
   async sendOtpEmail(email: string, otp: string, first_name: string) {
     try {
       const transporter = nodemailer.createTransport({
-        host: this.configService.get<string>('SMTP_HOST'), // Remove .SMTP
+        host: this.configService.get<string>('SMTP_HOST'),
         port: parseInt(this.configService.get<string>('SMTP_PORT') || '587'),
         secure: this.configService.get<string>('SMTP_SECURE') === 'true',
         auth: {
           user: this.configService.get<string>('SMTP_USER'),
-          pass: this.configService.get<string>('SMTP_PASS'), // Use SMTP_PASS instead of SMTP_PASSWORD
+          pass: this.configService.get<string>('SMTP_PASS'),
         },
       });
 

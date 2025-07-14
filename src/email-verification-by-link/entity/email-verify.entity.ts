@@ -9,11 +9,6 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
-/**
- * EmailVerification
- * This entity represents the email verification process for users.
- * It includes a verification token and its expiration date.
- */
 @Entity()
 export class EmailVerification {
   @PrimaryGeneratedColumn('uuid')

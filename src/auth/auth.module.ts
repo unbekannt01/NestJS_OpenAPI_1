@@ -21,10 +21,6 @@ import { S3Service } from 'src/common/services/s3.service';
 import { GatewayService } from 'src/gateway/gateway.service';
 // import { WebSocketsModule } from 'src/websockets/websockets.module';
 
-/**
- * AuthModule
- * This module is responsible for authentication-related functionalities.
- */
 @Module({
   imports: [
     ConfigModule,
@@ -58,7 +54,7 @@ import { GatewayService } from 'src/gateway/gateway.service';
     SupabaseService,
     FileStorageService,
     S3Service,
-    GatewayService
+    GatewayService,
   ],
   exports: [AuthService, EmailServiceForSupension, JwtModule],
 })

@@ -14,12 +14,6 @@ import { unlink } from 'fs/promises';
 import { Otp } from 'src/otp/entities/otp.entity';
 import { AsyncLocalStorage } from 'async_hooks';
 
-/**
- * UserService handles user-related operations such as
- * forgot password, reset password, and user profile management.
- * It also includes methods for fetching user details and updating user profiles.
- */
-
 @Injectable()
 export class UserService {
   constructor(
@@ -41,10 +35,6 @@ export class UserService {
   //   );
   // }
 
-  /**
-   * getUserById
-   * This method fetches a user by their ID.
-   */
   async getUserById(id: string): Promise<User | null> {
     const user = await this.userRepository.findOne({ where: { id } });
     if (!user) {
@@ -74,10 +64,6 @@ export class UserService {
     return this.als.getStore()
   }
 
-  /**
-   * updateUser
-   * This method updates user details.
-   */
   async updateUser(
     id: string,
     updateUserDto: UpdateUserDto,
@@ -154,20 +140,12 @@ export class UserService {
     };
   }
 
-  /**
-   * saveAvatarToStorage
-   * This method saves the avatar file to the server.
-   */
   saveAvatarToStorage(avatarFile: Express.Multer.File) {
     const filename = `${avatarFile.originalname}`;
     const filePath = path.join(__dirname, '..', 'uploads', filename);
     return filename;
   }
 
-  /**
-   * getUserByEmail
-   * This method fetches a user by their email.
-   */
   async getUserByEmail(email: string) {
     const user = await this.userRepository.findOne({ where: { email } });
     if (!user) {
@@ -176,10 +154,6 @@ export class UserService {
     return user;
   }
 
-  /**
-   * getAllUser
-   * This method fetches all users with pagination.
-   */
   async getAllUser(paginationDto: PaginationQueryDto) {
     const { limit = 10, offset = 0 } = paginationDto;
 
@@ -208,18 +182,9 @@ export class UserService {
     };
   }
 
-  /**
-   * findByEmail
-   * This method fetches a user by their email.
-   */
   async findByEmail(email): Promise<User | null> {
     return this.userRepository.findOne({ where: { email } });
   }
-
-  /**
-   * findById
-   * This method fetches a user by their ID.
-   */
   async removeAvatar(userId: string): Promise<{ message: string }> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
 

@@ -2,10 +2,6 @@ import * as nodemailer from 'nodemailer';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-/**
- * EmailServiceForSuspension
- * This service is responsible for sending suspension emails to users.
- */
 @Injectable()
 export class EmailServiceForSupension {
   constructor(

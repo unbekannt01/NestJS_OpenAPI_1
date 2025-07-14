@@ -1,8 +1,15 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { NotificationsGateway } from '../websockets/notifications.gateway';
 import { Admin } from 'src/common/decorators/admin.decorator';
-import { Public } from 'src/common/decorators/public.decorator';
 
 @Admin()
 @Controller({ path: 'admin', version: '1' })
@@ -12,7 +19,6 @@ export class AdminController {
     // private readonly notificationsGateway: NotificationsGateway,
   ) {}
 
-  // Suspend user endpoint
   @Post('suspend/:id')
   async suspendUser(
     @Param('id') userId: string,
@@ -22,27 +28,33 @@ export class AdminController {
     return this.adminService.suspendUser(userId, message);
   }
 
-  // Reactivate user endpoint
   @Post('reactivate/:id')
   async reactivateUser(userId: string) {
     const result = await this.adminService.reActivatedUser(userId);
     return result;
   }
 
-  // Unblock user endpoint
   @Post('unblock/:id')
   async unblockUser(userId: string) {
     const result = await this.adminService.unblockUser(userId);
     return result;
   }
 
-  // Get all users
+  @Delete('softDelete/:id')
+  async softDelete(@Param('id') userId: string) {
+    return await this.adminService.softDeleteUser(userId);
+  }
+
+  @Post('restore/:id')
+  async reStoreUser(@Param('id') userId: string) {
+    return await this.adminService.reStoreUser(userId);
+  }
+
   @Get('users')
   async getAllUsers() {
-    // You might need to create this method in AdminService
     return {
       message: 'Users fetched successfully',
-      users: [], // Replace with actual user data
+      users: [],
     };
   }
 
@@ -74,7 +86,6 @@ export class AdminController {
   // Broadcast message to all users
   @Post('broadcast')
   async broadcastMessage(body: { message: string }) {
-    // You might need to add this method to NotificationsGateway
     return {
       message: 'Broadcast sent successfully',
     };

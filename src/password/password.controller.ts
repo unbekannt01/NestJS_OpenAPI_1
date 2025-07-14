@@ -13,18 +13,10 @@ import { ForgotPwdDto } from 'src/auth/dto/forgot-pwd-user.dto';
 import { ResetPwdDto } from 'src/auth/dto/reset-pwd-user.dto';
 import { Public } from 'src/common/decorators/public.decorator';
 
-/**
- * PasswordController handles password-related operations such as changing,
- * resetting, and sending password reset links.
- */
 @Controller({ path: 'password', version: '1' })
 export class PasswordController {
   constructor(private readonly passwordService: PasswordService) {}
 
-  /**
-   * changepwd
-   * This method changes the password of a user.
-   */
   @HttpCode(HttpStatus.OK)
   @Post('change-password/:id')
   changepwd(
@@ -41,10 +33,6 @@ export class PasswordController {
     return this.passwordService.changepwd(id, password, newpwd);
   }
 
-  /**
-   * forgotpwd
-   * This method sends a password reset link to the user's email.
-   */
   @Public()
   @HttpCode(HttpStatus.OK)
   @Post('forgot-password')
@@ -52,10 +40,6 @@ export class PasswordController {
     return this.passwordService.forgotPassword(email);
   }
 
-  /**
-   * resetpwd
-   * This method resets the user's password.
-   */
   @Public()
   @HttpCode(HttpStatus.OK)
   @Post('reset-password')

@@ -10,10 +10,6 @@ import { OtpModule } from 'src/otp/otp.module';
 import { EmailServiceForSupension } from 'src/auth/services/suspend-mail.service';
 import { RequestLog } from './entity/log.entity';
 
-/**
- * AdminModule
- * This module is responsible for managing admin-related functionalities.
- */
 
 @Module({
   imports: [

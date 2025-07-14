@@ -5,6 +5,7 @@ import {
   ConflictException,
   InternalServerErrorException,
   BadRequestException,
+  UseGuards,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MoreThanOrEqual, Repository } from 'typeorm';
@@ -29,13 +30,9 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { UserRegisteredPayload } from './interfaces/user-registered-payload';
 import { FileStorageService } from 'src/common/services/file-storage.service';
 import { configService } from 'src/common/services/config.service';
+import * as ms from 'ms';
+import { IsSuspendedGuard } from './guards/isNotSuspended.guard';
 // import { NotificationsGateway } from 'src/websockets/notifications.gateway';
-
-/**
- * AuthService handles user authentication, registration, and token management.
- * It provides methods for logging in, registering users, generating JWT tokens,
- * and managing user sessions.
- */
 
 @Injectable()
 export class AuthService {
@@ -56,9 +53,6 @@ export class AuthService {
     // private readonly notificationsGateway: NotificationsGateway,
   ) {}
 
-  /**
-   * Login a user using email or username and password.
-   */
   async loginUser(
     identifier: string,
     password: string,
@@ -69,7 +63,6 @@ export class AuthService {
     role: UserRole;
     user: User;
   }> {
-    // Find user by email OR username
     const user = await this.userRepository.findOne({
       where: [
         { email: identifier.toLowerCase() },
@@ -155,10 +148,6 @@ export class AuthService {
     };
   }
 
-  /**
-   * Register a new user with simple method.
-   * This method does not send an OTP or email verification.
-   */
   async simpleRegister(
     createUserDto: CreateUserDto,
     file: Express.Multer.File,
@@ -166,74 +155,77 @@ export class AuthService {
     const normalizedEmail = createUserDto.email.toLowerCase();
     const normalizedUserName = createUserDto.userName.toLowerCase();
 
-    let user = await this.userRepository.findOne({
-      where: { email: normalizedEmail },
-      withDeleted: true,
-    });
+    const [userByEmail, userByUserName] = await Promise.all([
+      this.userRepository.findOne({
+        where: { email: normalizedEmail },
+        withDeleted: true,
+      }),
+      this.userRepository.findOne({
+        where: { userName: normalizedUserName },
+        withDeleted: true,
+      }),
+    ]);
 
-    if (user) {
-      checkIfSuspended(user);
+    if (userByEmail) {
+      checkIfSuspended(userByEmail);
+
+      if (userByEmail.status === 'ACTIVE') {
+        throw new ConflictException('Email already registered...!');
+      }
     }
 
-    const usernameConflict = await this.userRepository.findOne({
-      where: { userName: normalizedUserName },
-      withDeleted: true,
-    });
-
-    if (usernameConflict && (!user || usernameConflict.id !== user.id)) {
+    if (
+      userByUserName &&
+      (!userByEmail || userByUserName.id !== userByEmail.id)
+    ) {
       throw new ConflictException(
         'This username is already taken. Please choose another username or contact support to restore your account.',
       );
     }
 
-    let avatarUrl: string | undefined = undefined;
-
-    if (file) {
-      if (!file.buffer) {
-        throw new BadRequestException('Uploaded file is empty or invalid');
-      }
-      const uploadResult = await this.fileStorageService.upload(file, 'avatar');
-      avatarUrl = uploadResult.url;
-    }
-
-    if (user) {
-      if (user.status === 'ACTIVE') {
-        throw new ConflictException('Email already registered...!');
-      }
-    } else {
-      const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
-      user = this.userRepository.create({
-        ...createUserDto,
-        email: normalizedEmail,
-        userName: normalizedUserName,
-        password: hashedPassword,
-        avatar: avatarUrl,
-        status: UserStatus.ACTIVE,
-        role: UserRole.USER,
-        birth_date: createUserDto.birth_date || undefined,
-        createdAt: new Date(),
-        createdBy: createUserDto.userName,
-      });
-    }
-
-    await this.userRepository.save(user);
+    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+    const user = this.userRepository.create({
+      ...createUserDto,
+      email: normalizedEmail,
+      userName: normalizedUserName,
+      password: hashedPassword,
+      status: UserStatus.ACTIVE,
+      role: UserRole.USER,
+      birth_date: createUserDto.birth_date || undefined,
+      createdAt: new Date(),
+      createdBy: normalizedUserName,
+    });
+    const savedUser = await this.userRepository.save(user);
 
     const payload: UserRegisteredPayload = {
-      id: user.id,
-      email: user.email,
-      userName: user.userName,
-      role: user.role,
+      id: savedUser.id,
+      email: savedUser.email,
+      userName: savedUser.userName,
+      role: savedUser.role,
     };
-    this.eventEmitter.emit('user.registered', payload);
+
+    setTimeout(async () => {
+      try {
+        if (file && file.buffer) {
+          const uploadResult = await this.fileStorageService.upload(
+            file,
+            'avatar',
+          );
+          savedUser.avatar = uploadResult.url;
+          await this.userRepository.save(savedUser);
+        }
+
+        this.eventEmitter.emit('user.registered', payload);
+      } catch (err) {
+        console.error('Background task failed:', err);
+      }
+    }, 0);
 
     return {
-      message: `${user.role} registered successfully`,
+      message: `${savedUser.role} registered successfully`,
     };
   }
 
-  /**
-   * Register a new user and send an OTP for email verification.
-   */
   async registerUsingOTP(
     createUserDto: CreateUserDto,
     file: Express.Multer.File,
@@ -315,9 +307,6 @@ export class AuthService {
     };
   }
 
-  /**
-   * Register a new user and send an email verification link.
-   */
   async registerUsingEmailToken(
     createUserDto: CreateUserDto,
     file?: Express.Multer.File,
@@ -379,7 +368,6 @@ export class AuthService {
       await this.userRepository.save(user);
     }
 
-    // Delete old tokens (optional cleanup)
     await this.emailverifyRepository.delete({ user: { id: user.id } });
 
     // Generate and save new email verification token
@@ -424,9 +412,6 @@ export class AuthService {
     };
   }
 
-  /**
-   * Logout a user by updating their session and token status.
-   */
   async logout(id: string) {
     const user = await this.userRepository.findOne({ where: { id } });
 
@@ -447,9 +432,6 @@ export class AuthService {
     return { message: 'User logout successful.' };
   }
 
-  /**
-   * Refresh the access token using a valid refresh token.
-   */
   async refreshToken(refresh_token: string) {
     const token = await this.userRepository.findOne({
       where: {
@@ -465,9 +447,6 @@ export class AuthService {
     return this.generateUserToken(token.id, token.role);
   }
 
-  /**
-   * Verify the password against the hashed password.
-   */
   async verifyPassword(
     password: string,
     hashedPassword: string,
@@ -478,22 +457,6 @@ export class AuthService {
     }
   }
 
-  /**
-   * Verifies a JWT and returns the decoded payload.
-   */
-  async verifyToken(token: string): Promise<any> {
-    try {
-      return this.jwtService.verify(token, {
-        secret: this.configService.get<string>('JWT_SECRET'),
-      });
-    } catch (error) {
-      throw new UnauthorizedException('Invalid or expired access token.');
-    }
-  }
-
-  /**
-   * Get all users excluding admin users.
-   */
   async getAllUsers(): Promise<User[]> {
     const users = await this.userRepository.find({
       withDeleted: true,
@@ -523,11 +486,7 @@ export class AuthService {
     return users.filter((user) => user.role !== 'ADMIN');
   }
 
-  /**
-   * Generate a JWT token for the user.
-   */
   async generateUserToken(userId: string, role: UserRole) {
-    const expiresIn = 3600; // 1 hour in seconds
     const secret = this.configService.get<string>('JWT_SECRET');
 
     if (!secret) {
@@ -544,12 +503,15 @@ export class AuthService {
 
     const access_token = this.jwtService.sign(payload, {
       secret: configService.getValue('JWT_SECRET'),
-      expiresIn : configService.getValue('JWT_EXPIRES_IN'),
+      expiresIn: configService.getValue('JWT_EXPIRES_IN'),
     });
 
+    const refreshTokenExpiry = configService.getValue('JWT_REFRESH_EXPIRES_IN');
+
+    const msValue = ms(refreshTokenExpiry);
+
     const refresh_token = uuidv4();
-    const expiryDate = new Date();
-    expiryDate.setDate(expiryDate.getDate() + 7); 
+    const expiryDate = new Date(Date.now() + msValue);
 
     // Update user with refresh token
     await this.userRepository.update(
@@ -565,33 +527,10 @@ export class AuthService {
     return {
       access_token,
       refresh_token,
-      expires_in: expiresIn,
+      // expires_in: expiresIn,
     };
   }
 
-  /**
-   * Store the refresh token in the database.
-   */
-  async storeRefreshToken(
-    refresh_token: string,
-    userId: string,
-    role: UserRole,
-    email: string,
-  ) {
-    const expiryDate = new Date();
-    expiryDate.setDate(expiryDate.getDate() + 7);
-
-    await this.userRepository.update(
-      { id: userId },
-      { refresh_token, role, expiryDate_token: expiryDate, email },
-    );
-
-    console.log('Now:', new Date());
-  }
-
-  /**
-   * Validate the refresh token.
-   */
   async validateRefreshToken(refresh_token: string): Promise<boolean> {
     const user = await this.userRepository.findOne({
       where: { refresh_token }, // Match the refresh_token in the DB
@@ -615,13 +554,6 @@ export class AuthService {
     if (!user) return null;
 
     await this.verifyPassword(password, user.password);
-    return user;
-  }
-
-  async validateGoogleUser(googleUser: CreateUserDto) {
-    const user = await this.userRepository.findOne({
-      where: { email: googleUser.email },
-    });
     return user;
   }
 

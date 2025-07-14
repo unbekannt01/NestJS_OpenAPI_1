@@ -18,6 +18,6 @@ export class CsrfController {
       secure: false,
     });
 
-    return { csrfToken: typeof req.csrfToken === 'function' ? req.csrfToken() : token }; // Must return JSON
+    return { csrfToken: typeof req.csrfToken === 'function' }; // Must return JSON
   }
 }

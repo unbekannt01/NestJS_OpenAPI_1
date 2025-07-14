@@ -1,7 +1,12 @@
 import { Exclude, Expose } from 'class-transformer';
 import { BaseEntity } from '../../common/entities/base.entity';
 import { RecentSearch } from 'src/search/entity/recent-search.entity';
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  OneToMany,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { Otp } from 'src/otp/entities/otp.entity';
 import { EmailVerification } from 'src/email-verification-by-link/entity/email-verify.entity';
 import { RequestLog } from 'src/admin/entity/log.entity';
@@ -15,30 +20,18 @@ import { PasswordHistory } from 'src/password/entities/password-history.entity';
 // import { Order } from '';
 // import { Review } from '';
 
-/**
- * UserStatus
- * Enum representing the status of a user.
- */
 export enum UserStatus {
   ACTIVE = 'ACTIVE',
   INACTIVE = 'INACTIVE',
   SUSPENDED = 'SUSPENDED',
 }
 
-/**
- * UserRole
- * Enum representing the role of a user.
- */
 export enum UserRole {
   ADMIN = 'ADMIN',
   USER = 'USER',
   SELLER = 'SELLER',
 }
 
-/**
- * User
- * Entity representing a user in the system.
- */
 @Entity({ name: 'user_1' })
 export class User extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
@@ -108,10 +101,6 @@ export class User extends BaseEntity {
   @Column({ type: 'varchar', nullable: true })
   jti: string | null;
 
-  /**
-   * convert the birth date to age
-   * The age of the user or null if birth date is not provided.
-   */
   @Expose()
   get age(): number | null {
     if (!this.birth_date) return null;
@@ -158,5 +147,5 @@ export class User extends BaseEntity {
   reviews: Review[];
 
   @OneToMany(() => PasswordHistory, (passwordHistory) => passwordHistory.user)
-  passwordHistory: PasswordHistory[]
+  passwordHistory: PasswordHistory[];
 }

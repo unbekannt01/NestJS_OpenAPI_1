@@ -16,7 +16,6 @@ import {
   HttpStatus,
   UseInterceptors,
   Delete,
-  Param,
 } from '@nestjs/common';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { Response } from 'express';
@@ -28,32 +27,20 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '@nestjs/passport';
 import { Admin } from 'src/common/decorators/admin.decorator';
 import { Request } from 'express';
-import { ConfigService } from '@nestjs/config';
 import { Express } from 'express';
 import { Throttle } from '@nestjs/throttler';
 import { memoryStorage } from 'multer';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { GatewayService } from 'src/gateway/gateway.service';
 import { UserService } from 'src/user/user.service';
 
-/**
- * AuthController handles authentication-related operations such as
- * user registration, login, logout, and token management.
- */
 @Controller({ path: 'auth', version: '1' })
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
-    private configService: ConfigService,
-    private readonly eventEmitter: EventEmitter2,
     private readonly gateWayService: GatewayService,
-    private readonly userService: UserService
+    private readonly userService: UserService,
   ) {}
 
-  /**
-   * Registers a new user.
-   * This endpoint allows users to register using an OTP (One-Time Password).
-   */
   @Public()
   @HttpCode(HttpStatus.CREATED)
   @Post('register')
@@ -69,10 +56,6 @@ export class AuthController {
     return await this.authService.registerUsingOTP(registerDto, file);
   }
 
-  /**
-   * Registers a new user.
-   * This endpoint allows users to register using an email token.
-   */
   @Version('2')
   @Public()
   @HttpCode(HttpStatus.CREATED)
@@ -89,12 +72,8 @@ export class AuthController {
     return await this.authService.registerUsingEmailToken(registerDto, file);
   }
 
-  /**
-   * Registers a new user.
-   * This endpoint allows users to register with simple method.
-   */
   @Version('3')
-  @HttpCode(HttpStatus.CREATED) // for register
+  @HttpCode(HttpStatus.CREATED)
   @Public()
   @Post('register')
   @UseInterceptors(
@@ -109,9 +88,6 @@ export class AuthController {
     return await this.authService.simpleRegister(registerDto, file);
   }
 
-  /**
-   * Logs in a user and returns an access token and refresh token.
-   */
   @Throttle({ default: { limit: 2, ttl: 3 * 1000 } })
   @HttpCode(HttpStatus.OK)
   @Public()
@@ -119,7 +95,6 @@ export class AuthController {
   @UsePipes(ValidationPipe)
   async login(
     @Body() login: LoginUserDto,
-    // @Res({ passthrough: true }) res: Response,
   ): Promise<{ message: string; access_token: string; refresh_token: string }> {
     try {
       const { user, role, access_token, refresh_token } =
@@ -128,7 +103,7 @@ export class AuthController {
       console.log('calling notifyUserLogin....!', user.email);
       this.gateWayService.notifyuserlogin(user.email);
 
-      return { 
+      return {
         message: `${role} Login Successfully!`,
         access_token,
         refresh_token,
@@ -138,18 +113,12 @@ export class AuthController {
     }
   }
 
-  /**
-   * Refreshes the access token using a valid refresh token.
-   */
   @Public()
   @Post('refresh-token')
   async refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
     return this.authService.refreshToken(refreshTokenDto.refresh_token);
   }
 
-  /**
-   * Logs out a user by invalidating their access token.
-   */
   @HttpCode(200)
   @UseGuards(AuthGuard('jwt'))
   @Post('logout')
@@ -168,7 +137,7 @@ export class AuthController {
       if (fullUser && fullUser.email) {
         this.gateWayService.notifyuserlogout(fullUser.email);
       }
-      
+
       return { message: 'Logged out successfully' };
     } catch (error) {
       console.error('Error during logout:', error);
@@ -176,9 +145,6 @@ export class AuthController {
     }
   }
 
-  /**
-   * Fetches all users.
-   */
   @Admin()
   @Get('getAllUsers')
   async getAllUsers() {
@@ -186,9 +152,6 @@ export class AuthController {
     return { message: 'Users fetched successfully!', users };
   }
 
-  /**
-   * Validates a refresh token.
-   */
   @Public()
   @Post('validate-refresh-token')
   async validateRefreshToken(@Body() body: { refresh_token: string }) {

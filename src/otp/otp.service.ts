@@ -12,10 +12,7 @@ import { OtpType } from './entities/otp.entity';
 import { LessThan } from 'typeorm';
 import { otpExpiryConfig } from 'src/config/email.config';
 import { Cron, CronExpression } from '@nestjs/schedule';
-/**
- * OtpService
- * This service handles OTP-related operations such as verifying and resending OTPs.
- */
+
 @Injectable()
 export class OtpService {
   constructor(
@@ -25,10 +22,6 @@ export class OtpService {
     private readonly otpRepository: Repository<Otp>,
   ) {}
 
-  /**
-   * verifyOtp
-   * This method verifies the OTP for a given email address.
-   */
   async verifyOtp(otp: string, email: string) {
     const user = await this.userRepository.findOne({
       where: { email },
@@ -72,10 +65,6 @@ export class OtpService {
     return { message: 'OTP Verified Successfully' };
   }
 
-  /**
-   * resendOtp
-   * This method resends the OTP to the user's email address.
-   */
   async resendOtp(email: string) {
     const user = await this.userRepository.findOne({
       where: { email },
@@ -116,18 +105,10 @@ export class OtpService {
     };
   }
 
-  /**
-   * generateOtp
-   * This method generates a random 6-digit OTP.
-   */
   generateOtp(): string {
     return Math.floor(100000 + Math.random() * 900000).toString();
   }
 
-  /**
-   * getOtpExpiration
-   * This method returns the expiration date and time for the OTP.
-   */
   getOtpExpiration(): Date {
     return new Date(Date.now() + otpExpiryConfig.expirationOtp); // 2 minutes expiration
   }
@@ -138,9 +119,6 @@ export class OtpService {
     });
   }
 
-  /**
-   * Clean up expired OTPs every 5 minutes
-   */
   @Cron(CronExpression.EVERY_5_MINUTES)
   async cleanupExpiredOtps() {
     const expirationTime = new Date(Date.now() - otpExpiryConfig.expirationOtp);

@@ -4,10 +4,12 @@ import {
   IsBoolean,
   IsNumber,
   Min,
+  IsNotEmpty,
 } from 'class-validator';
 
 export class CreateCategoryDto {
   @IsString()
+  @IsNotEmpty()
   name: string;
 
   @IsOptional()

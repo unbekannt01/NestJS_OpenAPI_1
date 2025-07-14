@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import {  User, UserStatus } from 'src/user/entities/user.entity';
+import { User, UserStatus } from 'src/user/entities/user.entity';
 import { Repository } from 'typeorm';
 import { EmailServiceForSupension } from 'src/auth/services/suspend-mail.service';
 import { LazyModuleLoader } from '@nestjs/core';
@@ -126,9 +126,10 @@ export class AdminService {
     user.is_logged_in = false;
     user.refresh_token = null;
     user.expiryDate_token = null;
+    user.jti = null;
 
     await this.userRepository.save(user);
-    await this.userRepository.softDelete({ id });
+    await this.userRepository.softDelete(id);
     return { message: 'User Temporary Deleted Successfully!' };
   }
 
@@ -181,7 +182,7 @@ export class AdminService {
       throw new ConflictException('User Already Active...!');
     }
 
-    const oldStatus = user.status;
+    // const oldStatus = user.status;
     user.status = UserStatus.ACTIVE;
     await this.userRepository.save(user);
 

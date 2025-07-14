@@ -3,10 +3,6 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { smtpConfig } from 'src/config/smtp.config';
 
-/**
- * EmailServiceForVerifyMail
- * This service is responsible for sending verification emails to users.
- */
 @Injectable()
 export class EmailServiceForVerifyMail {
   constructor(private readonly configService: ConfigService) {}

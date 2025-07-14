@@ -6,6 +6,7 @@ import {
   UseGuards,
   Req,
   Query,
+  Body,
 } from '@nestjs/common';
 import { ReviewService } from './review.service';
 import { AuthGuard } from '@nestjs/passport';
@@ -19,7 +20,7 @@ export class ReviewController {
 
   @Post()
   @UseGuards(AuthGuard('jwt'))
-  createReview(createReviewDto: CreateReviewDto, @Req() req: Request) {
+  createReview(@Body() createReviewDto: CreateReviewDto, @Req() req: Request) {
     const userId = (req.user as { id: string })?.id;
     return this.reviewService.createReview(userId, createReviewDto);
   }

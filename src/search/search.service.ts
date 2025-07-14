@@ -17,10 +17,6 @@ import { User } from 'src/user/entities/user.entity';
 import { Car } from './entity/car.entity';
 import { PaginationQueryDto } from 'src/user/dto/pagination-query.dto';
 
-/**
- * SearchService
- * This service is responsible for handling search-related functionalities.
- */
 @Injectable()
 export class SearchService {
   constructor(
@@ -94,11 +90,6 @@ export class SearchService {
   //   };
   // }
 
-  /**
-   * globalSearch
-   * This method performs a global search based on the provided query,
-   * minPrice, maxPrice, sortBy, and sortOrder.
-   */
   async globalSearch(
     paginationDto: PaginationQueryDto & {
       query?: string;
@@ -159,10 +150,6 @@ export class SearchService {
     };
   }
 
-  /**
-   * getRecentSearches
-   * This method retrieves recent searches based on the provided limit.
-   */
   async getRecentSearches(limit: number = 10): Promise<string[]> {
     const results = await this.recentSearchRepository.find({
       order: { createdAt: 'DESC' },

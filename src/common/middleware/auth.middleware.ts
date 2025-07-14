@@ -6,12 +6,6 @@ import {
 import { Request, Response, NextFunction } from 'express';
 import * as jwt from 'jsonwebtoken';
 
-/**
- * AuthMiddleware
- * This middleware checks for a valid JWT token in the Authorization header.
- * If the token is valid, it attaches the decoded user information to the request object.
- * If the token is missing or invalid, it throws an UnauthorizedException.
- */
 @Injectable()
 export class AuthMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction) {

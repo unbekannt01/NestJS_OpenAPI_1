@@ -21,13 +21,13 @@ export class CategoriesService {
     private readonly subCategoryRepository: Repository<SubCategory>,
   ) {}
 
-  async createCategory(createCategoryDto: CreateCategoryDto) {
-    const slug = this.generateSlug(createCategoryDto.name);
+  async createCategory(createCategoryDto: CreateCategoryDto[]) {
+    // const slug = this.generateSlug(createCategoryDto.name);
 
-    const category = await this.categoryRepository.create({
-      ...createCategoryDto,
-      slug,
-    });
+    const category = await this.categoryRepository.create(
+      createCategoryDto,
+      // slug,
+    );
 
     return this.categoryRepository.save(category);
   }

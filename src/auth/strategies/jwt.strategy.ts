@@ -7,10 +7,6 @@ import { User } from 'src/user/entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { configService } from 'src/common/services/config.service';
 
-/**
- * JwtStrategy
- * This strategy is used for JWT authentication.
- */
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(

@@ -17,10 +17,6 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { Product } from 'src/products/entities/product.entity';
 import { AlsModule } from 'src/als/als.module';
 
-/**
- * UserModule
- * This module is responsible for managing user-related functionalities.
- */
 @Module({
   imports: [
     CacheModule.register(),

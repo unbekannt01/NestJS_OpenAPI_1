@@ -1,9 +1,5 @@
 import { Column, Entity, PrimaryColumn } from 'typeorm';
 
-/**
- * Car
- * This entity represents a car in the system.
- */
 @Entity({ name: 'car' })
 export class Car {
   @PrimaryColumn()

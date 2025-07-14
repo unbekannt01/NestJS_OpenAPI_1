@@ -2,10 +2,6 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as Twilio from 'twilio';
 
-/**
- * SmsService
- * This service is responsible for sending OTPs via SMS using Twilio.
- */
 @Injectable()
 export class SmsService {
   private client: Twilio.Twilio;
@@ -23,10 +19,6 @@ export class SmsService {
     this.client = Twilio(accountSid, authToken);
   }
 
-  /**
-   * sendOtpSms
-   * Sends an OTP to the specified phone number using Twilio.
-   */
   async sendOtpSms(
     to: string,
     otp: string,

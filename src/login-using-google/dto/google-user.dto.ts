@@ -1,7 +1,3 @@
-/**
- * GoogleUserDto
- * Data Transfer Object for Google User
- */
 export class GoogleUserDto {
   email: string;
 

@@ -8,10 +8,6 @@ import {
   JoinColumn,
 } from 'typeorm';
 
-/**
- * RecentSearch
- * This entity represents the recent search history of a user.
- */
 @Entity()
 export class RecentSearch {
   @PrimaryGeneratedColumn()

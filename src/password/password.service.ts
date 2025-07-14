@@ -10,11 +10,9 @@ import * as bcrypt from 'bcrypt';
 import { Otp, OtpType } from 'src/otp/entities/otp.entity';
 import { OtpService } from 'src/otp/otp.service';
 import { EmailServiceForOTP } from 'src/otp/services/email.service';
+import { SmsService } from 'src/otp/services/sms.service';
+import { checkIfSuspended } from 'src/common/utils/user-status.util';
 
-/**
- * PasswordService
- * This service is responsible for handling password-related functionalities.
- */
 @Injectable()
 export class PasswordService {
   constructor(
@@ -22,12 +20,9 @@ export class PasswordService {
     @InjectRepository(Otp) private readonly otpRepository: Repository<Otp>,
     private readonly otpService: OtpService,
     private readonly emailService: EmailServiceForOTP,
+    private readonly smsService: SmsService,
   ) {}
 
-  /**
-   * changePassword
-   * This method changes the password for a given user.
-   */
   async changepwd(id: string, password: string, newpwd: string) {
     const user = await this.userRepository.findOne({ where: { id } });
 
@@ -57,10 +52,6 @@ export class PasswordService {
     return { message: 'User Successfully Changed their Password!' };
   }
 
-  /**
-   * forgotPassword
-   * This method handles the forgot password functionality.
-   */
   async forgotPassword(email: string) {
     const user = await this.userRepository.findOne({
       where: { email },
@@ -70,11 +61,7 @@ export class PasswordService {
       throw new NotFoundException('User Not Found..!');
     }
 
-    if (user.status === UserStatus.SUSPENDED) {
-      throw new UnauthorizedException(
-        'You are Supsended. Please Contact Support Team...!',
-      );
-    }
+    checkIfSuspended(user);
 
     if (user.is_logged_in === false) {
       const otp = this.otpService.generateOtp();
@@ -84,7 +71,7 @@ export class PasswordService {
       otpRecord.otp = otp;
       otpRecord.otpExpiration = otpExpiration;
       otpRecord.otp_type = OtpType.FORGOT_PASSWORD;
-      otpRecord.user = user; // associate OTP with the user
+      otpRecord.user = user;
 
       await this.otpRepository.save(otpRecord);
 
@@ -95,16 +82,17 @@ export class PasswordService {
         user.first_name,
       );
 
-      //   // Send OTP via SMS if mobile_no is provided
-      //   let smsResult = { message: 'SMS not sent', phoneNumber: '' };
-      //   if (user.mobile_no) {
-      //     try {
-      //       smsResult = await this.smsService.sendOtpSms(user.mobile_no, user.otp || '');
-      //     } catch (error) {
-      //     }
-      //   } else {
-      //     console.log('No mobile number provided for SMS OTP.');
+      // // Send OTP via SMS if mobile_no is provided
+      // let smsResult = { message: 'SMS not sent', phoneNumber: '' };
+      // if (user.mobile_no) {
+      //   try {
+      //     smsResult = await this.smsService.sendOtpSms(user.mobile_no, otp);
+      //   } catch (error) {
+      //     console.error('Error sending OTP via SMS:', error);
       //   }
+      // } else {
+      //   console.log('No mobile number provided for SMS OTP.');
+      // }
 
       return { message: 'OTP Sent to Your Email and SMS (if mobile provided)' };
     } else {
@@ -114,10 +102,6 @@ export class PasswordService {
     }
   }
 
-  /**
-   * resetPassword
-   * This method resets the password for a given user.
-   */
   async resetPassword(email: string, newpwd: string) {
     const user = await this.userRepository.findOne({ where: { email } });
 
