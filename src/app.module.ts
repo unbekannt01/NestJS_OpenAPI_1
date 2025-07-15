@@ -28,11 +28,7 @@ import { AlsModule } from './als/als.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { typeOrmConfig } from './config/typeorm.config';
 import { AlsMiddleware } from './als/als.middleware';
-import { CloudinaryModule } from './common/services/cloudinary.module';
 import { CacheModule } from '@nestjs/cache-manager';
-import { FileUploadUsingS3Module } from './file-upload-using-s3/file-upload-using-s3.module';
-import { FileUploadUsingCloudinaryModule } from './file-upload-using-cloudinary/file-upload-using-cloudinary.module';
-import { FileUploadUsingSupabaseModule } from './file-upload-using-supabase/file-upload-using-supabase.module';
 import { redisStore } from 'cache-manager-ioredis';
 import { HealthController } from './health.controller';
 import { TerminusModule } from '@nestjs/terminus';
@@ -43,8 +39,7 @@ import { CartModule } from './cart/cart.module';
 import { OrderModule } from './order/order.module';
 import { PaymentModule } from './payment/payment.module';
 import { ReviewModule } from './review/review.module';
-// import { PaymentModule } from './payment/payment.module';
-// import stripeConfig from './config/stripe.config';
+import { FileUploadUsingSupabaseModule } from './file-upload-using-supabase/file-upload-using-supabase.module';
 
 @Module({
   imports: [
@@ -94,9 +89,6 @@ import { ReviewModule } from './review/review.module';
     FileUploadModule,
     ProductsModule,
     AdminModule,
-    CloudinaryModule,
-    FileUploadUsingS3Module,
-    FileUploadUsingCloudinaryModule,
     FileUploadUsingSupabaseModule,
     // WebSocketsModule
     // CsrfModule,
@@ -107,7 +99,7 @@ import { ReviewModule } from './review/review.module';
     CartModule,
     OrderModule,
     PaymentModule,
-    ReviewModule
+    ReviewModule,
   ],
   providers: [
     SmsService,

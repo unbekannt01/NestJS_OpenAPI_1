@@ -2,10 +2,12 @@
 import { User } from 'src/user/entities/user.entity';
 import {
   Column,
+  CreateDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 
 @Entity({ name: 'upload_file' })
@@ -22,11 +24,11 @@ export class UploadFile {
   @Column({ nullable: true })
   mimeType: string;
 
-  @Column({ type: 'timestamp', nullable: true })
-  Creation: Date | null;
+  @CreateDateColumn({ type: 'timestamp', nullable: true })
+  created: Date | null;
 
-  @Column({ type: 'timestamp', nullable: true })
-  Updation: Date | null;
+  @UpdateDateColumn({ type: 'timestamp', nullable: true })
+  updated: Date | null;
 
   @Column({ nullable: true })
   fileHash: string;

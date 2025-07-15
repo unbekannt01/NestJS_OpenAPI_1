@@ -8,6 +8,7 @@ export interface UploadResult {
 export interface IStorageProvider {
   upload(
     file: Express.Multer.File,
+    userId?: string,
     fileType?: 'avatar' | 'general',
   ): Promise<UploadResult>;
 

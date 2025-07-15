@@ -22,6 +22,8 @@ import { Public } from 'src/common/decorators/public.decorator';
 import { AuthGuard } from '@nestjs/passport';
 import { Throttle } from '@nestjs/throttler';
 import { GatewayService } from 'src/gateway/gateway.service';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
 
 @Public()
 @Controller({ path: 'file-upload', version: '1' })
@@ -30,6 +32,24 @@ export class FileUploadController {
     private readonly fileUploadService: FileUploadService,
     private readonly gateWayService: GatewayService,
   ) {}
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('upload-file')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: './uploads',
+        filename: (req, file, cb) => {
+          const uniqueName = `${file.fieldname}-${Date.now()}${extname(file.originalname)}`;
+          cb(null, uniqueName);
+        },
+      }),
+    }),
+  )
+  async uploadFile(@UploadedFile() file: Express.Multer.File, @Req() req) {
+    const user = req.user;
+    return this.fileUploadService.upload(file, user.id);
+  }
 
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @UseGuards(AuthGuard('jwt'))
@@ -42,7 +62,7 @@ export class FileUploadController {
       throw new Error('User information is missing from request.');
     }
     this.gateWayService.notifyWhenFileUpload(user.email);
-    return this.fileUploadService.uploadFile(file, userId);
+    return this.fileUploadService.upload(file, userId);
   }
 
   @Get('getAllFile')
@@ -67,7 +87,7 @@ export class FileUploadController {
 
   @Delete('deleteFile/:id')
   async remove(@Param('id') id: string) {
-    await this.fileUploadService.deleteFile(id);
+    await this.fileUploadService.delete(id);
     return { message: 'File Deleted Successfully...!' };
   }
 

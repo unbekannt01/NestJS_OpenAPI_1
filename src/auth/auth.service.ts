@@ -28,10 +28,10 @@ import { EmailServiceForVerifyMail } from 'src/email-verification-by-link/servic
 import { emailTokenConfig } from 'src/config/email.config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { UserRegisteredPayload } from './interfaces/user-registered-payload';
-import { FileStorageService } from 'src/common/services/file-storage.service';
 import { configService } from 'src/common/services/config.service';
 import * as ms from 'ms';
 import { IsSuspendedGuard } from './guards/isNotSuspended.guard';
+import { FileStorageService } from 'src/common/services/file-storage.service';
 // import { NotificationsGateway } from 'src/websockets/notifications.gateway';
 
 @Injectable()
@@ -49,7 +49,7 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly emailServiceForVerification: EmailServiceForVerifyMail,
     private readonly eventEmitter: EventEmitter2,
-    private readonly fileStorageService: FileStorageService,
+    private readonly fileStorageService: FileStorageService
     // private readonly notificationsGateway: NotificationsGateway,
   ) {}
 

@@ -41,11 +41,12 @@ export class FileUploadUsingSupabaseService {
       mimeType: file.mimetype,
       publicId: uploadResult.publicId,
       fileHash,
-      Creation: new Date(),
+      created: new Date(),
       user: { id: userId },
     });
 
     await this.fileRepo.save(fileEntity);
+    return { message: 'File Upload Successfully...!'}
   }
 
   async getFileMetaById(id: string) {
@@ -68,6 +69,7 @@ export class FileUploadUsingSupabaseService {
       await this.supabaseService.delete(file.publicId);
     }
     await this.fileRepo.remove(file);
+    return { message: 'File Deleted Successfully...!'}
   }
 
   async getAllFiles() {
@@ -89,8 +91,9 @@ export class FileUploadUsingSupabaseService {
     existing.originalName = file.originalname;
     existing.mimeType = file.mimetype;
     existing.mimeType = file.mimetype;
-    existing.Updation = new Date();
+    existing.updated = new Date();
 
     await this.fileRepo.save(existing);
+    return { message: 'File Updated Successfully...!'}
   }
 }

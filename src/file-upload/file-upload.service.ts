@@ -8,90 +8,84 @@ import {
   Inject,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FileStorageService } from 'src/common/services/file-storage.service';
-import { Like, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { UploadFile } from './entities/file-upload.entity';
 import * as crypto from 'crypto';
-import { getVersionedFileName } from 'src/common/utils/generateVersion.utils';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
+import path, { join } from 'path';
+import * as fs from 'fs';
+import * as fsp from 'fs/promises';
+import { UploadResult } from './providers/IStorageProvider';
 
 @Injectable()
 export class FileUploadService {
   constructor(
     @InjectRepository(UploadFile)
     private readonly fileRepo: Repository<UploadFile>,
-    private readonly storageService: FileStorageService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
 
-  async uploadFile(file: Express.Multer.File, userId: string) {
-    if (!file) throw new BadRequestException('No file provided');
+  async upload(
+    file: Express.Multer.File,
+    userId?: string,
+    fileType?: 'avatar' | 'general',
+  ): Promise<UploadResult> {
+    if (!file) {
+      throw new BadRequestException('No file provided');
+    }
+
+    const filePath = join(process.cwd(), 'uploads', file.filename);
+    let fileBuffer: Buffer;
+
+    try {
+      fileBuffer = await fsp.readFile(filePath);
+    } catch (err) {
+      throw new BadRequestException('Failed to read file from disk');
+    }
 
     const fileHash = crypto
       .createHash('sha256')
-      .update(file.buffer)
+      .update(fileBuffer)
       .digest('hex');
 
-    const existingFile = await this.fileRepo.findOne({
+    const existing = await this.fileRepo.findOne({
       where: {
         fileHash,
         user: { id: userId },
       },
     });
 
-    if (existingFile) {
+    if (existing) {
       throw new ConflictException({
-        message: 'A file with identical content already exists.',
+        message: 'Duplicate file already exists.',
         existingFile: {
-          id: existingFile.id,
-          originalName: existingFile.originalName,
-          url: existingFile.file,
-          uploadedAt: existingFile.Creation,
+          id: existing.id,
+          originalName: existing.originalName,
+          url: existing.file,
         },
       });
     }
 
-    const baseName = file.originalname.substring(
-      0,
-      file.originalname.lastIndexOf('.'),
-    );
-    const ext = file.originalname.substring(file.originalname.lastIndexOf('.'));
-    const namePattern = `${baseName}%${ext}`;
-
-    const existingFiles = await this.fileRepo.find({
-      where: {
-        originalName: Like(namePattern),
-        user: { id: userId },
-      },
-      select: ['originalName'],
-    });
-
-    const versionedName = getVersionedFileName(
-      file.originalname,
-      existingFiles.map((f) => f.originalName),
-    );
-
-    const result = await this.storageService.upload({
-      ...file,
-      originalname: versionedName,
-    });
+    const fileUrl = `/uploads/${file.filename}`;
 
     const fileEntity = this.fileRepo.create({
-      file: result.url,
-      publicId: result.publicId,
-      originalName: versionedName,
+      file: fileUrl,
+      originalName: file.originalname,
       mimeType: file.mimetype,
-      fileHash: fileHash,
+      fileHash,
+      created: new Date(),
+      updated: new Date(),
       user: { id: userId },
-      Creation: new Date(),
     });
 
-    const savedFile = await this.fileRepo.save(fileEntity);
-    await this.cacheManager.del('allFiles');
-    await this.cacheManager.del(`fileMeta:${savedFile.id}`);
-    await this.cacheManager.del(`signedUrl:${savedFile.id}`);
-    return savedFile;
+    const saved = await this.fileRepo.save(fileEntity);
+
+    return {
+      url: saved.file,
+      publicId: saved.id,
+      resourceType: 'raw',
+    };
   }
 
   async getFileMetaById(id: string) {
@@ -113,30 +107,25 @@ export class FileUploadService {
 
     const file = await this.getFileMetaById(id);
 
-    if (typeof this.storageService.getSignedUrl === 'function') {
-      const signedUrl = await this.storageService.getSignedUrl(
-        file.publicId,
-        file.mimeType,
-      );
-      const response = { signedUrl };
-      await this.cacheManager.set(cacheKey, response, 60000);
-      return response;
-    }
-
     throw new InternalServerErrorException(
       'No method available to get the file',
     );
   }
 
-  async deleteFile(id: string) {
-    const file = await this.getFileMetaById(id);
-    if (file.publicId) {
-      await this.storageService.delete(file.publicId, file.mimeType);
-    }
-    await this.fileRepo.remove(file);
-    await this.cacheManager.del('allFiles');
-    await this.cacheManager.del(`fileMeta:${id}`);
-    await this.cacheManager.del(`signedUrl:${id}`);
+  async delete(publicId: string): Promise<void> {
+    const filePath = path.join(
+      __dirname,
+      '..',
+      '..',
+      '..',
+      'uploads',
+      publicId,
+    );
+    await fs.promises.unlink(filePath).catch(() => null);
+  }
+
+  async getSignedUrl(publicId: string): Promise<string> {
+    return `/uploads/${publicId}`;
   }
 
   async getAllFiles() {
@@ -153,23 +142,40 @@ export class FileUploadService {
   }
 
   async updateFile(id: string, file: Express.Multer.File, mimeType: string) {
-    const existing = await this.getFileMetaById(id);
-    if (!file) throw new BadRequestException('No file provided');
-
-    if (existing.publicId) {
-      await this.storageService.delete(existing.publicId, existing.mimeType);
+    if (!file) {
+      throw new BadRequestException('No file provided');
     }
 
-    const result = await this.storageService.upload(file);
+    const existing = await this.getFileMetaById(id);
 
-    existing.file = result.url;
-    existing.publicId = result.publicId || '';
+    if (existing.publicId) {
+      const oldFilePath = path.resolve('uploads', existing.publicId);
+      await fs.promises.unlink(oldFilePath).catch(() => null);
+    }
+
+    const uploadDir = path.resolve('uploads');
+    await fs.promises.mkdir(uploadDir, { recursive: true });
+
+    const fileId = id;
+    const fileName = `${fileId}-${file.originalname}`;
+    const filePath = path.join(uploadDir, fileName);
+
+    await fs.promises.writeFile(filePath, file.buffer);
+
+    const publicUrl = `/uploads/${fileName}`;
+
+    existing.file = publicUrl;
+    existing.publicId = fileName;
     existing.originalName = file.originalname;
     existing.mimeType = file.mimetype;
-    existing.Updation = new Date();
+    existing.updated = new Date();
 
     const updatedFile = await this.fileRepo.save(existing);
-    await this.cacheManager.del('allFiles');
+
+    // await this.cacheManager.del('allFiles');
+    // await this.cacheManager.del(`fileMeta:${id}`);
+    // await this.cacheManager.del(`signedUrl:${id}`);
+
     return updatedFile;
   }
 }

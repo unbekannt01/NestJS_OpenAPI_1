@@ -16,15 +16,16 @@ import { LocalStrategy } from './strategies/local.stategy';
 import { ConfigModule } from 'src/config/module/config.module';
 import { configService } from 'src/common/services/config.service';
 import { FileStorageService } from 'src/common/services/file-storage.service';
-import { SupabaseService } from 'src/common/services/supabase.service';
-import { S3Service } from 'src/common/services/s3.service';
 import { GatewayService } from 'src/gateway/gateway.service';
+import { FileUploadService } from 'src/file-upload/file-upload.service';
+import { UploadFile } from 'src/file-upload/entities/file-upload.entity';
+import { SupabaseService } from 'src/common/services/supabase.service';
 // import { WebSocketsModule } from 'src/websockets/websockets.module';
 
 @Module({
   imports: [
     ConfigModule,
-    TypeOrmModule.forFeature([User, EmailVerification]),
+    TypeOrmModule.forFeature([User, EmailVerification, UploadFile]),
     forwardRef(() => UserModule),
     forwardRef(() => OtpModule),
     forwardRef(() => EmailVerificationByLinkModule),
@@ -51,9 +52,9 @@ import { GatewayService } from 'src/gateway/gateway.service';
     LocalStrategy,
     EmailServiceForSupension,
     Logger,
-    SupabaseService,
     FileStorageService,
-    S3Service,
+    FileUploadService,
+    SupabaseService,
     GatewayService,
   ],
   exports: [AuthService, EmailServiceForSupension, JwtModule],

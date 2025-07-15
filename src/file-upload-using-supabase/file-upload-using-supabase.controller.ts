@@ -74,6 +74,7 @@ export class FileUploadUsingSupabaseController {
   }
 
   // @UseGuards(AuthGuard('jwt'))
+  @Public()
   @Get('download/:id')
   async download(@Param('id') id: string, @Res() res: Response) {
     const fileRecord =

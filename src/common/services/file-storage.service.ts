@@ -1,13 +1,11 @@
-// file-storage.service.ts
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   IStorageProvider,
   UploadResult,
 } from '../../file-upload/providers/IStorageProvider';
-import { CloudinaryService } from './cloudinary.service';
+import { FileUploadService } from 'src/file-upload/file-upload.service';
 import { SupabaseService } from './supabase.service';
-import { S3Service } from './s3.service';
 
 @Injectable()
 export class FileStorageService implements IStorageProvider {
@@ -15,30 +13,36 @@ export class FileStorageService implements IStorageProvider {
 
   constructor(
     private readonly configService: ConfigService,
-    private readonly cloudinary: CloudinaryService,
     private readonly supabase: SupabaseService,
-    private readonly s3: S3Service,
+    private readonly local: FileUploadService,
   ) {
     const driver = this.configService.get<string>('STORAGE_DRIVER');
+    const env = this.configService.get<string>('NODE_ENV');
 
     switch (driver) {
-      case 'cloudinary':
-        this.provider = this.cloudinary;
-        break;
       case 'supabase':
         this.provider = this.supabase;
         break;
-      case 's3':
-        this.provider = this.s3;
+      case 'local':
+        this.provider = this.local;
         break;
+      case undefined:
+      case null:
+        if (env === 'development') {
+          this.provider = this.supabase;
+          break;
+        } else {
+          throw new Error(`No STORAGE_DRIVER set and not in development mode.`);
+        }
       default:
-        throw new Error(`Unsupported storage driver: ${driver}`);
+        throw new Error(`Unsupported STORAGE_DRIVER: ${driver}`);
     }
   }
 
   upload(
     file: Express.Multer.File,
-    fileType: 'avatar' | 'general' = 'general',
+    userId?: string,
+    fileType?: 'avatar' | 'general',
   ): Promise<UploadResult> {
     return this.provider.upload(file, fileType);
   }

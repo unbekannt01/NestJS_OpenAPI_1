@@ -1,30 +1,32 @@
 // supabase.service.ts
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { ConfigService } from '@nestjs/config';
 import {
   IStorageProvider,
   UploadResult,
 } from '../../file-upload/providers/IStorageProvider';
+import { configService } from './config.service';
 
 @Injectable()
 export class SupabaseService implements IStorageProvider {
   private supabase: SupabaseClient;
   private bucketName: string;
 
-  constructor(private readonly configService: ConfigService) {
-    this.supabase = createClient(
-      this.configService.get<string>('SUPABASE_URL')!,
-      this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY')!,
-    );
-    this.bucketName = this.configService.get<string>('SUPABASE_BUCKET')!;
+  constructor() {
+    const storageDriver = configService.getValue('STORAGE_DRIVER');
+    if (storageDriver === 'supabase') {
+      this.supabase = createClient(
+        configService.getValue('SUPABASE_URL')!,
+        configService.getValue('SUPABASE_SERVICE_ROLE_KEY')!,
+      );
+      this.bucketName = configService.getValue('SUPABASE_BUCKET')!;
+    }
   }
 
   async upload(
     file: Express.Multer.File,
     fileType: 'avatar' | 'general' = 'general',
   ): Promise<UploadResult> {
-    // Sanitize filename to avoid issues with special characters
     const sanitizedFilename = file.originalname
       .replace(/[^a-zA-Z0-9.-]/g, '_')
       .toLowerCase();
