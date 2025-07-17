@@ -76,8 +76,7 @@ import { WebSocketsModule } from './websockets/websockets.module';
     ConfigModule.forRoot({
       isGlobal: true,
       validationSchema,
-      envFilePath:
-        process.env.NODE_ENV === 'development' ? '.env.development' : undefined,
+      envFilePath: [`.env.${process.env.NODE_ENV || 'local'}`],
       cache: true,
       // load: [stripeConfig],
     }),
