@@ -47,11 +47,11 @@ export class ProductsController {
     return this.productsService.createBulkProducts(createProductDto, userId);
   }
 
-  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  // @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Get('getAll')
   @Public()
   findAll() {
-    return this.productsService.findAll();
+    return this.productsService.getAllProducts();
   }
 
   @Get('search')
@@ -87,6 +87,11 @@ export class ProductsController {
   @Public()
   findOne(@Param('id') id: string) {
     return this.productsService.findOne(id);
+  }
+
+  @Get('getById/:id')
+  getById(@Param('id') id: string) {
+    return this.productsService.findById(id);
   }
 
   @Get(':id/recommendations')

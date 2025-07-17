@@ -9,6 +9,16 @@ import { CsrfMiddleware } from './middleware/csrf.middleware';
 })
 export class CsrfModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(CsrfMiddleware).forRoutes('*');
+    consumer
+      .apply(CsrfMiddleware)
+      .exclude(
+        'v1/csrf/token',
+        'v1/auth/login',
+        'v1/auth/register',
+        'v2/auth/register',
+        'v3/auth/register',
+        'v1/otp/verify-otp',
+        'v1/email-verification-by-link/verify-email',
+      );
   }
 }

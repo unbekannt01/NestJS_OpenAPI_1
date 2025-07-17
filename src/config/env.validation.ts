@@ -26,7 +26,7 @@ export const validationSchema = Joi.object({
   // SMTP
   SMTP_HOST: Joi.string().required(),
   SMTP_PORT: Joi.number().default(587),
-  SMTP_USER: Joi.string().email().required(),
+  SMTP_USER: Joi.string().required(),
   SMTP_PASS: Joi.string().required(),
   SMTP_SECURE: Joi.boolean().truthy('true').falsy('false').default(false),
 

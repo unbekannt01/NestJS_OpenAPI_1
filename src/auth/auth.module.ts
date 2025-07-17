@@ -20,6 +20,7 @@ import { GatewayService } from 'src/gateway/gateway.service';
 import { FileUploadService } from 'src/file-upload/file-upload.service';
 import { UploadFile } from 'src/file-upload/entities/file-upload.entity';
 import { SupabaseService } from 'src/common/services/supabase.service';
+import { WebSocketsModule } from 'src/websockets/websockets.module';
 // import { WebSocketsModule } from 'src/websockets/websockets.module';
 
 @Module({
@@ -43,7 +44,7 @@ import { SupabaseService } from 'src/common/services/supabase.service';
         },
       }),
     }),
-    // WebSocketsModule
+    WebSocketsModule
   ],
   controllers: [AuthController],
   providers: [

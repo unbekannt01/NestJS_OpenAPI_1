@@ -68,20 +68,20 @@ export class UserController {
     );
   }
 
-  @UseGuards(AuthGuard('jwt'))
-  @Get('profile')
-  async getProfile(@Req() req: Request & { user: JwtPayload }) {
-    const { role } = req.user;
-    const user = await this.userService.getUserById(req.user.id);
+  // @UseGuards(AuthGuard('jwt'))
+  // @Get('profile')
+  // async getProfile(@Req() req: Request & { user: JwtPayload }) {
+  //   const { role } = req.user;
+  //   const user = await this.userService.getUserById(req.user.id);
 
-    if (!user) {
-      throw new NotFoundException('User profile not found');
-    }
-    return {
-      message: `${role} profile fetched successfully!`,
-      user,
-    };
-  }
+  //   if (!user) {
+  //     throw new NotFoundException('User profile not found');
+  //   }
+  //   return {
+  //     message: `${role} profile fetched successfully!`,
+  //     user,
+  //   };
+  // }
 
   @Public()
   @Get('getUserById/:id')
@@ -97,39 +97,10 @@ export class UserController {
     id: string,
   ) {
     const user = await this.userService.getUserById(id);
-    return user;
-  }
-
-  @Public()
-  @Get('user')
-  @UseInterceptors(CacheInterceptor)
-  async user(@Req() request: Request & { cookies: { [key: string]: string } }) {
-    try {
-      const cookie = request.cookies['access_token'];
-
-      if (!cookie) {
-        throw new UnauthorizedException('No access token found.');
-      }
-
-      const data = await this.jwtService.verifyAsync<JwtPayload>(cookie, {
-        secret: process.env.JWT_SECRET,
-      });
-
-      if (!data || !data.id) {
-        throw new UnauthorizedException('Invalid token data.');
-      }
-
-      const user = await this.userService.getUserById(data.id);
-
-      if (!user) {
-        throw new UnauthorizedException('User not found.');
-      }
-
-      return user;
-    } catch (error) {
-      console.error('Error fetching user:', error);
-      throw new UnauthorizedException('Unauthorized');
-    }
+    return {
+      message: `${user?.role} profile fetched successfully!`,
+      user,
+    };
   }
 
   @Public()
@@ -155,16 +126,12 @@ export class UserController {
     return { message: `${user} profile fetched successfully!`, user };
   }
 
-  @Public()
-  @Get('hello')
-  async getHello() {
-    return this.userService.getHello()
-  }
-
   @Sse('event')
   sendEvent(): Observable<MessageEvent> {
-    return interval(1000).pipe(map((num: number)=> ({
-      data: 'Hello Buddy...!' + num,
-    })));
+    return interval(1000).pipe(
+      map((num: number) => ({
+        data: 'Hello Buddy...!' + num,
+      })),
+    );
   }
 }

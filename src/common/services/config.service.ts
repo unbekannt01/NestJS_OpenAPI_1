@@ -71,7 +71,12 @@ const configService = new ConfigService(process.env).ensureValues([
   'DB_NAME',
   'JWT_SECRET',
   'JWT_EXPIRES_IN',
-  'JWT_REFRESH_EXPIRES_IN'
+  'JWT_REFRESH_EXPIRES_IN',
+  'SMTP_HOST',
+  'SMTP_PORT',
+  'SMTP_USER',
+  'SMTP_PASS',
+  'SMTP_SECURE'
 ]);
 
 export { configService };

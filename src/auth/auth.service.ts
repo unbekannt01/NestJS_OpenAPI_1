@@ -20,7 +20,7 @@ import { OtpService } from 'src/otp/otp.service';
 import { EmailServiceForOTP } from 'src/otp/services/email.service';
 import { Otp, OtpType } from 'src/otp/entities/otp.entity';
 import {
-  EmailNotVerifiedException,
+  AccountNotVerified,
   UserBlockedException,
 } from 'src/common/filters/custom-exceptio.filter';
 import { EmailVerification } from 'src/email-verification-by-link/entity/email-verify.entity';
@@ -30,8 +30,8 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { UserRegisteredPayload } from './interfaces/user-registered-payload';
 import { configService } from 'src/common/services/config.service';
 import * as ms from 'ms';
-import { IsSuspendedGuard } from './guards/isNotSuspended.guard';
 import { FileStorageService } from 'src/common/services/file-storage.service';
+import { NotificationsGateway } from 'src/websockets/notifications.gateway';
 // import { NotificationsGateway } from 'src/websockets/notifications.gateway';
 
 @Injectable()
@@ -49,8 +49,8 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly emailServiceForVerification: EmailServiceForVerifyMail,
     private readonly eventEmitter: EventEmitter2,
-    private readonly fileStorageService: FileStorageService
-    // private readonly notificationsGateway: NotificationsGateway,
+    private readonly fileStorageService: FileStorageService,
+    private readonly notificationsGateway: NotificationsGateway,
   ) {}
 
   async loginUser(
@@ -82,7 +82,7 @@ export class AuthService {
     }
 
     if (user.status === UserStatus.INACTIVE) {
-      throw new EmailNotVerifiedException(user.status);
+      throw new AccountNotVerified(user.status);
     }
 
     try {
@@ -94,12 +94,14 @@ export class AuthService {
       const role = user.role;
       const token = await this.generateUserToken(user.id, user.role);
 
-      // // Notify user of successful login via WebSocket
-      // this.notificationsGateway.notifyLoginAttempt(
-      //   user.id,
-      //   'Unknown Location', // You can enhance this with IP geolocation
-      //   true,
-      // );
+      // Notify user of successful login via WebSocket
+      this.notificationsGateway.notifyLoginAttempt(
+        user.id,
+        'Unknown Location',
+        true,
+        user.userName,
+        user.email,
+      );
 
       return { message: `${role} Login Successfully!`, role, ...token, user };
     } catch (error) {
@@ -107,20 +109,22 @@ export class AuthService {
       await this.userRepository.save(user);
 
       // Notify user of failed login attempt
-      // this.notificationsGateway.notifyLoginAttempt(
-      //   user.id,
-      //   'Unknown Location',
-      //   false,
-      // );
+      this.notificationsGateway.notifyLoginAttempt(
+        user.id,
+        'Unknown Location',
+        false,
+        user.userName,
+        user.email,
+      );
 
       if (user.loginAttempts >= 10) {
         await this.userRepository.update(user.id, { isBlocked: true });
 
-        // // Send real-time notification for account blocking
-        // this.notificationsGateway.notifyAccountBlocked(
-        //   user.id,
-        //   'Account blocked due to too many failed login attempts',
-        // );
+        // Send real-time notification for account blocking
+        this.notificationsGateway.notifyAccountBlocked(
+          user.id,
+          'Account blocked due to too many failed login attempts',
+        );
 
         throw new UnauthorizedException(
           'Account blocked due to too many failed login attempts. Please contact support.',
@@ -263,17 +267,19 @@ export class AuthService {
       avatarUrl = uploadResult.url;
     }
 
-    const otp = new Otp();
+    let otp: Otp;
 
     if (user) {
       if (user.status === 'ACTIVE') {
         throw new ConflictException('Email already registered...!');
       }
 
-      otp.otp = this.otpService.generateOtp();
-      otp.otpExpiration = this.otpService.getOtpExpiration();
-      otp.otp_type = OtpType.EMAIL_VERIFICATION;
-      otp.user = user;
+      otp = this.otpRepository.create({
+        otp: this.otpService.generateOtp(),
+        otpExpiration: this.otpService.getOtpExpiration(),
+        otp_type: OtpType.EMAIL_VERIFICATION,
+        user,
+      });
     } else {
       const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
       user = this.userRepository.create({
@@ -289,19 +295,24 @@ export class AuthService {
         createdBy: createUserDto.userName,
       });
 
-      otp.otp = this.otpService.generateOtp();
-      otp.otpExpiration = this.otpService.getOtpExpiration();
-      otp.otp_type = OtpType.EMAIL_VERIFICATION;
+      const savedUser = await this.userRepository.save(user);
+
+      otp = this.otpRepository.create({
+        otp: this.otpService.generateOtp(),
+        otpExpiration: this.otpService.getOtpExpiration(),
+        otp_type: OtpType.EMAIL_VERIFICATION,
+        user: savedUser,
+      });
     }
 
     await this.otpRepository.save(otp);
-    await this.userRepository.save(user);
 
     await this.emailServiceForOTP.sendOtpEmail(
       user.email,
       otp.otp || '',
       user.first_name,
     );
+
     return {
       message: `${user.role} registered successfully. OTP sent to email.`,
     };
@@ -385,8 +396,7 @@ export class AuthService {
     await this.emailverifyRepository.save(verification);
 
     // Send verification email with link
-    const FRONTEND_BASE_URL =
-      this.configService.get<string>('FRONTEND_BASE_URL');
+    const FRONTEND_BASE_URL = configService.getValue('FRONTEND_BASE_URL');
     if (!FRONTEND_BASE_URL) {
       throw new Error(
         'FRONTEND_BASE_URL is not defined in environment variables',
@@ -428,6 +438,15 @@ export class AuthService {
     user.expiryDate_token = null;
     user.jti = null;
     await this.userRepository.save(user);
+
+    // Notify user logout attempt
+    this.notificationsGateway.notifyLogout(
+      user.id,
+      'Unknown Location',
+      true,
+      user.userName,
+      user.email,
+    );
 
     return { message: 'User logout successful.' };
   }

@@ -5,11 +5,14 @@ import {
   Get,
   Param,
   Post,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { NotificationsGateway } from '../websockets/notifications.gateway';
 import { Admin } from 'src/common/decorators/admin.decorator';
+import { Request } from 'express';
+import { AuthGuard } from '@nestjs/passport';
 
 @Admin()
 @Controller({ path: 'admin', version: '1' })
@@ -19,6 +22,7 @@ export class AdminController {
     // private readonly notificationsGateway: NotificationsGateway,
   ) {}
 
+  @UseGuards(AuthGuard('jwt'))
   @Post('suspend/:id')
   async suspendUser(
     @Param('id') userId: string,
@@ -29,7 +33,7 @@ export class AdminController {
   }
 
   @Post('reactivate/:id')
-  async reactivateUser(userId: string) {
+  async reactivateUser(@Param('id') userId: string) {
     const result = await this.adminService.reActivatedUser(userId);
     return result;
   }

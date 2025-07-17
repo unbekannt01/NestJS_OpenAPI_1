@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { Product } from './entities/product.entity';
@@ -292,11 +296,18 @@ export class ProductsService {
     return recommendations;
   }
 
-  async findAll() {
-    return this.productRepository.find({
-      relations: ['brand', 'subCategory'],
+  async getAllProducts() {
+    const products = await this.productRepository.find({
+      relations: ['brand', 'subCategory', 'subCategory.category'],
       where: { isActive: true },
     });
+
+    return products.map((product) => ({
+      ...product,
+      brandName: product.brand?.name || null,
+      subCategoryName: product.subCategory?.name || null,
+      categoryName: product.subCategory?.category?.name || null,
+    }));
   }
 
   async findOne(id: string) {
@@ -312,7 +323,19 @@ export class ProductsService {
     return product;
   }
 
+  async findById(id: string) {
+    return await this.productRepository.findOne({ where: { id } });
+  }
+
+  async findNameById(id: string) {
+    const name = await this.productRepository.findOne({ where: { id } });
+  }
+
   async update(id: string, updateProductDto: UpdateProductDto) {
+    if (!updateProductDto || Object.keys(updateProductDto).length === 0) {
+      throw new BadRequestException('No fields provided for update');
+    }
+
     return await this.productRepository.update(id, updateProductDto);
   }
 

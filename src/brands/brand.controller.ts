@@ -29,6 +29,12 @@ export class BrandsController {
     return this.brandsService.createMultiple(createBrandDto);
   }
 
+  @Get('main')
+  @Public()
+  getMainCategories() {
+    return this.brandsService.getMainBrands();
+  }
+
   @Get('getAll')
   @Public()
   findAll() {

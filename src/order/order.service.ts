@@ -3,8 +3,8 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { Repository } from 'typeorm';
-import { Order, OrderStatus } from './entities/order.entity';
+import { Not, Repository } from 'typeorm';
+import { Order, OrderStatus, PaymentStatus } from './entities/order.entity';
 import { OrderItem } from './entities/order-item.entity';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -66,7 +66,7 @@ export class OrderService {
 
   async getUserOrders(userId: string, page: number, limit: number) {
     const [orders, total] = await this.orderRepository.findAndCount({
-      where: { user: { id: userId } },
+      where: { user: { id: userId }, status: Not(OrderStatus.CONFIRMED) },
       relations: ['orderItems', 'orderItems.product'],
       order: { createdAt: 'DESC' },
       skip: (page - 1) * limit,
@@ -125,24 +125,43 @@ export class OrderService {
     };
   }
 
-  async getAllOrders(page: number, limit: number) {
-    const [orders, total] = await this.orderRepository.findAndCount({
-      relations: ['user', 'orderItems'],
-      order: { createdAt: 'DESC' },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
+  async getAllOrders(userId: string, page: number, limit: number) {
+  const [orders, total] = await this.orderRepository.findAndCount({
+    where: { user: { id: userId } },
+    relations: ['orderItems', 'orderItems.product'],
+    order: { createdAt: 'DESC' },
+    skip: (page - 1) * limit,
+    take: limit,
+  });
+  return {
+    orders,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+}
 
-    return {
-      orders,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
-  }
+  // async getAllOrders(page: number, limit: number) {
+  //   const [orders, total] = await this.orderRepository.findAndCount({
+  //     relations: ['user', 'orderItems'],
+  //     order: { createdAt: 'DESC' },
+  //     skip: (page - 1) * limit,
+  //     take: limit,
+  //   });
+
+  //   return {
+  //     orders,
+  //     pagination: {
+  //       page,
+  //       limit,
+  //       total,
+  //       totalPages: Math.ceil(total / limit),
+  //     },
+  //   };
+  // }
 
   async updateOrderStatus(orderId: string, status: OrderStatus) {
     const order = await this.orderRepository.findOne({
@@ -159,6 +178,26 @@ export class OrderService {
     }
 
     return this.orderRepository.save(order);
+  }
+
+  // This endpoint is temporary for confirming orders
+  async confirmOrder(orderId: string, userId: string) {
+    const order = await this.orderRepository.findOne({
+      where: { id: orderId, user: { id: userId } },
+    });
+
+    if (!order) throw new NotFoundException('Order not found');
+    if (order.status === OrderStatus.CONFIRMED)
+      throw new BadRequestException('Already confirmed');
+
+    order.status = OrderStatus.CONFIRMED;
+    order.paymentStatus = PaymentStatus.PAID;
+    await this.orderRepository.save(order);
+
+    return {
+      data: order,
+      message: 'Order confirmed successfully',
+    };
   }
 
   async deleteOrder(orderId: string, userId: string) {

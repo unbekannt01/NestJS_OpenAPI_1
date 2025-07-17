@@ -35,7 +35,7 @@ export class CartService {
   }
 
   async addToCart(userId: string, productId: string, quantity: number) {
-    const user = await this.userRepository.findOne({ where: { id: userId } });
+    // const user = await this.userRepository.findOne({ where: { id: userId } });
     const product = await this.productRepository.findOne({
       where: { id: productId },
     });

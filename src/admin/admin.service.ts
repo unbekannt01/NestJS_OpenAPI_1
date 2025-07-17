@@ -10,9 +10,8 @@ import { EmailServiceForSupension } from 'src/auth/services/suspend-mail.service
 import { LazyModuleLoader } from '@nestjs/core';
 import { RequestLog } from './entity/log.entity';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { NotificationsGateway } from 'src/websockets/notifications.gateway';
 import { InjectRepository } from '@nestjs/typeorm';
-
+  
 @Injectable()
 export class AdminService {
   constructor(
@@ -40,6 +39,7 @@ export class AdminService {
       user.is_logged_in = false;
       user.refresh_token = null;
       user.expiryDate_token = null;
+      user.jti = null;
 
       await this.userRepository.save(user);
 
@@ -74,6 +74,7 @@ export class AdminService {
     if (!user) {
       throw new NotFoundException('User Not Found...!');
     }
+    
     if (user.status !== UserStatus.SUSPENDED) {
       throw new BadRequestException('User is Not Suspended...!');
     }

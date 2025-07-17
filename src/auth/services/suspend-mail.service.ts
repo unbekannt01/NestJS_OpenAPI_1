@@ -1,26 +1,25 @@
 import * as nodemailer from 'nodemailer';
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { configService } from 'src/common/services/config.service';
 
 @Injectable()
 export class EmailServiceForSupension {
   constructor(
-    private readonly configService: ConfigService
   ) { }
 
   async sendSuspensionEmail(email: string, first_name: string, message: string) {
     const transporter = nodemailer.createTransport({
-      host: this.configService.get<string>('SMTP.HOST'),
-      port: parseInt(this.configService.get<string>('SMTP.PORT') || '587'),
-      secure: this.configService.get<string>('SMTP.SECURE') === 'true',
+      host: configService.getValue('SMTP_HOST'),
+      port: parseInt(configService.getValue('SMTP_PORT') || '587'),
+      secure: configService.getValue('SMTP_SECURE') === 'true',
       auth: {
-        user: this.configService.get<string>('SMTP.USER'),
-        pass: this.configService.get<string>('SMTP.PASSWORD'),
+        user: configService.getValue('SMTP_USER'),
+        pass: configService.getValue('SMTP_PASS'),
       },
     });
   
     const mailOptions = {
-      from: `"Account Suspension" <${this.configService.get<string>('SMTP.USER')}>`,
+      from: `"Account Suspension" <${configService.getValue('SMTP_USER')}>`,
       to: email,
       subject: '⚠️ Account Suspension Notice',
       text: `Dear ${first_name}, your account has been suspended due to policy violations. Reason: ${message}`,

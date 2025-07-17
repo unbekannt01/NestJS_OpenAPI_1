@@ -67,16 +67,6 @@ async function bootstrap() {
 
   app.use('/v1/payment/webhook', bodyParser.raw({ type: 'application/json' }));
 
-  // app.use(
-  //   csurf({
-  //     cookie: {
-  //       httpOnly: true,
-  //       secure: false,
-  //       sameSite: 'strict',
-  //     },
-  //   }),
-  // );
-
   app.use(
     helmet.contentSecurityPolicy({
       directives: {

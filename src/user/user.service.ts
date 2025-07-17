@@ -185,6 +185,7 @@ export class UserService {
   async findByEmail(email): Promise<User | null> {
     return this.userRepository.findOne({ where: { email } });
   }
+  
   async removeAvatar(userId: string): Promise<{ message: string }> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
 

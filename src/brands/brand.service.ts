@@ -34,6 +34,7 @@ export class BrandsService {
       order: { name: 'ASC' },
     });
   }
+
   async findOne(id: string) {
     const brand = await this.brandRepository.findOne({
       where: { id },
@@ -76,6 +77,31 @@ export class BrandsService {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '');
+  }
+
+  async getMainBrands() {
+    try {
+      const brand = await this.brandRepository.find({
+        where: {
+          isActive: true,
+        },
+        order: { name: 'ASC'},
+        select: ['id','name','description'],
+      });
+
+      return {
+        success: true,
+        message: 'Brand Fetched successfully',
+        data: brand,
+      };
+    } catch (error) {
+      console.log('Error fetching brands:', error)
+      return {
+        success: false,
+        message: 'Failed to fetch brands',
+        date: [],
+      }
+    }
   }
 
   async findBrandsWithCategoriesTree(): Promise<any[]> {

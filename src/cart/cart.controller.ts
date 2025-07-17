@@ -13,8 +13,8 @@ import { CartService } from './cart.service';
 import { AuthGuard } from '@nestjs/passport';
 import { Request } from 'express';
 
-@Controller({ path: 'cart', version: '1' })
 @UseGuards(AuthGuard('jwt'))
+@Controller({ path: 'cart', version: '1' })
 export class CartController {
   constructor(private readonly cartService: CartService) {}
 
@@ -30,8 +30,8 @@ export class CartController {
     @Query('quantity') quantity: number,
     @Req() req: Request,
   ) {
-    const userId = (req.user as { id: string })?.id;
-    return this.cartService.addToCart(userId, productId, quantity);
+    const userId = req.user as { id: string };
+    return this.cartService.addToCart(userId.id, productId, quantity);
   }
 
   @Patch('update/:itemId')

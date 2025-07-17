@@ -40,6 +40,7 @@ import { OrderModule } from './order/order.module';
 import { PaymentModule } from './payment/payment.module';
 import { ReviewModule } from './review/review.module';
 import { FileUploadUsingSupabaseModule } from './file-upload-using-supabase/file-upload-using-supabase.module';
+import { WebSocketsModule } from './websockets/websockets.module';
 
 @Module({
   imports: [
@@ -48,7 +49,7 @@ import { FileUploadUsingSupabaseModule } from './file-upload-using-supabase/file
       throttlers: [
         {
           ttl: 60000,
-          limit: 10,
+          limit: 50,
         },
       ],
     }),
@@ -90,8 +91,7 @@ import { FileUploadUsingSupabaseModule } from './file-upload-using-supabase/file
     ProductsModule,
     AdminModule,
     FileUploadUsingSupabaseModule,
-    // WebSocketsModule
-    // CsrfModule,
+    WebSocketsModule,
     TerminusModule,
     GatewayModule,
     CategoriesModule,

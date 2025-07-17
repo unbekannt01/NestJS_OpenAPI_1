@@ -8,12 +8,15 @@ import { Server, Socket } from 'socket.io';
 import { Logger, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { UserService } from 'src/user/user.service';
 
 interface ConnectedUser {
   userId: string;
   socketId: string;
   role: string;
   connectedAt: Date;
+  userName: string;
+  email: string;
 }
 
 @Injectable()
@@ -37,20 +40,31 @@ export class NotificationsGateway
   constructor(
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly userService: UserService,
   ) {}
+
+  private emitAdminConsoleLog(message: string) {
+    const log = {
+      message,
+      timestamp: new Date(),
+    };
+    this.server.to('admins').emit('adminConsoleLog', log);
+  }
 
   async handleConnection(client: Socket) {
     try {
       this.logger.log(`Client attempting to connect: ${client.id}`);
+      this.emitAdminConsoleLog(`Client attempting to connect: ${client.id}`);
 
-      // Get token from auth object or handshake
       const token =
         client.handshake.auth?.token ||
         client.handshake.headers?.authorization?.split(' ')[1] ||
         client.handshake.query?.token;
 
       if (!token) {
-        this.logger.warn(`Client ${client.id} connected without token`);
+        const msg = `Client ${client.id} connected without token`;
+        this.logger.warn(msg);
+        this.emitAdminConsoleLog(`${msg}`);
         client.emit('error', { message: 'Authentication token required' });
         client.disconnect();
         return;
@@ -60,8 +74,19 @@ export class NotificationsGateway
         secret: this.configService.get<string>('JWT_SECRET'),
       });
 
+      const user = await this.userService.getUserById(payload.id);
+
+      if (!user) {
+        this.logger.warn(`User with ID ${payload.id} not found`);
+        client.emit('error', { message: 'User not found' });
+        client.disconnect();
+        return;
+      }
+
       const connectedUser: ConnectedUser = {
         userId: payload.id,
+        userName: user.userName,
+        email: user.email,
         socketId: client.id,
         role: payload.role,
         connectedAt: new Date(),
@@ -70,12 +95,13 @@ export class NotificationsGateway
       this.connectedUsers.set(client.id, connectedUser);
 
       await client.join(`user_${payload.id}`);
-
       if (payload.role === 'ADMIN') {
         await client.join('admins');
       }
 
-      this.logger.log(`User ${payload.id} connected with socket ${client.id}`);
+      const successMsg = `User ${user.userName} (${user.email}) connected with socket ${client.id}`;
+      this.logger.log(successMsg);
+      this.emitAdminConsoleLog(successMsg);
 
       client.emit('connected', {
         message: 'Successfully connected to notifications',
@@ -83,10 +109,9 @@ export class NotificationsGateway
         timestamp: new Date(),
       });
     } catch (error) {
-      this.logger.error(
-        `Authentication failed for socket ${client.id}:`,
-        error.message,
-      );
+      const errorMsg = `Authentication failed for socket ${client.id}: ${error.message}`;
+      this.logger.error(errorMsg);
+      this.emitAdminConsoleLog(errorMsg);
       client.emit('error', { message: 'Authentication failed' });
       client.disconnect();
     }
@@ -95,13 +120,17 @@ export class NotificationsGateway
   handleDisconnect(client: Socket) {
     const connectedUser = this.connectedUsers.get(client.id);
     if (connectedUser) {
-      this.logger.log(`User ${connectedUser.userId} disconnected`);
+      const msg = `User ${connectedUser.userId} disconnected`;
+      this.logger.log(msg);
+      this.emitAdminConsoleLog(msg);
       this.connectedUsers.delete(client.id);
     }
   }
-  
+
   handlePing(client: Socket) {
-    this.logger.log(`Ping received from ${client.id}`);
+    const msg = `Ping received from ${client.id}`;
+    this.logger.log(msg);
+    this.emitAdminConsoleLog(msg);
     client.emit('pong', { timestamp: new Date() });
   }
 
@@ -128,18 +157,16 @@ export class NotificationsGateway
     };
 
     this.server.to(`user_${userId}`).emit('accountStatusChanged', notification);
-
     this.server.to('admins').emit('userStatusChanged', {
       ...notification,
       userId,
     });
 
-    this.logger.log(
-      `Account status notification sent to user ${userId}: ${statusData.oldStatus} -> ${statusData.newStatus}`,
-    );
+    const logMsg = `Account status changed: ${statusData.oldStatus} → ${statusData.newStatus} (user: ${userId})`;
+    this.logger.log(logMsg);
+    this.emitAdminConsoleLog(logMsg);
   }
 
-  // Account suspension notification
   notifyAccountSuspended(userId: string, reason: string, suspendedBy: string) {
     const notification = {
       type: 'ACCOUNT_SUSPENDED',
@@ -152,10 +179,12 @@ export class NotificationsGateway
     };
 
     this.server.to(`user_${userId}`).emit('accountSuspended', notification);
-    this.logger.log(`Account suspension notification sent to user ${userId}`);
+
+    const msg = `Account suspended: ${userId} (by: ${suspendedBy})`;
+    this.logger.log(msg);
+    this.emitAdminConsoleLog(msg);
   }
 
-  // Account reactivation notification
   notifyAccountReactivated(userId: string, reactivatedBy: string) {
     const notification = {
       type: 'ACCOUNT_REACTIVATED',
@@ -167,10 +196,11 @@ export class NotificationsGateway
     };
 
     this.server.to(`user_${userId}`).emit('accountReactivated', notification);
-    this.logger.log(`Account reactivation notification sent to user ${userId}`);
+    const msg = `Account reactivated: ${userId} (by: ${reactivatedBy})`;
+    this.logger.log(msg);
+    this.emitAdminConsoleLog(msg);
   }
 
-  // Account blocked notification
   notifyAccountBlocked(userId: string, reason: string) {
     const notification = {
       type: 'ACCOUNT_BLOCKED',
@@ -183,10 +213,11 @@ export class NotificationsGateway
     };
 
     this.server.to(`user_${userId}`).emit('accountBlocked', notification);
-    this.logger.log(`Account blocked notification sent to user ${userId}`);
+    const msg = `Account blocked: ${userId}`;
+    this.logger.log(msg);
+    this.emitAdminConsoleLog(msg);
   }
 
-  // Account unblocked notification
   notifyAccountUnblocked(userId: string, unblockedBy: string) {
     const notification = {
       type: 'ACCOUNT_UNBLOCKED',
@@ -198,16 +229,25 @@ export class NotificationsGateway
     };
 
     this.server.to(`user_${userId}`).emit('accountUnblocked', notification);
-    this.logger.log(`Account unblocked notification sent to user ${userId}`);
+    const msg = `Account unblocked: ${userId} (by: ${unblockedBy})`;
+    this.logger.log(msg);
+    this.emitAdminConsoleLog(msg);
   }
 
-  // Login attempt notification
-  notifyLoginAttempt(userId: string, location: string, success: boolean) {
+  notifyLoginAttempt(
+    userId: string,
+    location: string,
+    success: boolean,
+    userName: string,
+    email: string,
+  ) {
     const notification = {
       type: success ? 'LOGIN_SUCCESS' : 'LOGIN_FAILED',
       data: {
         location,
         success,
+        userName,
+        email,
         timestamp: new Date(),
         action: success
           ? 'Successful login detected'
@@ -216,24 +256,50 @@ export class NotificationsGateway
     };
 
     this.server.to(`user_${userId}`).emit('loginAttempt', notification);
-    this.logger.log(
-      `Login attempt notification sent to user ${userId}: ${success ? 'success' : 'failed'}`,
-    );
+
+    const msg = `Login attempt (${success ? 'success' : 'failed'}) for ${userName} -${email} at ${location}`;
+    this.logger.log(msg);
+    this.emitAdminConsoleLog(msg);
   }
 
-  // Get connected users (for admin dashboard)
+  notifyLogout(
+    userId: string,
+    location: string,
+    success: boolean,
+    userName: string,
+    email: string,
+  ) {
+    const notification = {
+      type: success ? 'LOGOUT_SUCCESS' : 'LOGOUT_FAILED',
+      data: {
+        location,
+        success,
+        userName,
+        email,
+        timestamp: new Date(),
+        action: success
+          ? 'Successful logout detected'
+          : 'Failed logout attempt detected',
+      },
+    };
+
+    this.server.to(`user_${userId}`).emit('logoutAttempt', notification);
+
+    const msg = `Logout attempt (${success ? 'success' : 'failed'}) for ${userName} -${email} at ${location}`;
+    this.logger.log(msg);
+    this.emitAdminConsoleLog(msg);
+  }
+
   getConnectedUsers(): ConnectedUser[] {
     return Array.from(this.connectedUsers.values());
   }
 
-  // Check if user is online
   isUserOnline(userId: string): boolean {
     return Array.from(this.connectedUsers.values()).some(
       (user) => user.userId === userId,
     );
   }
 
-  // Add this method to your existing NotificationsGateway class
   broadcastToAllUsers(message: string, type = 'info') {
     const notification = {
       type: 'BROADCAST',
@@ -245,8 +311,9 @@ export class NotificationsGateway
       },
     };
 
-    // Send to all connected users
     this.server.emit('broadcast', notification);
-    this.logger.log(`Broadcast message sent to all users: ${message}`);
+    const msg = `Broadcast message sent to all users: ${message}`;
+    this.logger.log(msg);
+    this.emitAdminConsoleLog(msg);
   }
 }

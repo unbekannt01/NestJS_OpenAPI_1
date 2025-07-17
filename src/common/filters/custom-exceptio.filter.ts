@@ -7,7 +7,7 @@ export class UserBlockedException extends UnauthorizedException {
   }
 }
 
-export class EmailNotVerifiedException extends UnauthorizedException {
+export class AccountNotVerified extends UnauthorizedException {
   constructor(status: UserStatus) {
     super('User needs to verify their email!');
   }
