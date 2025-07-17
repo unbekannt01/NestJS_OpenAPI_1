@@ -12,7 +12,6 @@ import { EmailServiceForOTP } from 'src/otp/services/email.service';
 import { MulterModule } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { Otp } from 'src/otp/entities/otp.entity';
-import { JwtService } from '@nestjs/jwt';
 import { CacheModule } from '@nestjs/cache-manager';
 import { Product } from 'src/products/entities/product.entity';
 import { AlsModule } from 'src/als/als.module';
@@ -41,7 +40,6 @@ import { AlsModule } from 'src/als/als.module';
     EmailServiceForVerifyMail,
     SmsService,
     RolesGuard,
-    JwtService,
   ],
   controllers: [UserController],
   exports: [
@@ -49,7 +47,6 @@ import { AlsModule } from 'src/als/als.module';
     EmailServiceForVerifyMail,
     EmailServiceForOTP,
     TypeOrmModule,
-    JwtService,
   ],
 })
 export class UserModule {}

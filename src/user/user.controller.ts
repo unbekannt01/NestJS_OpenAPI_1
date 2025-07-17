@@ -19,7 +19,6 @@ import {
 import { UserService } from './user.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtPayload } from 'src/auth/interfaces/jwt-payload.interface';
-import { JwtService } from '@nestjs/jwt';
 import { PaginationQueryDto } from './dto/pagination-query.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -35,10 +34,7 @@ interface MessageEvent {
 
 @Controller({ path: 'user', version: '1' })
 export class UserController {
-  constructor(
-    private readonly userService: UserService,
-    private readonly jwtService: JwtService,
-  ) {}
+  constructor(private readonly userService: UserService) {}
 
   @UseGuards(AuthGuard('jwt'))
   @Patch('update/:id')

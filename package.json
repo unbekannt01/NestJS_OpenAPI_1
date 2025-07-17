@@ -5,7 +5,7 @@
   "author": "Prashant",
   "private": true,
   "scripts": {
-    "build": "npm install && npm run build",
+    "build": "nest build",
     "copy-static": "copyfiles -u 1 client/**/* dist/client",
     "render-build": "npm ci && npx nest build",
     "start:local:normal": "cross-env NODE_ENV=local nest start",
