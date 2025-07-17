@@ -11,19 +11,6 @@ import { ValidationPipe, VersioningType } from '@nestjs/common';
 import * as compression from 'compression';
 import helmet from 'helmet';
 import * as bodyParser from 'body-parser';
-import * as dotenv from 'dotenv';
-import * as fs from 'fs';
-
-if (
-  process.env.NODE_ENV === 'development' &&
-  fs.existsSync('.env.development')
-) {
-  dotenv.config({ path: '.env.development' });
-} else if (process.env.NODE_ENV === 'local' && fs.existsSync('.env.local')) {
-  dotenv.config({ path: '.env.local' });
-} else {
-  dotenv.config();
-}
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {

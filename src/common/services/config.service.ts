@@ -19,6 +19,7 @@ export class ConfigService {
   public getValue(key: string, throwOnMissing = true): string {
     const value = this.env[key];
     if (!value && throwOnMissing) {
+      console.error(`Missing environment variable: ${key}`);
       throw new Error(`config error - missing env.${key}`);
     }
     return value!;
@@ -64,6 +65,7 @@ export class ConfigService {
 
 // Initialize config service with required variables
 const configService = new ConfigService(process.env).ensureValues([
+  'NODE_ENV',
   'DB_HOST',
   'DB_PORT',
   'DB_USER',
@@ -76,7 +78,7 @@ const configService = new ConfigService(process.env).ensureValues([
   'SMTP_PORT',
   'SMTP_USER',
   'SMTP_PASS',
-  'SMTP_SECURE'
+  'SMTP_SECURE',
 ]);
 
 export { configService };
