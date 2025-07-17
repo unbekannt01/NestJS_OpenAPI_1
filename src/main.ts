@@ -3,7 +3,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { config } from 'dotenv';
 import { ConfigService } from '@nestjs/config';
 import * as cookieParser from 'cookie-parser';
 import { NestExpressApplication } from '@nestjs/platform-express';
@@ -12,8 +11,19 @@ import { ValidationPipe, VersioningType } from '@nestjs/common';
 import * as compression from 'compression';
 import helmet from 'helmet';
 import * as bodyParser from 'body-parser';
+import * as dotenv from 'dotenv';
+import * as fs from 'fs';
 
-config();
+if (
+  process.env.NODE_ENV === 'development' &&
+  fs.existsSync('.env.development')
+) {
+  dotenv.config({ path: '.env.development' });
+} else if (process.env.NODE_ENV === 'local' && fs.existsSync('.env.local')) {
+  dotenv.config({ path: '.env.local' });
+} else {
+  dotenv.config();
+}
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
