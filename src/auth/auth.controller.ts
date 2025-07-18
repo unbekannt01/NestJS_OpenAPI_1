@@ -32,6 +32,7 @@ import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import { memoryStorage } from 'multer';
 import { GatewayService } from 'src/gateway/gateway.service';
 import { UserService } from 'src/user/user.service';
+import { UserStatus } from 'src/user/entities/user.entity';
 
 @Controller({ path: 'auth', version: '1' })
 export class AuthController {
@@ -96,18 +97,18 @@ export class AuthController {
   @UsePipes(ValidationPipe)
   async login(
     @Body() login: LoginUserDto,
-  ): Promise<{ message: string; access_token: string; refresh_token: string }> {
+  ): Promise<{ message: string; access_token: string; refresh_token: string, status: UserStatus }> {
     try {
       const { user, role, access_token, refresh_token } =
         await this.authService.loginUser(login.identifier, login.password);
 
-      console.log('calling notifyUserLogin....!', user.email);
       this.gateWayService.notifyuserlogin(user.email);
 
       return {
         message: `${role} Login Successfully!`,
         access_token,
         refresh_token,
+        status: user.status,
       };
     } catch (error) {
       throw new BadRequestException(error.message || 'Login failed');

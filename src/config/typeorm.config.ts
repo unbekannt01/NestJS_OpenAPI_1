@@ -1,10 +1,13 @@
 import { DataSourceOptions } from 'typeorm';
 import { join } from 'path';
-import { registerAs } from '@nestjs/config';
 import { configService } from 'src/common/services/config.service';
+import { registerAs } from '@nestjs/config';
 
 export const dataSourceOptions = (): DataSourceOptions => {
+  const nodeEnv = process.env.NODE_ENV || 'local';
   const useDatabaseUrl = configService.getValue('DATABASE_URL', false);
+
+  console.log('Current NODE_ENV:', nodeEnv);
   console.log('Using DATABASE_URL:', !!useDatabaseUrl);
 
   const baseConfig = {
@@ -13,10 +16,12 @@ export const dataSourceOptions = (): DataSourceOptions => {
     synchronize: false,
     migrationsTableName: 'typeorm_migrations',
     migrationsRun: false,
-    // logging: configService.getValue('TYPEORM_LOGGING', false) === 'true',
+    logging: nodeEnv === 'local' ? true : false,
   };
 
-  if (useDatabaseUrl) {
+  // For development environments with DATABASE_URL (like Railway)
+  if (useDatabaseUrl && nodeEnv !== 'local') {
+    console.log('Using DATABASE_URL configuration for environment:', nodeEnv);
     return {
       type: (configService.getValue('DB_TYPE', false) as any) || 'postgres',
       url: useDatabaseUrl,
@@ -27,6 +32,8 @@ export const dataSourceOptions = (): DataSourceOptions => {
     };
   }
 
+  // For local development
+  console.log('Using individual DB config for local environment');
   return {
     type: (configService.getValue('DB_TYPE', false) as any) || 'postgres',
     host: configService.getValue('DB_HOST'),

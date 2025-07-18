@@ -62,6 +62,7 @@ export class AuthService {
     refresh_token: string;
     role: UserRole;
     user: User;
+    status: UserStatus;
   }> {
     const user = await this.userRepository.findOne({
       where: [
@@ -71,7 +72,7 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new NotFoundException();
+      throw new NotFoundException('User not found');
     }
 
     // Check if user is suspended
@@ -87,14 +88,15 @@ export class AuthService {
 
     try {
       await this.verifyPassword(password, user.password);
+
+      // Reset login attempts & mark as logged in
       user.loginAttempts = 0;
       user.is_logged_in = true;
       await this.userRepository.save(user);
 
-      const role = user.role;
       const token = await this.generateUserToken(user.id, user.role);
 
-      // Notify user of successful login via WebSocket
+      // Notify user of successful login
       this.notificationsGateway.notifyLoginAttempt(
         user.id,
         'Unknown Location',
@@ -103,12 +105,18 @@ export class AuthService {
         user.email,
       );
 
-      return { message: `${role} Login Successfully!`, role, ...token, user };
+      return {
+        message: `${user.role} Login Successfully!`,
+        access_token: token.access_token,
+        refresh_token: token.refresh_token,
+        status: user.status,
+        role: user.role,
+        user,
+      };
     } catch (error) {
       user.loginAttempts = (user.loginAttempts || 0) + 1;
       await this.userRepository.save(user);
 
-      // Notify user of failed login attempt
       this.notificationsGateway.notifyLoginAttempt(
         user.id,
         'Unknown Location',
@@ -120,7 +128,6 @@ export class AuthService {
       if (user.loginAttempts >= 10) {
         await this.userRepository.update(user.id, { isBlocked: true });
 
-        // Send real-time notification for account blocking
         this.notificationsGateway.notifyAccountBlocked(
           user.id,
           'Account blocked due to too many failed login attempts',

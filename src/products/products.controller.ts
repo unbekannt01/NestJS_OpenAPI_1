@@ -83,6 +83,7 @@ export class ProductsController {
     return this.productsService.getFeaturedProducts(limit);
   }
 
+  @UseGuards(AuthGuard('jwt'))
   @Get(':id')
   @Public()
   findOne(@Param('id') id: string) {

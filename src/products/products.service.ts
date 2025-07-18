@@ -313,22 +313,51 @@ export class ProductsService {
   async findOne(id: string) {
     const product = await this.productRepository.findOne({
       where: { id },
-      relations: ['brand', 'category', 'specifications', 'reviews'],
+      relations: ['brand', 'subCategory'],
     });
 
     if (!product) {
       throw new NotFoundException('Product not found');
     }
 
-    return product;
+    return {
+      ...product,
+      brandName: product.brand?.name ?? '',
+      subCategoryName: product.subCategory?.name ?? '',
+    };
+  }
+
+   async findOneWithDetails(id: number): Promise<any> {
+    const product = await this.productRepository
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.brand', 'brand')
+      .leftJoinAndSelect('product.subCategory', 'subCategory')
+      .where('product.id = :id', { id })
+      .getOne();
+
+    if (!product) {
+      throw new NotFoundException(`Product with ID ${id} not found`);
+    }
+
+    // Return with computed fields for your frontend
+    return {
+      id: product.id,
+      name: product.name,
+      model: product.model,
+      price: product.price,
+      originalPrice: product.originalPrice,
+      stockQuantity: product.stockQuantity,
+      brandId: product.brandId,
+      brandName: product.brand?.name || '',
+      subCategoryId: product.subCategoryId,
+      subCategoryName: product.subCategory?.name || '',
+      createdAt: product.createdAt,
+      updatedAt: product.updatedAt,
+    };
   }
 
   async findById(id: string) {
     return await this.productRepository.findOne({ where: { id } });
-  }
-
-  async findNameById(id: string) {
-    const name = await this.productRepository.findOne({ where: { id } });
   }
 
   async update(id: string, updateProductDto: UpdateProductDto) {
@@ -336,7 +365,8 @@ export class ProductsService {
       throw new BadRequestException('No fields provided for update');
     }
 
-    return await this.productRepository.update(id, updateProductDto);
+    await this.productRepository.update(id, updateProductDto);
+    return { message: 'Product Update Successfully...!' };
   }
 
   async remove(id: string) {

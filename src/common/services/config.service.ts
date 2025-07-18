@@ -1,6 +1,6 @@
-import * as fs from 'fs';
-import * as path from 'path';
 import { config } from 'dotenv';
+import * as path from 'path';
+import * as fs from 'fs';
 
 const nodeEnv = process.env.NODE_ENV || 'local';
 const envFilePath = path.resolve(process.cwd(), `.env.${nodeEnv}`);
@@ -19,7 +19,9 @@ export class ConfigService {
   public getValue(key: string, throwOnMissing = true): string {
     const value = this.env[key];
     if (!value && throwOnMissing) {
-      console.error(`Missing environment variable: ${key}`);
+      console.error(
+        `Missing environment variable: ${key} in ${process.env.NODE_ENV || 'local'} environment`,
+      );
       throw new Error(`config error - missing env.${key}`);
     }
     return value!;
@@ -41,44 +43,36 @@ export class ConfigService {
   public getBoolean(key: string): boolean {
     return this.getValue(key) === 'true';
   }
-
-  // public isProduction() {
-  //     const mode = this.getValue('MODE', false);
-  //     return mode?.toLowerCase() === 'production';
-  // }
-
-  // public getTypeOrmConfig(): TypeOrmModuleOptions {
-  //     return {
-  //         type: 'postgres',
-  //         host: this.getValue('DB_HOST'),
-  //         port: parseInt(this.getValue('DB_PORT')),
-  //         username: this.getValue('DB_USER_NAME'),
-  //         password: this.getValue('DB_PASSWORD'),
-  //         database: this.getValue('DB_DATABASE'),
-  //         entities: [],
-  //         autoLoadEntities: true,
-  //         logging: true,
-  //         synchronize: false,
-  //     };
-  // }
 }
 
-// Initialize config service with required variables
-const configService = new ConfigService(process.env).ensureValues([
-  'NODE_ENV',
-  'DB_HOST',
-  'DB_PORT',
-  'DB_USER',
-  'DB_PASS',
-  'DB_NAME',
-  'JWT_SECRET',
-  'JWT_EXPIRES_IN',
-  'JWT_REFRESH_EXPIRES_IN',
-  'SMTP_HOST',
-  'SMTP_PORT',
-  'SMTP_USER',
-  'SMTP_PASS',
-  'SMTP_SECURE',
-]);
+const getRequiredEnvVars = () => {
+  const nodeEnv = process.env.NODE_ENV || 'local';
+
+  const baseVars = [
+    'NODE_ENV',
+    'JWT_SECRET',
+    'JWT_EXPIRES_IN',
+    'JWT_REFRESH_EXPIRES_IN',
+    'SMTP_HOST',
+    'SMTP_PORT',
+    'SMTP_USER',
+    'SMTP_PASS',
+    'SMTP_SECURE',
+  ];
+
+  if (nodeEnv === 'local') {
+    return [...baseVars, 'DB_HOST', 'DB_PORT', 'DB_USER', 'DB_PASS', 'DB_NAME'];
+  } else {
+    // For development, DATABASE_URL might be used instead
+    return [
+      ...baseVars,
+      // DATABASE_URL is optional, will fall back to individual DB vars if not present
+    ];
+  }
+};
+
+const configService = new ConfigService(process.env).ensureValues(
+  getRequiredEnvVars(),
+);
 
 export { configService };

@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -33,12 +34,22 @@ export class CategoriesService {
   }
 
   async createSubCategory(dto: CreateSubCategoryDto) {
-    const slug = this.generateSlug(dto.name);
-
     const category = await this.categoryRepository.findOne({
       where: { id: dto.categoryId },
     });
-    if (!category) throw new NotFoundException('Category not found');
+
+    if (!category) {
+      throw new NotFoundException('Category not found');
+    }
+
+    let slug = this.generateSlug(dto.name);
+    let counter = 1;
+
+    // Check if slug already exists and generate unique one
+    while (await this.subCategoryRepository.findOne({ where: { slug } })) {
+      slug = `${this.generateSlug(dto.name)}-${counter}`;
+      counter++;
+    }
 
     const subCategory = this.subCategoryRepository.create({
       ...dto,
@@ -86,9 +97,9 @@ export class CategoriesService {
   async findAll() {
     return this.categoryRepository.find({
       where: { isActive: true },
-      relations: ['subcategories', 'subcategories.products'],
-      order: { sortOrder: 'ASC', name: 'ASC' },
+      relations: ['subcategories'],
       select: ['id', 'name', 'description'],
+      order: { sortOrder: 'ASC', name: 'ASC' },
     });
   }
 

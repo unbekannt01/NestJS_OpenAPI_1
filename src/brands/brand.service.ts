@@ -31,6 +31,7 @@ export class BrandsService {
   async findAll() {
     return this.brandRepository.find({
       where: { isActive: true },
+      select: ['id', 'name'],
       order: { name: 'ASC' },
     });
   }
