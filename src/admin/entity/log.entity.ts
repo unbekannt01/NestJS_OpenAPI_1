@@ -22,9 +22,6 @@ export class RequestLog {
   @Column({ name: 'user_agent', nullable: true })
   userAgent: string;
 
-  @Column()
-  ip: string;
-
   @Column({ name: 'status_code' })
   statusCode: number;
 

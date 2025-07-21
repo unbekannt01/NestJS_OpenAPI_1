@@ -126,23 +126,23 @@ export class OrderService {
   }
 
   async getAllOrders(userId: string, page: number, limit: number) {
-  const [orders, total] = await this.orderRepository.findAndCount({
-    where: { user: { id: userId } },
-    relations: ['orderItems', 'orderItems.product'],
-    order: { createdAt: 'DESC' },
-    skip: (page - 1) * limit,
-    take: limit,
-  });
-  return {
-    orders,
-    pagination: {
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit),
-    },
-  };
-}
+    const [orders, total] = await this.orderRepository.findAndCount({
+      where: { user: { id: userId } },
+      relations: ['orderItems', 'orderItems.product'],
+      order: { createdAt: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+    return {
+      orders,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
 
   // async getAllOrders(page: number, limit: number) {
   //   const [orders, total] = await this.orderRepository.findAndCount({
@@ -184,6 +184,7 @@ export class OrderService {
   async confirmOrder(orderId: string, userId: string) {
     const order = await this.orderRepository.findOne({
       where: { id: orderId, user: { id: userId } },
+      relations: ['orderItems', 'user'],
     });
 
     if (!order) throw new NotFoundException('Order not found');
@@ -195,7 +196,13 @@ export class OrderService {
     await this.orderRepository.save(order);
 
     return {
-      data: order,
+      data: {
+        id: order.id,
+        orderNumber: order.orderNumber,
+        totalAmount: order.totalAmount,
+        status: order.status,
+        paymentStatus: order.paymentStatus,
+      },
       message: 'Order confirmed successfully',
     };
   }

@@ -12,8 +12,6 @@ export class CartService {
     private cartRepository: Repository<CartItem>,
     @InjectRepository(Product)
     private productRepository: Repository<Product>,
-    @InjectRepository(User)
-    private userRepository: Repository<User>,
   ) {}
 
   async getCart(userId: string) {

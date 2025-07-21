@@ -8,6 +8,8 @@ import {
   UseGuards,
   Req,
   Query,
+  ParseUUIDPipe,
+  Body,
 } from '@nestjs/common';
 import { CartService } from './cart.service';
 import { AuthGuard } from '@nestjs/passport';
@@ -26,8 +28,8 @@ export class CartController {
 
   @Post('add/:productId')
   addToCart(
-    @Param('productId') productId: string,
-    @Query('quantity') quantity: number,
+    @Param('productId', new ParseUUIDPipe()) productId: string,
+    @Body('quantity') quantity: number,
     @Req() req: Request,
   ) {
     const userId = req.user as { id: string };

@@ -9,7 +9,6 @@ import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { AdminService } from '../../admin/admin.service';
 import { Request } from 'express';
-import { UserId } from '../decorators/user-id.decorator';
 
 @Injectable()
 export class LoggerInterceptor implements NestInterceptor {
@@ -22,8 +21,7 @@ export class LoggerInterceptor implements NestInterceptor {
     const method = req.method;
     const url = req.originalUrl;
     const userAgent = req.get('user-agent') || '';
-    const ip = req.ip;
-    const startTime = Date.now();
+    const startTime = Date.now(); 
 
     return next.handle().pipe(
       tap(async () => {
@@ -41,7 +39,7 @@ export class LoggerInterceptor implements NestInterceptor {
             method,
             url,
             userAgent,
-            ip,
+            // ip,
             statusCode,
             responseTime: resTime,
             // user: user ? user : undefined
