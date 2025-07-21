@@ -1,25 +1,26 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
+import { configService } from 'src/common/services/config.service';
 
 @Injectable()
 export class EmailServiceForOTP {
-  constructor(private readonly configService: ConfigService) {}
+  constructor() {}
 
   async sendOtpEmail(email: string, otp: string, first_name: string) {
     try {
       const transporter = nodemailer.createTransport({
-        host: this.configService.get<string>('SMTP_HOST'),
-        port: parseInt(this.configService.get<string>('SMTP_PORT') || '587'),
-        secure: this.configService.get<string>('SMTP_SECURE') === 'true',
+        host: configService.getValue('SMTP_HOST'),
+        port: parseInt(configService.getValue('SMTP_PORT') || '587'),
+        secure: configService.getValue('SMTP_SECURE') === 'true',
         auth: {
-          user: this.configService.get<string>('SMTP_USER'),
-          pass: this.configService.get<string>('SMTP_PASS'),
+          user: configService.getValue('SMTP_USER'),
+          pass: configService.getValue('SMTP_PASS'),
         },
       });
 
       const mailOptions = {
-        from: `"Testing_Purpose" <${this.configService.get<string>('SMTP_USER')}>`,
+        from: `"Testing_Purpose" <${configService.getValue('SMTP_USER')}>`,
         to: email,
         subject: '🔐 Your OTP for Secure Login',
         text: `Your OTP for verification is ${otp}.`,

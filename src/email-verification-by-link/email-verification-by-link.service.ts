@@ -87,8 +87,7 @@ export class EmailVerificationByLinkService {
     // Create new verification token
     const token = await this.generateEmailVerificationToken(user);
 
-    const FRONTEND_BASE_URL =
-      configService.getValue('FRONTEND_BASE_URL');
+    const FRONTEND_BASE_URL = configService.getValue('FRONTEND_BASE_URL');
     if (!FRONTEND_BASE_URL) {
       throw new Error(
         'FRONTEND_BASE_URL is not defined in environment variables',

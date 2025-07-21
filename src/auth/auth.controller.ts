@@ -26,8 +26,7 @@ import { Public } from 'src/common/decorators/public.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '@nestjs/passport';
 import { Admin } from 'src/common/decorators/admin.decorator';
-import { Request } from 'express';
-import { Express } from 'express';
+import { Request, Express } from 'express';
 import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import { memoryStorage } from 'multer';
 import { GatewayService } from 'src/gateway/gateway.service';
@@ -73,6 +72,7 @@ export class AuthController {
     return await this.authService.registerUsingEmailToken(registerDto, file);
   }
 
+  @Throttle({ default: { limit: 1, ttl: 60000 } })
   @Version('3')
   @HttpCode(HttpStatus.CREATED)
   @Public()
@@ -97,7 +97,12 @@ export class AuthController {
   @UsePipes(ValidationPipe)
   async login(
     @Body() login: LoginUserDto,
-  ): Promise<{ message: string; access_token: string; refresh_token: string, status: UserStatus }> {
+  ): Promise<{
+    message: string;
+    access_token: string;
+    refresh_token: string;
+    status: UserStatus;
+  }> {
     try {
       const { user, role, access_token, refresh_token } =
         await this.authService.loginUser(login.identifier, login.password);

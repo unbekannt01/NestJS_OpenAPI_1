@@ -274,6 +274,9 @@ export class AuthService {
       avatarUrl = uploadResult.url;
     }
 
+    const otpCode = this.otpService.generateOtp();
+    const otpExpiration = this.otpService.getOtpExpiration();
+
     let otp: Otp;
 
     if (user) {
@@ -282,8 +285,8 @@ export class AuthService {
       }
 
       otp = this.otpRepository.create({
-        otp: this.otpService.generateOtp(),
-        otpExpiration: this.otpService.getOtpExpiration(),
+        otp: otpCode,
+        otpExpiration,
         otp_type: OtpType.EMAIL_VERIFICATION,
         user,
       });
@@ -305,8 +308,8 @@ export class AuthService {
       const savedUser = await this.userRepository.save(user);
 
       otp = this.otpRepository.create({
-        otp: this.otpService.generateOtp(),
-        otpExpiration: this.otpService.getOtpExpiration(),
+        otp: otpCode,
+        otpExpiration,
         otp_type: OtpType.EMAIL_VERIFICATION,
         user: savedUser,
       });
@@ -316,7 +319,7 @@ export class AuthService {
 
     await this.emailServiceForOTP.sendOtpEmail(
       user.email,
-      otp.otp || '',
+      otpCode,
       user.first_name,
     );
 
@@ -425,6 +428,7 @@ export class AuthService {
     }
 
     return {
+      status: UserStatus,
       message: `${user.role} registered successfully. Verification link sent to email.`,
     };
   }

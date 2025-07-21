@@ -1,10 +1,9 @@
 import {
   BadRequestException,
-  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { IsNull, type Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Category } from './entities/categories.entity';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
@@ -120,7 +119,6 @@ export class CategoriesService {
   }
 
   async findCategoryOrSubcategoryById(id: string) {
-    // Try to find in Category first
     const category = await this.categoryRepository.findOne({
       where: { id },
       select: ['id', 'name', 'description'],
@@ -133,7 +131,6 @@ export class CategoriesService {
       };
     }
 
-    // If not found, try in SubCategory
     const subcategory = await this.subCategoryRepository.findOne({
       where: { id },
       select: ['id', 'name', 'description', 'categoryId'],

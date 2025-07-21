@@ -7,11 +7,11 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { User, UserStatus } from 'src/user/entities/user.entity';
 import { DeleteResult, Repository } from 'typeorm';
-import { Otp } from './entities/otp.entity';
-import { OtpType } from './entities/otp.entity';
+import { Otp, OtpType } from './entities/otp.entity';
 import { LessThan } from 'typeorm';
 import { otpExpiryConfig } from 'src/config/email.config';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { EmailServiceForOTP } from './services/email.service';
 
 @Injectable()
 export class OtpService {
@@ -20,6 +20,7 @@ export class OtpService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(Otp)
     private readonly otpRepository: Repository<Otp>,
+    private readonly email: EmailServiceForOTP
   ) {}
 
   async verifyOtp(otp: string, email: string) {
@@ -87,12 +88,11 @@ export class OtpService {
       };
     }
 
-    // Generate and save the new OTP
-    const otp = this.generateOtp();
+    const otpCode = this.generateOtp();
     const otpExpiration = this.getOtpExpiration();
 
     const newOtp = this.otpRepository.create({
-      otp,
+      otp: otpCode,
       otpExpiration,
       otp_type: otpType,
       user,
@@ -100,8 +100,19 @@ export class OtpService {
 
     await this.otpRepository.save(newOtp);
 
+    // ✅ Send email based on type
+    await this.email.sendOtpEmail(
+      user.email,
+      otpCode,
+      user.first_name,
+    );
+
     return {
-      message: `New OTP sent to your email for ${otpType === OtpType.EMAIL_VERIFICATION ? 'Email Verification' : 'Forgot Password'}!`,
+      message: `New OTP sent to your email for ${
+        otpType === OtpType.EMAIL_VERIFICATION
+          ? 'Email Verification'
+          : 'Forgot Password'
+      }!`,
     };
   }
 
