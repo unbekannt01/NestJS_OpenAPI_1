@@ -14,6 +14,7 @@ import {
 import { CartService } from './cart.service';
 import { AuthGuard } from '@nestjs/passport';
 import { Request } from 'express';
+import { Throttle } from '@nestjs/throttler';
 
 @UseGuards(AuthGuard('jwt'))
 @Controller({ path: 'cart', version: '1' })
@@ -26,6 +27,7 @@ export class CartController {
     return this.cartService.getCart(userId);
   }
 
+  @Throttle({ default: { limit: 1, ttl: 30000 }})
   @Post('add/:productId')
   addToCart(
     @Param('productId', new ParseUUIDPipe()) productId: string,

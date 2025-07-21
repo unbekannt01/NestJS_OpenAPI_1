@@ -18,12 +18,14 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { Admin } from 'src/common/decorators/admin.decorator';
 import { Request } from 'express';
+import { Throttle } from '@nestjs/throttler';
 
 @Controller({ path: 'orders', version: '1' })
 @UseGuards(AuthGuard('jwt'))
 export class OrderController {
   constructor(private readonly orderService: OrderService) {}
 
+  @Throttle({ default: { limit: 1, ttl: 30000 }})
   @Post('create')
   createOrder(@Body() createOrderDto: CreateOrderDto, @Req() req: Request) {
     const userId = (req.user as { id: string })?.id;
@@ -85,7 +87,7 @@ export class OrderController {
 
   @Delete(':id')
   deleteOrder(@Req() req: Request, @Param('id') orderId: string) {
-    const userId = (req.user as { id: string })?.id;
+    const userId = (req.user as { id: string }).id;
     return this.orderService.deleteOrder(orderId, userId);
   }
 }
