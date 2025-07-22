@@ -1,8 +1,4 @@
-import {
-  Module,
-  type MiddlewareConsumer,
-  type NestModule,
-} from '@nestjs/common';
+import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { ConfigModule } from '@nestjs/config';
@@ -39,8 +35,9 @@ import { CartModule } from './cart/cart.module';
 import { OrderModule } from './order/order.module';
 import { PaymentModule } from './payment/payment.module';
 import { ReviewModule } from './review/review.module';
-import { FileUploadUsingSupabaseModule } from './file-upload-using-supabase/file-upload-using-supabase.module';
 import { WebSocketsModule } from './websockets/websockets.module';
+import { FileUploadUsingCloudinaryModule } from './file-upload-using-cloudinary/file-upload-using-cloudinary.module';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
   imports: [
@@ -90,7 +87,8 @@ import { WebSocketsModule } from './websockets/websockets.module';
     FileUploadModule,
     ProductsModule,
     AdminModule,
-    FileUploadUsingSupabaseModule,
+    // FileUploadUsingSupabaseModule,
+    FileUploadUsingCloudinaryModule,
     WebSocketsModule,
     TerminusModule,
     GatewayModule,
@@ -100,6 +98,7 @@ import { WebSocketsModule } from './websockets/websockets.module';
     OrderModule,
     PaymentModule,
     ReviewModule,
+    ChatModule
   ],
   providers: [
     SmsService,

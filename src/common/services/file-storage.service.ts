@@ -6,6 +6,7 @@ import {
 } from '../../file-upload/providers/IStorageProvider';
 import { FileUploadService } from 'src/file-upload/file-upload.service';
 import { SupabaseService } from './supabase.service';
+import { CloudinaryService } from './cloudinary.service';
 
 @Injectable()
 export class FileStorageService implements IStorageProvider {
@@ -13,15 +14,16 @@ export class FileStorageService implements IStorageProvider {
 
   constructor(
     private readonly configService: ConfigService,
-    private readonly supabase: SupabaseService,
+    // private readonly supabase: SupabaseService,
+    private readonly cloudinary: CloudinaryService,
     private readonly local: FileUploadService,
   ) {
     const driver = this.configService.get<string>('STORAGE_DRIVER');
     const env = this.configService.get<string>('NODE_ENV');
 
     switch (driver) {
-      case 'supabase':
-        this.provider = this.supabase;
+      case 'cloudinary':
+        this.provider = this.cloudinary;
         break;
       case 'local':
         this.provider = this.local;
@@ -29,7 +31,7 @@ export class FileStorageService implements IStorageProvider {
       case undefined:
       case null:
         if (env === 'development') {
-          this.provider = this.supabase;
+          this.provider = this.cloudinary;
           break;
         } else {
           throw new Error(`No STORAGE_DRIVER set and not in development mode.`);

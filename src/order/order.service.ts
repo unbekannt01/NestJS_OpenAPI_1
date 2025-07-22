@@ -125,14 +125,17 @@ export class OrderService {
     };
   }
 
-  async getAllOrders(userId: string, page: number, limit: number) {
+  async getAllOrders(page: number, limit: number, userId?: string) {
+    const whereCondition = userId ? { user: { id: userId } } : {};
+
     const [orders, total] = await this.orderRepository.findAndCount({
-      where: { user: { id: userId } },
+      where: whereCondition,
       relations: ['orderItems', 'orderItems.product'],
       order: { createdAt: 'DESC' },
       skip: (page - 1) * limit,
       take: limit,
     });
+
     return {
       orders,
       pagination: {

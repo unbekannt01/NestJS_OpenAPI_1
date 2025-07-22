@@ -9,6 +9,8 @@ import {
   UseGuards,
   Body,
   Req,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -17,8 +19,8 @@ import { ProductSearchDto } from './dto/product-search.dto';
 import { Public } from 'src/common/decorators/public.decorator';
 import { AuthGuard } from '@nestjs/passport';
 import { Request } from 'express';
-import { Throttle } from '@nestjs/throttler';
 import { Admin } from 'src/common/decorators/admin.decorator';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller({ path: 'products', version: '1' })
 export class ProductsController {
@@ -103,8 +105,15 @@ export class ProductsController {
 
   @Patch(':id')
   @UseGuards(AuthGuard('jwt'))
-  update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto) {
-    return this.productsService.update(id, updateProductDto);
+  @UseInterceptors(FileInterceptor('file'))
+  update(
+    @Param('id') id: string,
+    @Body() updateProductDto: UpdateProductDto,
+    @UploadedFile() file: Express.Multer.File,
+    @Req() req: Request,
+  ) {
+    const user = req.user as { userId: string };
+    return this.productsService.update(id, user.userId, updateProductDto, file);
   }
 
   @Delete(':id')

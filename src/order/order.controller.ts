@@ -28,7 +28,7 @@ export class OrderController {
   @Throttle({ default: { limit: 1, ttl: 30000 }})
   @Post('create')
   createOrder(@Body() createOrderDto: CreateOrderDto, @Req() req: Request) {
-    const userId = (req.user as { id: string })?.id;
+    const userId = (req.user as { id: string }).id;
     return this.orderService.createOrder(userId, createOrderDto);
   }
 
@@ -38,35 +38,31 @@ export class OrderController {
     @Query('page') page = 1,
     @Query('limit') limit = 10,
   ) {
-    const userId = (req.user as { id: string })?.id;
+    const userId = (req.user as { id: string }).id;
     return this.orderService.getUserOrders(userId, page, limit);
   }
 
-  @Get('history') // You can choose a different path, e.g., 'all-orders'
+  @Get('history')
   async getOrderHistory(
-    @Req() req: Request,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
   ) {
-    const userId = (req.user as { id: string })?.id;
-    return this.orderService.getAllOrders(userId, page, limit);
+    return this.orderService.getAllOrders(page, limit);
   }
 
   @Get(':id')
   getOrder(@Param('id') id: string, @Req() req: Request) {
-    const userId = (req.user as { id: string })?.id;
+    const userId = (req.user as { id: string }).id;
     return this.orderService.getOrder(id, userId);
   }
 
   @Admin()
   @Get()
   getAllOrders(
-    @Req() req: Request,
     @Query('page') page = 1,
     @Query('limit') limit = 20,
   ) {
-    const userId = (req.user as { id: string })?.id;
-    return this.orderService.getAllOrders(userId, page, limit);
+    return this.orderService.getAllOrders(page, limit);
   }
 
   @Admin()

@@ -12,6 +12,7 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductSearchDto } from './dto/product-search.dto';
 import { SubCategory } from 'src/categories/entities/sub-categories.entity';
+import { FileUploadUsingCloudinaryService } from 'src/file-upload-using-cloudinary/file-upload-using-cloudinary.service';
 
 @Injectable()
 export class ProductsService {
@@ -24,6 +25,7 @@ export class ProductsService {
     private readonly categoryRepository: Repository<SubCategory>,
     @InjectRepository(Brand)
     private readonly brandRepository: Repository<Brand>,
+    private readonly cloudinaryService: FileUploadUsingCloudinaryService,
   ) {}
 
   async createProduct(dto: CreateProductDto, userId: string) {
@@ -327,7 +329,7 @@ export class ProductsService {
     };
   }
 
-   async findOneWithDetails(id: number): Promise<any> {
+  async findOneWithDetails(id: number): Promise<any> {
     const product = await this.productRepository
       .createQueryBuilder('product')
       .leftJoinAndSelect('product.brand', 'brand')
@@ -360,9 +362,27 @@ export class ProductsService {
     return await this.productRepository.findOne({ where: { id } });
   }
 
-  async update(id: string, updateProductDto: UpdateProductDto) {
+  async update(
+    id: string,
+    userId: string,
+    updateProductDto: UpdateProductDto,
+    file?: Express.Multer.File,
+  ) {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User does not exist');
+    }
+
     if (!updateProductDto || Object.keys(updateProductDto).length === 0) {
       throw new BadRequestException('No fields provided for update');
+    }
+
+    if (file) {
+      const uploadResult = await this.cloudinaryService.uploadFile(
+        file,
+        userId,
+      );
+      updateProductDto.images = [uploadResult.file];
     }
 
     await this.productRepository.update(id, updateProductDto);
