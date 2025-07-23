@@ -27,7 +27,7 @@ export class CartController {
     return this.cartService.getCart(userId);
   }
 
-  @Throttle({ default: { limit: 1, ttl: 30000 }})
+  @Throttle({ default: { limit: 1, ttl: 1500 }})
   @Post('add/:productId')
   addToCart(
     @Param('productId', new ParseUUIDPipe()) productId: string,
