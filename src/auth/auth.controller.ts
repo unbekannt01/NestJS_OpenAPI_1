@@ -27,7 +27,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '@nestjs/passport';
 import { Admin } from 'src/common/decorators/admin.decorator';
 import { Request, Express } from 'express';
-import { SkipThrottle, Throttle } from '@nestjs/throttler';
+import { Throttle } from '@nestjs/throttler';
 import { memoryStorage } from 'multer';
 import { GatewayService } from 'src/gateway/gateway.service';
 import { UserService } from 'src/user/user.service';
@@ -89,8 +89,6 @@ export class AuthController {
     return await this.authService.simpleRegister(registerDto, file);
   }
 
-  @Throttle({ default: { limit: 2, ttl: 30000 } })
-  @SkipThrottle()
   @HttpCode(HttpStatus.OK)
   @Public()
   @Post('login')

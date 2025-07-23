@@ -97,7 +97,7 @@ import { ChatModule } from './chat/chat.module';
     OrderModule,
     PaymentModule,
     ReviewModule,
-    ChatModule
+    ChatModule,
   ],
   providers: [
     SmsService,

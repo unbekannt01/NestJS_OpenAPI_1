@@ -1,4 +1,24 @@
+import { BadRequestException } from '@nestjs/common';
 import { extname } from 'path';
+
+export function validateAvatarFile(file: Express.Multer.File) {
+  const MAX_AVATAR_SIZE = 1 * 1024 * 1024; // 1MB
+  const allowedImageMime = /(jpg|jpeg|png|webp)$/;
+
+  if (!file || !file.buffer) {
+    throw new BadRequestException('Uploaded file is empty or invalid');
+  }
+
+  if (file.size > MAX_AVATAR_SIZE) {
+    throw new BadRequestException('Avatar must be less than 1MB in size.');
+  }
+
+  if (!file.mimetype.match(allowedImageMime)) {
+    throw new BadRequestException(
+      'Only JPG, JPEG, PNG, or WEBP image formats are allowed.',
+    );
+  }
+}
 
 export const editFileName = (req, file, callback) => {
   const name = file.originalname.split('.')[0];

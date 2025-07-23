@@ -33,6 +33,7 @@ import * as ms from 'ms';
 import { FileStorageService } from 'src/common/services/file-storage.service';
 import { NotificationsGateway } from 'src/websockets/notifications.gateway';
 import { CloudinaryService } from 'src/common/services/cloudinary.service';
+import { validateAvatarFile } from 'src/common/utils/file-upload.utils';
 // import { NotificationsGateway } from 'src/websockets/notifications.gateway';
 
 @Injectable()
@@ -212,6 +213,7 @@ export class AuthService {
     const savedUser = await this.userRepository.save(user);
 
     if (file && file.buffer) {
+      validateAvatarFile(file);
       const uploadResult = await this.cloudinaryService.upload(file, 'avatar');
       savedUser.avatar = uploadResult.url;
       await this.userRepository.save(savedUser);
@@ -261,6 +263,7 @@ export class AuthService {
     let avatarUrl: string | undefined = undefined;
 
     if (file) {
+      validateAvatarFile(file);
       if (!file.buffer) {
         throw new BadRequestException('Uploaded file is empty or invalid');
       }
@@ -352,6 +355,7 @@ export class AuthService {
     let avatarUrl: string | undefined = undefined;
 
     if (file) {
+      validateAvatarFile(file);
       if (!file.buffer) {
         throw new BadRequestException('Uploaded file is empty or invalid');
       }
@@ -371,7 +375,6 @@ export class AuthService {
         email: normalizedEmail,
         userName: normalizedUserName,
         password: hashedPassword,
-        // avatar: file ? file.filename.replace(/\\/g, '/') : undefined,
         avatar: avatarUrl,
         status: UserStatus.INACTIVE,
         role: UserRole.USER,

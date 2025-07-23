@@ -23,7 +23,6 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe());
   app.use(helmet());
   app.use(compression());
-  app.use(cors());
   // app.useGlobalFilters(new AllExceptionsFilter());
 
   app.enableVersioning({
@@ -58,20 +57,28 @@ async function bootstrap() {
   app.use(cookieParser());
 
   app.enableCors({
-    origin: '*',
+    origin: 'http://localhost:5173',
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
-  app.use('/v1/payment/webhook', bodyParser.raw({ type: 'application/json' }));
+  app.use((req, res, next) => {
+    res.header('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+    res.header('Cross-Origin-Embedder-Policy', 'unsafe-none');
+    next();
+  });
 
-  app.use(
-    helmet.contentSecurityPolicy({
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'"],
-      },
-    }),
-  );
+  // app.use('/v1/payment/webhook', bodyParser.raw({ type: 'application/json' }));
+
+  // app.use(
+  //   helmet.contentSecurityPolicy({
+  //     directives: {
+  //       defaultSrc: ["'self'"],
+  //       scriptSrc: ["'self'"],
+  //     },
+  //   }),
+  // );
 
   // if (helmet) {
   //   app.use(

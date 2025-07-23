@@ -27,10 +27,8 @@ export class LoginUsingGoogleController {
     const { access_token, refresh_token, ...result } =
       await this.loginUsingGoogleService.googleLogin(googleLoginDto);
 
-    // Set access token in HTTP-only cookie
     response.cookie('access_token', access_token, {
       httpOnly: true,
-      // secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 15 * 60 * 1000,
       path: '/',

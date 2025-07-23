@@ -22,7 +22,6 @@ export class CloudinaryService implements IStorageProvider {
     file: Express.Multer.File,
     folder = 'uploads',
   ): Promise<UploadResult> {
-    // Validate file and buffer first
     if (!file || !file.buffer) {
       console.error('Invalid file or missing buffer:', file);
       throw new Error('Invalid file or missing buffer.');

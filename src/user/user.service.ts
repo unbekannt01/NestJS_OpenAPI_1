@@ -17,6 +17,7 @@ import { CloudinaryService } from 'src/common/services/cloudinary.service';
 import { plainToInstance } from 'class-transformer';
 import { UserResponseDto } from './dto/user-response.dto';
 import { extractPublicId } from 'src/common/utils/resource-type.util';
+import { validateAvatarFile } from 'src/common/utils/file-upload.utils';
 
 @Injectable()
 export class UserService {
@@ -166,6 +167,7 @@ export class UserService {
     }
 
     if (avatarFile) {
+      validateAvatarFile(avatarFile);
       const result = await this.cloudinaryService.upload(avatarFile, 'avatars');
       avatarUrl = result.url;
     }
