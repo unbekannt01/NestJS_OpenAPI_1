@@ -33,7 +33,6 @@ export class NotificationsGateway
 {
   @WebSocketServer()
   server: Server;
-
   private readonly logger = new Logger(NotificationsGateway.name);
   private connectedUsers = new Map<string, ConnectedUser>();
 

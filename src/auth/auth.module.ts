@@ -21,7 +21,8 @@ import { FileUploadService } from 'src/file-upload/file-upload.service';
 import { UploadFile } from 'src/file-upload/entities/file-upload.entity';
 import { SupabaseService } from 'src/common/services/supabase.service';
 import { WebSocketsModule } from 'src/websockets/websockets.module';
-// import { WebSocketsModule } from 'src/websockets/websockets.module';
+import { FileUploadUsingCloudinaryService } from 'src/file-upload-using-cloudinary/file-upload-using-cloudinary.service';
+import { CloudinaryService } from 'src/common/services/cloudinary.service';
 
 @Module({
   imports: [
@@ -57,7 +58,9 @@ import { WebSocketsModule } from 'src/websockets/websockets.module';
     FileUploadService,
     SupabaseService,
     GatewayService,
+    CloudinaryService,
+    FileUploadUsingCloudinaryService
   ],
-  exports: [AuthService, EmailServiceForSupension, JwtModule],
+  exports: [AuthService, EmailServiceForSupension, JwtModule, FileUploadUsingCloudinaryService, CloudinaryService],
 })
 export class AuthModule {}

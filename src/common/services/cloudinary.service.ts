@@ -18,44 +18,49 @@ export class CloudinaryService implements IStorageProvider {
     });
   }
 
-  async upload(file: Express.Multer.File): Promise<UploadResult> {
-    const mime = file.mimetype;
-
-    let resourceType = inferResourceType(mime);
-
-    if (mime.startsWith('video')) {
-      resourceType = 'video';
-    } else if (
-      mime === 'application/pdf' ||
-      mime === 'application/msword' ||
-      mime ===
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-      mime === 'application/zip' ||
-      mime === 'application/octet-stream'
-    ) {
-      resourceType = 'raw';
+  async upload(
+    file: Express.Multer.File,
+    folder = 'uploads',
+  ): Promise<UploadResult> {
+    // Validate file and buffer first
+    if (!file || !file.buffer) {
+      console.error('Invalid file or missing buffer:', file);
+      throw new Error('Invalid file or missing buffer.');
     }
+
+    const mime = file.mimetype;
+    const resourceType = inferResourceType(mime);
+
+    console.log('File received in CloudinaryService:', {
+      originalname: file.originalname,
+      mimetype: file.mimetype,
+      size: file.size,
+      hasBuffer: !!file.buffer,
+    });
 
     const result = await new Promise<UploadResult>((resolve, reject) => {
       const upload = cloudinary.uploader.upload_stream(
         {
-          folder: 'uploads',
+          folder,
           resource_type: resourceType,
         },
         (error, result) => {
           if (error) return reject(error);
           if (!result)
             return reject(new Error('Upload failed: result is undefined'));
+
           resolve({
             url: result.secure_url,
             publicId: result.public_id,
-            resourceType: resourceType,
+            resourceType,
           });
         },
       );
+
       toStream(file.buffer).pipe(upload);
     });
-    console.log('Uploaded To Cloudinary...!');
+
+    console.log(`Uploaded to Cloudinary in folder "${folder}"`);
     return result;
   }
 

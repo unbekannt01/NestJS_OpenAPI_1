@@ -2,7 +2,6 @@ import {
   Controller,
   Body,
   Get,
-  NotFoundException,
   Param,
   UseGuards,
   Response as Res,
@@ -27,6 +26,8 @@ import { Public } from 'src/common/decorators/public.decorator';
 import { CurrentUser } from 'src/common/decorators/user.decorator';
 import { User } from './entities/user.entity';
 import { interval, map, Observable } from 'rxjs';
+import { Request } from 'express';
+import { memoryStorage } from 'multer';
 
 interface MessageEvent {
   data: string | object;
@@ -36,32 +37,20 @@ interface MessageEvent {
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  @UseGuards(AuthGuard('jwt'))
   @Patch('update/:id')
-  @UseInterceptors(FileInterceptor('avatar'))
+  @UseGuards(AuthGuard('jwt'))
+  @UseInterceptors(FileInterceptor('avatar', { storage: memoryStorage() }))
   async updateUser(
-    @Param(
-      'id',
-      new ParseUUIDPipe({
-        version: '4',
-        errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE,
-      }),
-    )
-    id: string,
+    @Param('id') id: string,
     @Body() updateUserDto: UpdateUserDto,
     @UploadedFile() avatarFile: Express.Multer.File,
     @Req() req: Request & { user: JwtPayload },
   ) {
     if (req.user.id !== id) {
-      throw new UnauthorizedException(
-        'You are not authorized to update profile...!',
-      );
+      throw new UnauthorizedException('Not authorized');
     }
-    return await this.userService.updateUser(
-      req.user.id,
-      updateUserDto,
-      avatarFile,
-    );
+
+    return await this.userService.updateUser(id, updateUserDto, avatarFile);
   }
 
   // @UseGuards(AuthGuard('jwt'))
@@ -129,5 +118,11 @@ export class UserController {
         data: 'Hello Buddy...!' + num,
       })),
     );
+  }
+
+  @Get('admin-id')
+  @UseGuards(AuthGuard('jwt'))
+  getAdminId(@Req() req): string {
+    return req.user?.id;
   }
 }

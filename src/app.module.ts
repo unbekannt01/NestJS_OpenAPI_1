@@ -87,7 +87,6 @@ import { ChatModule } from './chat/chat.module';
     FileUploadModule,
     ProductsModule,
     AdminModule,
-    // FileUploadUsingSupabaseModule,
     FileUploadUsingCloudinaryModule,
     WebSocketsModule,
     TerminusModule,

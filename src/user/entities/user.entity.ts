@@ -16,6 +16,7 @@ import { CartItem } from 'src/cart/entities/cart.entity';
 import { Review } from 'src/review/entities/review.entity';
 import { Order } from 'src/order/entities/order.entity';
 import { PasswordHistory } from 'src/password/entities/password-history.entity';
+import { Message } from 'src/chat/entities/message.entity'
 // import { CartItem } from '';
 // import { Order } from '';
 // import { Review } from '';
@@ -148,4 +149,10 @@ export class User extends BaseEntity {
 
   @OneToMany(() => PasswordHistory, (passwordHistory) => passwordHistory.user)
   passwordHistory: PasswordHistory[];
+
+  @OneToMany(() => Message, (message) => message.sender)
+  sentMessages: Message[];
+
+  @OneToMany(() => Message, (message) => message.receiver)
+  receivedMessages: Message[];
 }
