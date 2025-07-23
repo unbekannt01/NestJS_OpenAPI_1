@@ -57,17 +57,17 @@ async function bootstrap() {
   app.use(cookieParser());
 
   app.enableCors({
-    origin: '*' ,
+    origin: '*',
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
-  app.use((req, res, next) => {
-    res.header('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
-    res.header('Cross-Origin-Embedder-Policy', 'unsafe-none');
-    next();
-  });
+  // app.use((req, res, next) => {
+  //   res.header('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+  //   res.header('Cross-Origin-Embedder-Policy', 'unsafe-none');
+  //   next();
+  // });
 
   // app.use('/v1/payment/webhook', bodyParser.raw({ type: 'application/json' }));
 
