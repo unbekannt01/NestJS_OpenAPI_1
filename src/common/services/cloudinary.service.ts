@@ -5,7 +5,7 @@ import {
   IStorageProvider,
   UploadResult,
 } from '../../file-upload/providers/IStorageProvider';
-import { inferResourceType } from '../utils/resource-type.util';
+import { extractPublicId, inferResourceType } from '../utils/resource-type.util';
 import { configService } from './config.service';
 
 @Injectable()
@@ -64,12 +64,15 @@ export class CloudinaryService implements IStorageProvider {
     return result;
   }
 
-  async delete(publicId: string, mimeType: string): Promise<void> {
+  async delete(publicIdOrUrl: string, mimeType: string): Promise<void> {
+    const publicId = extractPublicId(publicIdOrUrl);
     const resourceType = inferResourceType(mimeType ?? '');
+
     await cloudinary.uploader.destroy(publicId, {
       resource_type: resourceType,
     });
-    console.log('Deleted From Cloudinary...!');
+
+    console.log('Deleted From Cloudinary...!', publicId);
   }
 
   // async getSignedUrl(publicId: string, mimeType: string): Promise<Buffer> {

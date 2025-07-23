@@ -28,6 +28,7 @@ import { User } from './entities/user.entity';
 import { interval, map, Observable } from 'rxjs';
 import { Request } from 'express';
 import { memoryStorage } from 'multer';
+import { Throttle } from '@nestjs/throttler';
 
 interface MessageEvent {
   data: string | object;
@@ -37,6 +38,7 @@ interface MessageEvent {
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
+  @Throttle({ default: { limit: 1, ttl: 30000 }})
   @Patch('update/:id')
   @UseGuards(AuthGuard('jwt'))
   @UseInterceptors(FileInterceptor('avatar', { storage: memoryStorage() }))

@@ -16,6 +16,7 @@ import { AsyncLocalStorage } from 'async_hooks';
 import { CloudinaryService } from 'src/common/services/cloudinary.service';
 import { plainToInstance } from 'class-transformer';
 import { UserResponseDto } from './dto/user-response.dto';
+import { extractPublicId } from 'src/common/utils/resource-type.util';
 
 @Injectable()
 export class UserService {
@@ -151,6 +152,19 @@ export class UserService {
   ) {
     let avatarUrl: string | undefined;
 
+    const existingUser = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+
+    if (!existingUser) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (avatarFile && existingUser.avatar) {
+      const publicId = extractPublicId(existingUser.avatar);
+      await this.cloudinaryService.delete(publicId, avatarFile.mimetype);
+    }
+
     if (avatarFile) {
       const result = await this.cloudinaryService.upload(avatarFile, 'avatars');
       avatarUrl = result.url;
@@ -162,7 +176,11 @@ export class UserService {
     };
 
     Object.keys(updatePayload).forEach((key) => {
-      if (updatePayload[key] === null || updatePayload[key] === undefined) {
+      if (
+        updatePayload[key] === null ||
+        updatePayload[key] === undefined ||
+        updatePayload[key] === ''
+      ) {
         delete updatePayload[key];
       }
     });
@@ -173,11 +191,7 @@ export class UserService {
       where: { id: userId },
     });
 
-    if (!updatedUser) {
-      throw new NotFoundException('User not found');
-    }
-
-    const responseUser = plainToInstance(UserResponseDto, updatedUser, {
+    const responseUser = plainToInstance(UserResponseDto, updatedUser!, {
       excludeExtraneousValues: true,
     });
 

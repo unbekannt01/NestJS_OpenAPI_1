@@ -32,6 +32,7 @@ import { configService } from 'src/common/services/config.service';
 import * as ms from 'ms';
 import { FileStorageService } from 'src/common/services/file-storage.service';
 import { NotificationsGateway } from 'src/websockets/notifications.gateway';
+import { CloudinaryService } from 'src/common/services/cloudinary.service';
 // import { NotificationsGateway } from 'src/websockets/notifications.gateway';
 
 @Injectable()
@@ -49,8 +50,9 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly emailServiceForVerification: EmailServiceForVerifyMail,
     private readonly eventEmitter: EventEmitter2,
-    private readonly fileStorageService: FileStorageService,
     private readonly notificationsGateway: NotificationsGateway,
+    private readonly cloudinaryService: CloudinaryService,
+    private readonly fileStorageService: FileStorageService,
   ) {}
 
   async loginUser(
@@ -179,7 +181,6 @@ export class AuthService {
 
     if (userByEmail) {
       checkIfSuspended(userByEmail);
-
       if (userByEmail.status === 'ACTIVE') {
         throw new ConflictException('Email already registered...!');
       }
@@ -195,6 +196,7 @@ export class AuthService {
     }
 
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+
     const user = this.userRepository.create({
       ...createUserDto,
       email: normalizedEmail,
@@ -206,7 +208,14 @@ export class AuthService {
       createdAt: new Date(),
       createdBy: normalizedUserName,
     });
+
     const savedUser = await this.userRepository.save(user);
+
+    if (file && file.buffer) {
+      const uploadResult = await this.cloudinaryService.upload(file, 'avatar');
+      savedUser.avatar = uploadResult.url;
+      await this.userRepository.save(savedUser);
+    }
 
     const payload: UserRegisteredPayload = {
       id: savedUser.id,
@@ -215,22 +224,7 @@ export class AuthService {
       role: savedUser.role,
     };
 
-    setTimeout(async () => {
-      try {
-        if (file && file.buffer) {
-          const uploadResult = await this.fileStorageService.upload(
-            file,
-            'avatar',
-          );
-          savedUser.avatar = uploadResult.url;
-          await this.userRepository.save(savedUser);
-        }
-
-        this.eventEmitter.emit('user.registered', payload);
-      } catch (err) {
-        console.error('Background task failed:', err);
-      }
-    }, 0);
+    this.eventEmitter.emit('user.registered', payload);
 
     return {
       message: `${savedUser.role} registered successfully`,
@@ -270,7 +264,7 @@ export class AuthService {
       if (!file.buffer) {
         throw new BadRequestException('Uploaded file is empty or invalid');
       }
-      const uploadResult = await this.fileStorageService.upload(file, 'avatar');
+      const uploadResult = await this.cloudinaryService.upload(file, 'avatar');
       avatarUrl = uploadResult.url;
     }
 
@@ -361,7 +355,7 @@ export class AuthService {
       if (!file.buffer) {
         throw new BadRequestException('Uploaded file is empty or invalid');
       }
-      const uploadResult = await this.fileStorageService.upload(file, 'avatar');
+      const uploadResult = await this.cloudinaryService.upload(file, 'avatar');
       avatarUrl = uploadResult.url;
     }
 
@@ -590,15 +584,12 @@ export class AuthService {
   async removeAvatar(userId: string): Promise<string> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
 
-    if (!user) {
-      throw new NotFoundException('User not found.');
-    }
+    if (!user) throw new NotFoundException('User not found.');
+    if (!user.avatar) throw new BadRequestException('No avatar to remove.');
 
-    if (!user.avatar) {
-      throw new BadRequestException('No avatar to remove.');
-    }
+    const mimeType = 'image/jpeg';
 
-    await this.fileStorageService.delete(user.avatar, 'avatar');
+    await this.fileStorageService.delete(user.avatar, mimeType);
 
     user.avatar = null;
     await this.userRepository.save(user);

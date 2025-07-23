@@ -89,15 +89,13 @@ export class AuthController {
     return await this.authService.simpleRegister(registerDto, file);
   }
 
-  // @Throttle({ default: { limit: 2, ttl: 3 * 1000 } })
+  @Throttle({ default: { limit: 2, ttl: 30000 } })
   @SkipThrottle()
   @HttpCode(HttpStatus.OK)
   @Public()
   @Post('login')
   @UsePipes(ValidationPipe)
-  async login(
-    @Body() login: LoginUserDto,
-  ): Promise<{
+  async login(@Body() login: LoginUserDto): Promise<{
     message: string;
     access_token: string;
     refresh_token: string;
@@ -187,10 +185,10 @@ export class AuthController {
   @Delete('avatar')
   @HttpCode(HttpStatus.OK)
   async removeAvatar(@Req() req: Request): Promise<string> {
-    if (!req.user || !(req.user as any).id) {
+    if (!req.user || !(req.user as { id: string }).id) {
       throw new UnauthorizedException('User not authenticated');
     }
-    const userId = (req.user as any).id;
+    const userId = (req.user as { id: string }).id;
     return this.authService.removeAvatar(userId);
   }
 }

@@ -7,6 +7,7 @@ import {
 import { FileUploadService } from 'src/file-upload/file-upload.service';
 import { SupabaseService } from './supabase.service';
 import { CloudinaryService } from './cloudinary.service';
+import { extractPublicId } from '../utils/resource-type.util';
 
 @Injectable()
 export class FileStorageService implements IStorageProvider {
@@ -49,7 +50,9 @@ export class FileStorageService implements IStorageProvider {
     return this.provider.upload(file, fileType);
   }
 
-  delete(publicId: string, mimeType: string): Promise<void> {
+  delete(publicIdOrUrl: string, mimeType: string): Promise<void> {
+    const publicId = extractPublicId(publicIdOrUrl);
+
     if (typeof this.provider.delete === 'function') {
       return this.provider.delete(publicId, mimeType);
     }
