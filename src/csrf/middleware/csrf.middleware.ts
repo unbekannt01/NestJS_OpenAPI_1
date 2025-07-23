@@ -25,8 +25,8 @@ export class CsrfMiddleware implements NestMiddleware {
       'v1/email-verification-by-link/verify-email',
     ];
 
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('[CSRF] CSRF middleware is disabled in development mode.');
+    if (process.env.NODE_ENV === 'production') {
+      console.warn('[CSRF] CSRF middleware is disabled in production mode.');
       return next();
     }
 

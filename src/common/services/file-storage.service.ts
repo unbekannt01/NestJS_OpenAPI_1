@@ -31,11 +31,11 @@ export class FileStorageService implements IStorageProvider {
         break;
       case undefined:
       case null:
-        if (env === 'development') {
+        if (env === 'production') {
           this.provider = this.cloudinary;
           break;
         } else {
-          throw new Error(`No STORAGE_DRIVER set and not in development mode.`);
+          throw new Error(`No STORAGE_DRIVER set and not in Production mode.`);
         }
       default:
         throw new Error(`Unsupported STORAGE_DRIVER: ${driver}`);

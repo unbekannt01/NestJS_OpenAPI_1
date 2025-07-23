@@ -73,7 +73,7 @@ import { ChatModule } from './chat/chat.module';
     ConfigModule.forRoot({
       isGlobal: true,
       validationSchema,
-      envFilePath: [`.env.${process.env.NODE_ENV || 'development'}`],
+      envFilePath: [`.env.${process.env.NODE_ENV || 'production'}`],
       cache: true,
       // load: [stripeConfig],
     }),

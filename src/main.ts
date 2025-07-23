@@ -117,6 +117,8 @@ async function bootstrap() {
 
   if (env === 'local') {
     console.log(`Server is running on PORT ${PORT} and Local Environment`);
+  } else if (env === 'production') {
+    console.log(`Server is running on PORT ${PORT} and Production Environment`);
   } else if (env === 'development') {
     console.log(
       `Server is running on PORT ${PORT} and Development Environment`,
