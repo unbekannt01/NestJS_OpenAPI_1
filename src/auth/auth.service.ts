@@ -514,7 +514,7 @@ export class AuthService {
   }
 
   async generateUserToken(userId: string, role: UserRole) {
-    const secret = this.configService.get<string>('JWT_SECRET');
+    const secret = configService.getValue('JWT_SECRET');
 
     if (!secret) {
       throw new Error('JWT_SECRET is not defined in environment variables');

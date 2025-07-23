@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import * as jwt from 'jsonwebtoken';
+import { configService } from '../services/config.service';
 
 @Injectable()
 export class AuthMiddleware implements NestMiddleware {
@@ -22,7 +23,7 @@ export class AuthMiddleware implements NestMiddleware {
     try {
       const decoded = jwt.verify(
         token,
-        process.env.JWT_SECRET || 'default_secret',
+        configService.getValue('JWT_SECRET') || 'default_secret',
       );
       req['user'] = decoded;
       next();

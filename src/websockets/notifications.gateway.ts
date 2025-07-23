@@ -9,6 +9,7 @@ import { Logger, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { UserService } from 'src/user/user.service';
+import { configService } from 'src/common/services/config.service';
 
 interface ConnectedUser {
   userId: string;
@@ -70,7 +71,7 @@ export class NotificationsGateway
       }
 
       const payload = this.jwtService.verify(token, {
-        secret: this.configService.get<string>('JWT_SECRET'),
+        secret: configService.getValue('JWT_SECRET'),
       });
 
       const user = await this.userService.getUserById(payload.id);

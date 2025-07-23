@@ -3,6 +3,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { NotificationsGateway } from './notifications.gateway';
 import { UserModule } from 'src/user/user.module';
+import { configService } from 'src/common/services/config.service';
 
 @Module({
   imports: [
@@ -10,8 +11,8 @@ import { UserModule } from 'src/user/user.module';
     forwardRef(()=> UserModule),
     JwtModule.registerAsync({
       imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET'),
+      useFactory: async () => ({
+        secret: configService.getValue('JWT_SECRET'),
         signOptions: { expiresIn: '1h' },
       }),
       inject: [ConfigService],

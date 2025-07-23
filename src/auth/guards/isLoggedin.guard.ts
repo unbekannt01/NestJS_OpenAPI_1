@@ -7,6 +7,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtPayload } from '../interfaces/jwt-payload.interface';
 import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from 'src/common/decorators/public.decorator';
+import { configService } from 'src/common/services/config.service';
 
 @Injectable()
 export class IsLoggedInGuard implements CanActivate {
@@ -42,7 +43,7 @@ export class IsLoggedInGuard implements CanActivate {
       return false;
     }
 
-    const secret = this.configService.get<string>('JWT_SECRET');
+    const secret = configService.getValue('JWT_SECRET');
     if (!secret) {
       return false;
     }
