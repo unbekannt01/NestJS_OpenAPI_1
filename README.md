@@ -1,286 +1,368 @@
 # NestJS E-Commerce API
 
-A comprehensive e-commerce backend API built with NestJS, featuring authentication, product management, order processing, real-time chat, and file uploads.
+A production-ready e-commerce backend API built with NestJS, featuring comprehensive authentication, product management, order processing, real-time communication, and secure file handling.
 
-## 🚀 Features
+## ✨ Key Features
 
-### Core Features
-- **User Authentication & Authorization**
-  - JWT-based authentication
-  - Google OAuth integration
-  - Role-based access control (Admin/User)
-  - Email verification with links
-  - Password reset functionality
-  - OTP verification via SMS/Email
+### 🔐 Authentication & Authorization
+- JWT-based authentication with refresh tokens
+- Google OAuth 2.0 integration
+- Role-based access control (Admin/User)
+- Email verification with secure links
+- Password reset with email confirmation
+- OTP verification via SMS and email
+- Session management and logout
 
-### E-Commerce Functionality
-- **Product Management**
-  - CRUD operations for products
-  - Categories and subcategories
-  - Brand management
-  - Product search and filtering
-  - Tool specifications
+### 🛒 E-Commerce Core
+- **Product Management**: Full CRUD operations with categories, brands, and specifications
+- **Shopping Cart**: Persistent cart with session management
+- **Order Processing**: Complete order lifecycle from creation to fulfillment
+- **Payment Integration**: Secure payments via Razorpay
+- **Search & Filtering**: Advanced product search with multiple filters
+- **Reviews & Ratings**: User review system with moderation
 
-- **Shopping Cart & Orders**
-  - Shopping cart management
-  - Order creation and tracking
-  - Order status updates
-  - Payment integration (Razorpay)
+### 🚀 Advanced Features
+- **Real-time Communication**: WebSocket-based chat and notifications
+- **File Management**: Multi-provider support (Local, Cloudinary, Supabase)
+- **Caching**: Redis-powered performance optimization
+- **Rate Limiting**: API protection against abuse
+- **Security**: CSRF protection, input validation, and sanitization
+- **Monitoring**: Comprehensive logging and health checks
 
-- **Reviews & Ratings**
-  - Product reviews and ratings
-  - Review management
+## 🛠 Technology Stack
 
-### Additional Features
-- **File Upload Support**
-  - Local file storage
-  - Cloudinary integration
-  - Supabase storage integration
-  - Video upload support
-
-- **Real-time Communication**
-  - WebSocket support
-  - Real-time chat system
-  - Notifications gateway
-
-- **Security & Performance**
-  - Rate limiting with Redis
-  - CSRF protection
-  - Request logging and monitoring
-  - Caching with Redis
-  - Input validation and sanitization
-
-## 🛠️ Tech Stack
-
-- **Framework**: NestJS
-- **Database**: PostgreSQL with TypeORM
-- **Cache**: Redis
-- **Authentication**: JWT, Passport.js
-- **File Storage**: Local/Cloudinary/Supabase
-- **Payment**: Razorpay
-- **Documentation**: Swagger/OpenAPI
-- **Real-time**: WebSockets
-- **Validation**: class-validator
-- **Security**: Helmet, CORS
+| Component | Technology |
+|-----------|------------|
+| **Framework** | NestJS with TypeScript |
+| **Database** | PostgreSQL + TypeORM |
+| **Cache** | Redis |
+| **Authentication** | JWT + Passport.js |
+| **File Storage** | Local/Cloudinary/Supabase |
+| **Payments** | Razorpay |
+| **Documentation** | Swagger/OpenAPI |
+| **Real-time** | WebSockets |
+| **Validation** | class-validator |
+| **Security** | Helmet, CORS, Rate Limiting |
 
 ## 📋 Prerequisites
 
-- Node.js (v16 or higher)
-- PostgreSQL database
-- Redis server
-- npm or yarn package manager
+Before you begin, ensure you have the following installed:
 
-## 🚀 Installation
+- **Node.js** (v16.0 or higher)
+- **PostgreSQL** (v12 or higher)
+- **Redis** (v6 or higher)
+- **npm** or **yarn** package manager
 
-1. **Clone the repository**
-   \`\`\`bash
-   git clone <repository-url>
-   cd nestjs-ecommerce-api
-   \`\`\`
+## 🚀 Quick Start
 
-2. **Install dependencies**
-   \`\`\`bash
-   npm install
-   \`\`\`
+### 1. Clone and Install
 
-3. **Environment Configuration**
-   Create environment files based on your setup:
-   - `.env.local` for local development
-   - `.env.development` for development
-   - `.env.production` for production
+```bash
+git clone <repository-url>
+cd nestjs-ecommerce-api
+npm install
+```
 
-   Required environment variables:
-   \`\`\`env
-   # Database
-   DATABASE_HOST=localhost
-   DATABASE_PORT=5432
-   DATABASE_USERNAME=your_username
-   DATABASE_PASSWORD=your_password
-   DATABASE_NAME=your_database
+### 2. Environment Setup
 
-   # JWT
-   JWT_SECRET=your_jwt_secret
-   JWT_EXPIRES_IN=1d
+Create your environment file (`.env.local`, `.env.development`, or `.env.production`):
 
-   # Redis
-   REDIS_HOST=localhost
-   REDIS_PORT=6379
+```env
+# Database Configuration
+DATABASE_HOST=localhost
+DATABASE_PORT=5432
+DATABASE_USERNAME=your_username
+DATABASE_PASSWORD=your_password
+DATABASE_NAME=ecommerce_db
 
-   # Storage
-   STORAGE_DRIVER=local # or cloudinary/supabase
+# Authentication
+JWT_SECRET=your_super_secret_jwt_key
+JWT_EXPIRES_IN=1d
+JWT_REFRESH_SECRET=your_refresh_secret
+JWT_REFRESH_EXPIRES_IN=7d
 
-   # Google OAuth (optional)
-   GOOGLE_CLIENT_ID=your_google_client_id
-   GOOGLE_CLIENT_SECRET=your_google_client_secret
+# Redis Configuration
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=your_redis_password
 
-   # Razorpay (optional)
-   RAZORPAY_KEY_ID=your_razorpay_key
-   RAZORPAY_KEY_SECRET=your_razorpay_secret
+# File Storage
+STORAGE_DRIVER=local # Options: local, cloudinary, supabase
 
-   # Email/SMS Configuration
-   # Add your email and SMS service configurations
-   \`\`\`
+# Google OAuth (Optional)
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+GOOGLE_CALLBACK_URL=http://localhost:3001/auth/google/callback
 
-4. **Start Redis (using Docker)**
-   \`\`\`bash
-   docker-compose up -d
-   \`\`\`
+# Payment Gateway (Optional)
+RAZORPAY_KEY_ID=your_razorpay_key
+RAZORPAY_KEY_SECRET=your_razorpay_secret
 
-5. **Database Setup**
-   \`\`\`bash
-   # Run database migrations
-   npm run migration:run
-   \`\`\`
+# Email Configuration (Configure based on your provider)
+SMTP_HOST=your_smtp_host
+SMTP_PORT=587
+SMTP_USERNAME=your_email
+SMTP_PASSWORD=your_email_password
 
-## 🏃‍♂️ Running the Application
+# Application Settings
+PORT=3001
+NODE_ENV=development
+API_PREFIX=api
+```
 
-### Development
-\`\`\`bash
+### 3. Start Services
+
+Start Redis using Docker:
+```bash
+docker-compose up -d redis
+```
+
+Or install Redis locally following the [official guide](https://redis.io/download).
+
+### 4. Database Setup
+
+```bash
+# Run database migrations
+npm run migration:run
+
+# (Optional) Seed initial data
+npm run seed
+```
+
+### 5. Launch Application
+
+```bash
+# Development mode with hot reload
 npm run start:dev
-\`\`\`
 
-### Production
-\`\`\`bash
+# Production mode
 npm run build
 npm run start:prod
-\`\`\`
+```
 
-The API will be available at `http://localhost:3001`
+Your API will be available at `http://localhost:3001`
 
-## 📚 API Documentation
+## 📖 API Documentation
 
-Once the application is running, you can access the Swagger documentation at:
-- **Swagger UI**: `http://localhost:3001/api`
-- **JSON Documentation**: `http://localhost:3001/api-json`
-- **YAML Documentation**: `http://localhost:3001/api-yaml`
+Access comprehensive API documentation:
 
-## 🏗️ Project Structure
+- **Interactive Swagger UI**: `http://localhost:3001/api`
+- **JSON Format**: `http://localhost:3001/api-json`
+- **YAML Format**: `http://localhost:3001/api-yaml`
 
-\`\`\`
+## 🏗 Project Architecture
+
+```
 src/
-├── admin/              # Admin management
-├── auth/               # Authentication & authorization
-├── brands/             # Brand management
-├── cart/               # Shopping cart functionality
-├── categories/         # Product categories
-├── chat/               # Real-time chat system
-├── common/             # Shared utilities and services
-├── config/             # Configuration files
-├── csrf/               # CSRF protection
-├── email-verification-by-link/  # Email verification
-├── file-upload/        # File upload services
-├── gateway/            # WebSocket gateway
-├── login-using-google/ # Google OAuth
-├── order/              # Order management
-├── otp/                # OTP verification
-├── password/           # Password management
-├── payment/            # Payment processing
-├── products/           # Product management
-├── review/             # Product reviews
-├── search/             # Search functionality
-├── user/               # User management
-├── websockets/         # WebSocket services
-├── app.module.ts       # Main application module
-└── main.ts             # Application entry point
-\`\`\`
+├── auth/                   # Authentication & JWT management
+├── user/                   # User profile & management
+├── admin/                  # Admin-specific functionality
+├── products/               # Product CRUD & management
+├── categories/             # Product categorization
+├── brands/                 # Brand management
+├── cart/                   # Shopping cart operations
+├── order/                  # Order processing & tracking
+├── payment/                # Payment integration
+├── review/                 # Product reviews & ratings
+├── search/                 # Search & filtering
+├── file-upload/            # Multi-provider file handling
+├── chat/                   # Real-time messaging
+├── gateway/                # WebSocket gateway
+├── otp/                    # OTP verification
+├── email-verification-by-link/ # Email verification
+├── password/               # Password reset functionality
+├── login-using-google/     # Google OAuth integration
+├── csrf/                   # CSRF protection
+├── common/                 # Shared utilities & decorators
+├── config/                 # Configuration modules
+├── websockets/             # WebSocket services
+├── app.module.ts           # Root application module
+└── main.ts                 # Application bootstrap
+```
 
-## 🔧 Available Scripts
+## 🔧 Available Commands
 
-\`\`\`bash
-# Development
-npm run start:dev      # Start in development mode
-npm run start:debug    # Start in debug mode
+### Development
+```bash
+npm run start:dev          # Start with hot reload
+npm run start:debug        # Start in debug mode
+npm run start              # Start normally
+```
 
-# Production
-npm run build          # Build the application
-npm run start:prod     # Start in production mode
+### Database
+```bash
+npm run migration:generate -- --name MigrationName
+npm run migration:run      # Apply pending migrations
+npm run migration:revert   # Rollback last migration
+npm run seed              # Populate initial data
+```
 
-# Database
-npm run migration:generate  # Generate new migration
-npm run migration:run      # Run migrations
-npm run migration:revert   # Revert last migration
+## 🔐 Authentication Guide
 
-# Testing
-npm run test           # Run unit tests
-npm run test:e2e       # Run end-to-end tests
-npm run test:cov       # Run tests with coverage
+### JWT Token Usage
+Include the JWT token in your request headers:
 
-# Linting
-npm run lint           # Run ESLint
-npm run format         # Format code with Prettier
-\`\`\`
+```http
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
 
-## 🔐 Authentication
+### Core Authentication Endpoints
 
-The API uses JWT tokens for authentication. Include the token in the Authorization header:
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/auth/register` | POST | User registration |
+| `/auth/login` | POST | User login |
+| `/auth/refresh` | POST | Refresh access token |
+| `/auth/logout` | POST | User logout |
+| `/auth/forgot-password` | POST | Request password reset |
+| `/auth/reset-password` | POST | Reset password with token |
+| `/auth/verify-email` | GET | Verify email address |
+| `/auth/google` | GET | Google OAuth login |
 
-\`\`\`
-Authorization: Bearer <your-jwt-token>
-\`\`\`
+### Role-Based Access
 
-### Available Auth Endpoints:
-- `POST /auth/register` - User registration
-- `POST /auth/login` - User login
-- `POST /auth/refresh-token` - Refresh JWT token
-- `POST /auth/logout` - User logout
-- `POST /auth/forgot-password` - Request password reset
-- `POST /auth/reset-password` - Reset password
+- **Public**: No authentication required
+- **User**: Requires valid JWT token
+- **Admin**: Requires admin role privileges
 
-## 🛡️ Security Features
+## 🛡 Security Features
 
-- **Rate Limiting**: 50 requests per minute per IP
-- **CORS**: Configurable cross-origin resource sharing
-- **Helmet**: Security headers
-- **Input Validation**: Request validation using class-validator
-- **JWT Guards**: Protected routes with JWT authentication
-- **Role Guards**: Role-based access control
+### Built-in Protection
+- **Rate Limiting**: 100 requests per 15 minutes per IP
+- **CORS**: Configurable cross-origin policies
+- **Helmet**: Security headers for common vulnerabilities
+- **Input Validation**: Strict request validation using DTOs
+- **SQL Injection**: Protected via TypeORM parameterized queries
+- **XSS Protection**: Input sanitization and output encoding
+- **CSRF Protection**: Token-based CSRF prevention
 
-## 📁 File Upload
+### Authentication Security
+- **JWT Tokens**: Secure token generation and validation
+- **Password Hashing**: bcrypt with salt rounds
+- **Session Management**: Secure session handling
+- **Refresh Tokens**: Automatic token refresh mechanism
 
-The application supports multiple storage drivers:
+## 📁 File Upload Configuration
 
-1. **Local Storage**: Files stored in `uploads/` directory
-2. **Cloudinary**: Cloud-based image and video management
-3. **Supabase**: Supabase storage integration
+### Supported Storage Providers
 
-Configure the storage driver using the `STORAGE_DRIVER` environment variable.
+1. **Local Storage**
+   ```env
+   STORAGE_DRIVER=local
+   UPLOAD_PATH=./uploads
+   ```
+
+2. **Cloudinary**
+   ```env
+   STORAGE_DRIVER=cloudinary
+   CLOUDINARY_CLOUD_NAME=your_cloud_name
+   CLOUDINARY_API_KEY=your_api_key
+   CLOUDINARY_API_SECRET=your_api_secret
+   ```
+
+3. **Supabase Storage**
+   ```env
+   STORAGE_DRIVER=supabase
+   SUPABASE_URL=your_supabase_url
+   SUPABASE_ANON_KEY=your_anon_key
+   SUPABASE_BUCKET=your_bucket_name
+   ```
 
 ## 🔄 Real-time Features
 
-- **WebSocket Gateway**: Real-time communication
-- **Chat System**: Real-time messaging
-- **Notifications**: Real-time notifications
+### WebSocket Events
+- **User Connection**: `user:connected`
+- **Chat Messages**: `chat:message`
+- **Order Updates**: `order:status_changed`
+- **Product Updates**: `product:updated`
+- **Notifications**: `notification:new`
+
+### Usage Example
+```javascript
+const socket = io('ws://localhost:3001');
+socket.emit('chat:join_room', { roomId: 'room123' });
+socket.on('chat:message', (data) => console.log('New message:', data));
+```
 
 ## 🚀 Deployment
 
-### Using Docker
-\`\`\`bash
+### Docker Deployment
+```bash
 # Build and run with Docker Compose
-docker-compose up --build
-\`\`\`
+docker-compose up --build -d
+
+# Or build individual container
+docker build -t nestjs-ecommerce .
+docker run -p 3001:3001 nestjs-ecommerce
+```
 
 ### Manual Deployment
-1. Build the application: `npm run build`
-2. Set production environment variables
-3. Run database migrations: `npm run migration:run`
-4. Start the application: `npm run start:prod`
+
+1. **Build the application**
+   ```bash
+   npm run build
+   ```
+
+2. **Set environment variables**
+   ```bash
+   export NODE_ENV=production
+   export DATABASE_URL=your_production_db_url
+   ```
+
+3. **Run migrations**
+   ```bash
+   npm run migration:run
+   ```
+
+4. **Start the server**
+   ```bash
+   npm run start:prod
+   ```
+
+### Logging
+The application uses structured logging with different levels:
+- **Error**: Application errors and exceptions
+- **Warn**: Warning messages and deprecated usage
+- **Info**: General application information
+- **Debug**: Detailed debug information (development only)
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/new-feature`
-3. Commit your changes: `git commit -am 'Add new feature'`
-4. Push to the branch: `git push origin feature/new-feature`
-5. Submit a pull request
+We welcome contributions! Please follow these steps:
 
-## 🆘 Support
+1. **Fork the repository**
+2. **Create a feature branch**
+   ```bash
+   git checkout -b feature/amazing-feature
+   ```
+3. **Make your changes**
+4. **Commit your changes**
+   ```bash
+   git commit -m 'feat: add amazing feature'
+   ```
+5. **Push to your branch**
+   ```bash
+   git push origin feature/amazing-feature
+   ```
+6. **Open a Pull Request**
 
-For support and questions:
-- Create an issue in the repository
-- Check the API documentation at `/api`
-- Review the logs for debugging information
+### Commit Convention
+We use [Conventional Commits](https://www.conventionalcommits.org/):
+- `feat:` New features
+- `fix:` Bug fixes
+- `docs:` Documentation updates
+- `style:` Code style changes
+- `refactor:` Code refactoring
+- `chore:` Maintenance tasks
 
-## 🔧 Health Check
+## 🙏 Acknowledgments
 
-The application includes a health check endpoint:
-- `GET /health` - Check application health status
+- **NestJS Team** for the amazing framework
+- **Contributors** who have helped improve this project
+- **Community** for feedback and suggestions
+
+---
+
+**Made with ❤️ by the development team**
+
+For more information, visit our [documentation](./docs) or check out the [API reference](http://localhost:3001/api).
